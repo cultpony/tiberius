@@ -1,0 +1,16 @@
+[default]
+address = "127.0.0.1"
+limits = { forms = "64 kB", json = "1 MiB" }
+data_root = "./data"
+port = 8000
+
+[debug]
+disable_workers = true
+
+[release]
+address = "0.0.0.0"
+secret_key = "<insert your secret key here>"
+philomena_secret = "<insert your philomena secret key here>"
+password_pepper = "<insert your password pepper key here>"
+workers = 32
+keep_alive = 5

@@ -1,0 +1,1029 @@
+{
+  "db": "PostgreSQL",
+  "02b9b7d955ea072ad6c231ee17dd58ac7834304dcf2104feeabf20362f0bd8aa": {
+    "query": "SELECT * FROM channels WHERE type = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "short_name",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 2,
+          "name": "title",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 3,
+          "name": "description",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 4,
+          "name": "channel_image",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 5,
+          "name": "tags",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 6,
+          "name": "viewers",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 7,
+          "name": "nsfw",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 8,
+          "name": "is_live",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 9,
+          "name": "last_fetched_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 10,
+          "name": "next_check_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 11,
+          "name": "last_live_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 12,
+          "name": "watcher_ids",
+          "type_info": "Int4Array"
+        },
+        {
+          "ordinal": 13,
+          "name": "watcher_count",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 14,
+          "name": "type",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 15,
+          "name": "created_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 16,
+          "name": "updated_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 17,
+          "name": "associated_artist_tag_id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 18,
+          "name": "viewer_minutes_today",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 19,
+          "name": "viewer_minutes_thisweek",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 20,
+          "name": "viewer_minutes_thismonth",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 21,
+          "name": "total_viewer_minutes",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 22,
+          "name": "banner_image",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 23,
+          "name": "remote_stream_id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 24,
+          "name": "thumbnail_url",
+          "type_info": "Varchar"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true
+      ]
+    }
+  },
+  "168aa25e535b35a9908494f358067285967c2b5c65dc1075ad82dad57ab4b8ac": {
+    "query": "\n                SELECT\n                    id, email::TEXT as \"email!\", encrypted_password, reset_password_token, reset_password_sent_at, remember_created_at,\n                    sign_in_count, current_sign_in_at, last_sign_in_at, current_sign_in_ip, last_sign_in_ip, created_at, updated_at,\n                    deleted_at, authentication_token, name, slug, role, description, avatar, spoiler_type, theme, images_per_page,\n                    show_large_thumbnails, show_sidebar_and_watched_images, fancy_tag_field_on_upload, fancy_tag_field_on_edit,\n                    fancy_tag_field_in_settings, autorefresh_by_default, anonymous_by_default, scale_large_images, comments_newest_first,\n                    comments_always_jump_to_last, comments_per_page, watch_on_reply, watch_on_new_topic, watch_on_upload,\n                    messages_newest_first, serve_webm, no_spoilered_in_watched, watched_images_query_str, watched_images_exclude_str,\n                    forum_posts_count, topic_count, recent_filter_ids, unread_notification_ids, watched_tag_ids, deleted_by_user_id,\n                    current_filter_id, failed_attempts, unlock_token, locked_at, uploads_count, votes_cast_count, comments_posted_count,\n                    metadata_updates_count, images_favourited_count, last_donation_at, scratchpad, use_centered_layout,\n                    secondary_role, hide_default_role, personal_title, show_hidden_items, hide_vote_counts, hide_advertisements,\n                    encrypted_otp_secret, encrypted_otp_secret_iv, encrypted_otp_secret_salt, consumed_timestep, otp_required_for_login,\n                    otp_backup_codes, last_renamed_at, forced_filter_id, confirmed_at\n                FROM users \n                WHERE \n                    id = (\n                        SELECT user_id \n                        FROM user_tokens \n                        WHERE \n                            token = $1 \n                        AND \n                            context = $2\n                        LIMIT 1)",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "email!",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 2,
+          "name": "encrypted_password",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 3,
+          "name": "reset_password_token",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 4,
+          "name": "reset_password_sent_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 5,
+          "name": "remember_created_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 6,
+          "name": "sign_in_count",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 7,
+          "name": "current_sign_in_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 8,
+          "name": "last_sign_in_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 9,
+          "name": "current_sign_in_ip",
+          "type_info": "Inet"
+        },
+        {
+          "ordinal": 10,
+          "name": "last_sign_in_ip",
+          "type_info": "Inet"
+        },
+        {
+          "ordinal": 11,
+          "name": "created_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 12,
+          "name": "updated_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 13,
+          "name": "deleted_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 14,
+          "name": "authentication_token",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 15,
+          "name": "name",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 16,
+          "name": "slug",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 17,
+          "name": "role",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 18,
+          "name": "description",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 19,
+          "name": "avatar",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 20,
+          "name": "spoiler_type",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 21,
+          "name": "theme",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 22,
+          "name": "images_per_page",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 23,
+          "name": "show_large_thumbnails",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 24,
+          "name": "show_sidebar_and_watched_images",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 25,
+          "name": "fancy_tag_field_on_upload",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 26,
+          "name": "fancy_tag_field_on_edit",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 27,
+          "name": "fancy_tag_field_in_settings",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 28,
+          "name": "autorefresh_by_default",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 29,
+          "name": "anonymous_by_default",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 30,
+          "name": "scale_large_images",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 31,
+          "name": "comments_newest_first",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 32,
+          "name": "comments_always_jump_to_last",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 33,
+          "name": "comments_per_page",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 34,
+          "name": "watch_on_reply",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 35,
+          "name": "watch_on_new_topic",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 36,
+          "name": "watch_on_upload",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 37,
+          "name": "messages_newest_first",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 38,
+          "name": "serve_webm",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 39,
+          "name": "no_spoilered_in_watched",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 40,
+          "name": "watched_images_query_str",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 41,
+          "name": "watched_images_exclude_str",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 42,
+          "name": "forum_posts_count",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 43,
+          "name": "topic_count",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 44,
+          "name": "recent_filter_ids",
+          "type_info": "Int4Array"
+        },
+        {
+          "ordinal": 45,
+          "name": "unread_notification_ids",
+          "type_info": "Int4Array"
+        },
+        {
+          "ordinal": 46,
+          "name": "watched_tag_ids",
+          "type_info": "Int4Array"
+        },
+        {
+          "ordinal": 47,
+          "name": "deleted_by_user_id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 48,
+          "name": "current_filter_id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 49,
+          "name": "failed_attempts",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 50,
+          "name": "unlock_token",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 51,
+          "name": "locked_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 52,
+          "name": "uploads_count",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 53,
+          "name": "votes_cast_count",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 54,
+          "name": "comments_posted_count",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 55,
+          "name": "metadata_updates_count",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 56,
+          "name": "images_favourited_count",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 57,
+          "name": "last_donation_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 58,
+          "name": "scratchpad",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 59,
+          "name": "use_centered_layout",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 60,
+          "name": "secondary_role",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 61,
+          "name": "hide_default_role",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 62,
+          "name": "personal_title",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 63,
+          "name": "show_hidden_items",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 64,
+          "name": "hide_vote_counts",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 65,
+          "name": "hide_advertisements",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 66,
+          "name": "encrypted_otp_secret",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 67,
+          "name": "encrypted_otp_secret_iv",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 68,
+          "name": "encrypted_otp_secret_salt",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 69,
+          "name": "consumed_timestep",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 70,
+          "name": "otp_required_for_login",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 71,
+          "name": "otp_backup_codes",
+          "type_info": "VarcharArray"
+        },
+        {
+          "ordinal": 72,
+          "name": "last_renamed_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 73,
+          "name": "forced_filter_id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 74,
+          "name": "confirmed_at",
+          "type_info": "Timestamp"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Bytea",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        null,
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true
+      ]
+    }
+  },
+  "52626752c085a24b5a3c836b133b761df6bf35858f466a61bd7e3a29fa7bfed2": {
+    "query": "SELECT * FROM filters WHERE user_id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 2,
+          "name": "description",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 3,
+          "name": "system",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 4,
+          "name": "public",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 5,
+          "name": "hidden_complex_str",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 6,
+          "name": "spoilered_complex_str",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 7,
+          "name": "hidden_tag_ids",
+          "type_info": "Int4Array"
+        },
+        {
+          "ordinal": 8,
+          "name": "spoilered_tag_ids",
+          "type_info": "Int4Array"
+        },
+        {
+          "ordinal": 9,
+          "name": "user_count",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 10,
+          "name": "created_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 11,
+          "name": "updated_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 12,
+          "name": "user_id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true
+      ]
+    }
+  },
+  "71cfcb13a610da93cefc6b2a295b188c679eaa3f282562d0e7c00c63ddefafe8": {
+    "query": "SELECT * FROM tags WHERE id = ANY($1)",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "name",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 2,
+          "name": "slug",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 3,
+          "name": "description",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 4,
+          "name": "short_description",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 5,
+          "name": "namespace",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 6,
+          "name": "name_in_namespace",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 7,
+          "name": "images_count",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 8,
+          "name": "image",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 9,
+          "name": "image_format",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 10,
+          "name": "image_mime_type",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 11,
+          "name": "aliased_tag_id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 12,
+          "name": "created_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 13,
+          "name": "updated_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 14,
+          "name": "category",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 15,
+          "name": "mod_notes",
+          "type_info": "Varchar"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int4Array"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        true
+      ]
+    }
+  },
+  "c1cc9e4b6ac63758821bbeb16349823c28284369df9efdcf03c839ef7885fca8": {
+    "query": "SELECT * FROM channels WHERE nsfw = false AND last_fetched_at is not null",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "short_name",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 2,
+          "name": "title",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 3,
+          "name": "description",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 4,
+          "name": "channel_image",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 5,
+          "name": "tags",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 6,
+          "name": "viewers",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 7,
+          "name": "nsfw",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 8,
+          "name": "is_live",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 9,
+          "name": "last_fetched_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 10,
+          "name": "next_check_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 11,
+          "name": "last_live_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 12,
+          "name": "watcher_ids",
+          "type_info": "Int4Array"
+        },
+        {
+          "ordinal": 13,
+          "name": "watcher_count",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 14,
+          "name": "type",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 15,
+          "name": "created_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 16,
+          "name": "updated_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 17,
+          "name": "associated_artist_tag_id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 18,
+          "name": "viewer_minutes_today",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 19,
+          "name": "viewer_minutes_thisweek",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 20,
+          "name": "viewer_minutes_thismonth",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 21,
+          "name": "total_viewer_minutes",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 22,
+          "name": "banner_image",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 23,
+          "name": "remote_stream_id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 24,
+          "name": "thumbnail_url",
+          "type_info": "Varchar"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true
+      ]
+    }
+  },
+  "ce77fd8eae51ce33380791bf902cb42b52c701c8e0954c800fd5aab35b87ced4": {
+    "query": "UPDATE channels AS c\n                SET \n                    short_name = $2,\n                    title = $3,\n                    description = $4,\n                    channel_image = $5,\n                    tags = $6,\n                    viewers = $7,\n                    nsfw = $8,\n                    is_live = $9,\n                    last_fetched_at = $10,\n                    last_live_at = $11,\n                    watcher_ids = $12,\n                    watcher_count = $13,\n                    type = $14,\n                    associated_artist_tag_id = $15,\n                    viewer_minutes_today = $16,\n                    viewer_minutes_thisweek = $17,\n                    viewer_minutes_thismonth = $18,\n                    total_viewer_minutes = $19,\n                    banner_image = $20,\n                    remote_stream_id = $21,\n                    updated_at = $22\n                WHERE id = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Varchar",
+          "Varchar",
+          "Varchar",
+          "Varchar",
+          "Varchar",
+          "Int4",
+          "Bool",
+          "Bool",
+          "Timestamp",
+          "Timestamp",
+          "Int4Array",
+          "Int4",
+          "Varchar",
+          "Int4",
+          "Int4",
+          "Int4",
+          "Int4",
+          "Int4",
+          "Varchar",
+          "Int4",
+          "Timestamp"
+        ]
+      },
+      "nullable": []
+    }
+  }
+}

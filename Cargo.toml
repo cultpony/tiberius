@@ -1,0 +1,3 @@
+[workspace]
+members = ["tiberius-server", "tiberius-models", "tiberius-core", "tiberius-jobs"]
+default-members = ["tiberius-server"]
