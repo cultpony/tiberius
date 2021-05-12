@@ -1,0 +1,10 @@
+/target
+/local-data
+/data
+/tmp
+/keys
+/index
+/*.pem
+**/.env
+/proxy*.sh
+/Rocket.toml

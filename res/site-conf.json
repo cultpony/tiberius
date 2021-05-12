@@ -1,0 +1,7 @@
+{
+    "name": "YourBooruName",
+    "source_repo": "https://github.com/cultpony/tiberius",
+    "source_name": "Tiberius",
+    "activity_filter": "created_at.lte:3 minutes ago",
+    "tag_url_root": "/media"
+}

@@ -1,0 +1,165 @@
+{
+  "db": "PostgreSQL",
+  "798bc9e88f61b78d7c43ad23c7f18bae360a26bc78ba285812db94f4a34a95d2": {
+    "query": "\n                SELECT * FROM channels \n                WHERE \n                    nsfw = false\n                AND\n                    last_fetched_at is not null",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 1,
+          "name": "short_name",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 2,
+          "name": "title",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 3,
+          "name": "description",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 4,
+          "name": "channel_image",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 5,
+          "name": "tags",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 6,
+          "name": "viewers",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 7,
+          "name": "nsfw",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 8,
+          "name": "is_live",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 9,
+          "name": "last_fetched_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 10,
+          "name": "next_check_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 11,
+          "name": "last_live_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 12,
+          "name": "watcher_ids",
+          "type_info": "Int4Array"
+        },
+        {
+          "ordinal": 13,
+          "name": "watcher_count",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 14,
+          "name": "type",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 15,
+          "name": "created_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 16,
+          "name": "updated_at",
+          "type_info": "Timestamp"
+        },
+        {
+          "ordinal": 17,
+          "name": "associated_artist_tag_id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 18,
+          "name": "viewer_minutes_today",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 19,
+          "name": "viewer_minutes_thisweek",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 20,
+          "name": "viewer_minutes_thismonth",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 21,
+          "name": "total_viewer_minutes",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 22,
+          "name": "banner_image",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 23,
+          "name": "remote_stream_id",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 24,
+          "name": "thumbnail_url",
+          "type_info": "Varchar"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true
+      ]
+    }
+  }
+}

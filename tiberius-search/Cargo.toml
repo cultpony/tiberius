@@ -1,0 +1,33 @@
+[package]
+name = "tiberius-search"
+version = "0.1.0"
+authors = ["cultpony <67918945+cultpony@users.noreply.github.com>"]
+edition = "2018"
+license = "AGPL-3.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-std = { version = "1.6", features = [ "attributes" ] }
+chrono = "0.4.19"
+strsim = "0.10.0"
+thiserror = "1.0.25"
+lazy-regex = "2.2.1"
+tantivy = { version = "0.15.3", optional = true }
+either = "1.6.1"
+async-trait = "0.1.50"
+tracing = "0.1.26"
+htp = "0.2.1"
+chrono-english = "0.1.6"
+
+[features]
+default = ["search-with-tantivy"]
+search-with-tantivy = ["tantivy"]
+
+[dev-dependencies]
+criterion = "0.3"
+anyhow = "*"
+
+[[bench]]
+name = "benchmark_pass5_folding"
+harness = false

@@ -1,0 +1,1181 @@
+[
+    {
+        "title": "Main",
+        "mode": "Default",
+        "tables": [
+            {
+                "title": "Ratings",
+                "tags": [
+                    "safe",
+                    "suggestive",
+                    "questionable",
+                    "explicit",
+                    "semi-grimdark",
+                    "grimdark",
+                    "grotesque"
+                ]
+            },
+            {
+                "title": "Episode Spoilers",
+                "tags": [
+                    "spoiler:s09e20",
+                    "spoiler:s09e21",
+                    "spoiler:s09e22",
+                    "spoiler:s09e23",
+                    "spoiler:s09e24",
+                    "spoiler:s09e25",
+                    "spoiler:s09e26"
+                ]
+            },
+            {
+                "title": "General Spoilers",
+                "tags": [
+                    "spoiler:eqg specials",
+                    "spoiler:comic",
+                    "spoiler:eqg series (season 2)",
+                    "spoiler:s09",
+                    "spoiler:rainbow roadtrip",
+                    "spoilers for another series"
+                ]
+            },
+            {
+                "title": "Species",
+                "tags": [
+                    "anthro",
+                    "equestria girls",
+                    "human",
+                    "humanized",
+                    "pony",
+                    "earth pony",
+                    "pegasus",
+                    "unicorn",
+                    "alicorn"
+                ]
+            },
+            {
+                "title": "Often Forgotten",
+                "tags": [
+                    "solo",
+                    "screencap",
+                    "image macro",
+                    "monochrome",
+                    "oc",
+                    "photo",
+                    "Tag original characters oc:name"
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Species",
+        "mode": "Default",
+        "tables": [
+            {
+                "title": "Major",
+                "tags": [
+                    "bat pony",
+                    "changeling",
+                    "changedling",
+                    "deer",
+                    "dragon",
+                    "griffon",
+                    "classical hippogriff",
+                    "yak",
+                    "zebra"
+                ]
+            },
+            {
+                "title": "Minor",
+                "tags": [
+                    "abyssinian",
+                    "breezie",
+                    "centaur",
+                    "diamond dog",
+                    "draconequus",
+                    "kirin",
+                    "seapony (g4)",
+                    "siren",
+                    "sphinx"
+                ]
+            },
+            {
+                "title": "Animal",
+                "tags": [
+                    "chimera",
+                    "cockatrice",
+                    "hydra",
+                    "manticore",
+                    "parasprite",
+                    "phoenix",
+                    "tatzlwurm",
+                    "timber wolf",
+                    "windigo"
+                ]
+            },
+            {
+                "title": "Misc",
+                "tags": [
+                    "original species",
+                    "hybrid"
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Shorthands A",
+        "mode": "ShortHand",
+        "mappings": [
+            {
+                "title": "Mane Cast",
+                "map": {
+                    "m6": "mane six",
+                    "pt": "princess twilight",
+                    "ts": "twilight sparkle",
+                    "rd": "rainbow dash",
+                    "ry": "rarity",
+                    "aj": "applejack",
+                    "fs": "fluttershy",
+                    "pp": "pinkie pie",
+                    "sp": "spike"
+                }
+            },
+            {
+                "title": "Secondary Cast",
+                "map": {
+                    "cmc": "cutie mark crusaders",
+                    "ab": "apple bloom",
+                    "sl": "scootaloo",
+                    "sb": "sweetie belle",
+                    "tia": "princess celestia",
+                    "luna": "princess luna",
+                    "pcd": "princess cadance",
+                    "sa": "shining armor",
+                    "sg": "starlight glimmer"
+                }
+            },
+            {
+                "title": "More Ponies",
+                "map": {
+                    "tx": "trixie",
+                    "sus": "sunset shimmer",
+                    "sombra": "king sombra",
+                    "qc": "queen chrysalis",
+                    "dc": "discord",
+                    "nmm": "nightmare moon",
+                    "sf": "spitfire",
+                    "sn": "soarin'",
+                    "ld": "lightning dust"
+                }
+            },
+            {
+                "title": "More Apples",
+                "map": {
+                    "bm": "big macintosh",
+                    "gs": "granny smith",
+                    "bb": "braeburn",
+                    "bs": "babs seed"
+                }
+            },
+            {
+                "title": "Fillies and Colts",
+                "map": {
+                    "ss": "silver spoon",
+                    "dt": "diamond tiara",
+                    "pfh": "princess flurry heart"
+                }
+            }
+        ]
+    },
+    {
+        "title": "B",
+        "mode": "ShortHand",
+        "mappings": [
+            {
+                "title": "Background Ponies",
+                "map": {
+                    "dh": "derpy hooves",
+                    "dw": "doctor whooves",
+                    "cgt": "colgate",
+                    "bon": "bon bon",
+                    "oct": "octavia melody",
+                    "dj": "vinyl scratch",
+                    "bp": "berry punch",
+                    "pbb": "prince blueblood"
+                }
+            },
+            {
+                "title": "Uncategorized",
+                "map": {
+                    "maud": "maud pie",
+                    "coco": "coco pommel",
+                    "suri": "suri polomare",
+                    "rg": "royal guard",
+                    "za": "zecora",
+                    "mm": "mayor mare",
+                    "pdp": "pinkamena diane pie",
+                    "owol": "owlowiscious",
+                    "opal": "opalescence"
+                }
+            },
+            {
+                "title": "Other Things",
+                "map": {
+                    "cm": "cutie mark",
+                    "eoh": "elements of harmony",
+                    "nmn": "nightmare night"
+                }
+            }
+        ]
+    },
+    {
+        "title": "Ships ts",
+        "mode": "Shipping",
+        "implying": [
+            "shipping",
+            "twilight sparkle"
+        ],
+        "not_implying": []
+    },
+    {
+        "title": "rd",
+        "mode": "Shipping",
+        "implying": [
+            "shipping",
+            "rainbow dash"
+        ],
+        "not_implying": []
+    },
+    {
+        "title": "ry",
+        "mode": "Shipping",
+        "implying": [
+            "shipping",
+            "rarity"
+        ],
+        "not_implying": []
+    },
+    {
+        "title": "aj",
+        "mode": "Shipping",
+        "implying": [
+            "shipping",
+            "applejack"
+        ],
+        "not_implying": []
+    },
+    {
+        "title": "fs",
+        "mode": "Shipping",
+        "implying": [
+            "shipping",
+            "fluttershy"
+        ],
+        "not_implying": []
+    },
+    {
+        "title": "pp",
+        "mode": "Shipping",
+        "implying": [
+            "shipping",
+            "pinkie pie"
+        ],
+        "not_implying": []
+    },
+    {
+        "title": "misc",
+        "mode": "Shipping",
+        "implying": [
+            "shipping"
+        ],
+        "not_implying": [
+            "twilight sparkle",
+            "rainbow dash",
+            "rarity",
+            "applejack",
+            "fluttershy",
+            "pinkie pie"
+        ]
+    },
+    {
+        "title": "Season 9",
+        "mode": "Season",
+        "episodes": [
+            {
+                "episode_number": "1-2",
+                "name": "the beginning of the end"
+            },
+            {
+                "episode_number": "3",
+                "name": "uprooted"
+            },
+            {
+                "episode_number": "4",
+                "name": "twilight's seven"
+            },
+            {
+                "episode_number": "5",
+                "name": "the point of no return"
+            },
+            {
+                "episode_number": "6",
+                "name": "common ground"
+            },
+            {
+                "episode_number": "7",
+                "name": "she's all yak"
+            },
+            {
+                "episode_number": "8",
+                "name": "frenemies (episode)"
+            },
+            {
+                "episode_number": "9",
+                "name": "sweet and smoky"
+            },
+            {
+                "episode_number": "10",
+                "name": "going to seed"
+            },
+            {
+                "episode_number": "11",
+                "name": "student counsel"
+            },
+            {
+                "episode_number": "12",
+                "name": "the last crusade (episode)"
+            },
+            {
+                "episode_number": "13",
+                "name": "between dark and dawn"
+            },
+            {
+                "episode_number": "14",
+                "name": "that's a laugh"
+            },
+            {
+                "episode_number": "15",
+                "name": "2 4 6 greaaat"
+            },
+            {
+                "episode_number": "16",
+                "name": "a trivial pursuit"
+            },
+            {
+                "episode_number": "17",
+                "name": "the summer sun setback"
+            },
+            {
+                "episode_number": "18",
+                "name": "she talks to angel"
+            },
+            {
+                "episode_number": "19",
+                "name": "dragon dropped"
+            },
+            {
+                "episode_number": "20",
+                "name": "a horse shoe-in"
+            },
+            {
+                "episode_number": "21",
+                "name": "daring doubt"
+            },
+            {
+                "episode_number": "22",
+                "name": "growing up is hard to do"
+            },
+            {
+                "episode_number": "23",
+                "name": "the big mac question"
+            },
+            {
+                "episode_number": "24-25",
+                "name": "the ending of the end"
+            },
+            {
+                "episode_number": "26",
+                "name": "the last problem"
+            }
+        ]
+    },
+    {
+        "title": "8",
+        "mode": "Season",
+        "episodes": [
+            {
+                "episode_number": "1-2",
+                "name": "school daze"
+            },
+            {
+                "episode_number": "3",
+                "name": "the maud couple"
+            },
+            {
+                "episode_number": "4",
+                "name": "fake it 'til you make it"
+            },
+            {
+                "episode_number": "5",
+                "name": "grannies gone wild"
+            },
+            {
+                "episode_number": "6",
+                "name": "surf and/or turf"
+            },
+            {
+                "episode_number": "7",
+                "name": "horse play"
+            },
+            {
+                "episode_number": "8",
+                "name": "the parent map"
+            },
+            {
+                "episode_number": "9",
+                "name": "non-compete clause"
+            },
+            {
+                "episode_number": "10",
+                "name": "the break up breakdown"
+            },
+            {
+                "episode_number": "11",
+                "name": "molt down"
+            },
+            {
+                "episode_number": "12",
+                "name": "marks for effort"
+            },
+            {
+                "episode_number": "13",
+                "name": "the mean 6"
+            },
+            {
+                "episode_number": "14",
+                "name": "a matter of principals"
+            },
+            {
+                "episode_number": "15",
+                "name": "the hearth's warming club"
+            },
+            {
+                "episode_number": "16",
+                "name": "friendship university"
+            },
+            {
+                "episode_number": "17",
+                "name": "the end in friend"
+            },
+            {
+                "episode_number": "18",
+                "name": "yakity-sax"
+            },
+            {
+                "episode_number": "19",
+                "name": "on the road to friendship"
+            },
+            {
+                "episode_number": "20",
+                "name": "the washouts (episode)"
+            },
+            {
+                "episode_number": "21",
+                "name": "a rockhoof and a hard place"
+            },
+            {
+                "episode_number": "22",
+                "name": "what lies beneath"
+            },
+            {
+                "episode_number": "23",
+                "name": "sounds of silence"
+            },
+            {
+                "episode_number": "24",
+                "name": "father knows beast"
+            },
+            {
+                "episode_number": "25-26",
+                "name": "school raze"
+            },
+            {
+                "episode_number": "Special",
+                "name": "best gift ever"
+            }
+        ]
+    },
+    {
+        "title": "7",
+        "mode": "Season",
+        "episodes": [
+            {
+                "episode_number": "1",
+                "name": "celestial advice"
+            },
+            {
+                "episode_number": "2",
+                "name": "all bottled up"
+            },
+            {
+                "episode_number": "3",
+                "name": "a flurry of emotions"
+            },
+            {
+                "episode_number": "4",
+                "name": "rock solid friendship"
+            },
+            {
+                "episode_number": "5",
+                "name": "fluttershy leans in"
+            },
+            {
+                "episode_number": "6",
+                "name": "forever filly"
+            },
+            {
+                "episode_number": "7",
+                "name": "parental glideance"
+            },
+            {
+                "episode_number": "8",
+                "name": "hard to say anything"
+            },
+            {
+                "episode_number": "9",
+                "name": "honest apple"
+            },
+            {
+                "episode_number": "10",
+                "name": "a royal problem"
+            },
+            {
+                "episode_number": "11",
+                "name": "not asking for trouble"
+            },
+            {
+                "episode_number": "12",
+                "name": "discordant harmony"
+            },
+            {
+                "episode_number": "13",
+                "name": "the perfect pear"
+            },
+            {
+                "episode_number": "14",
+                "name": "fame and misfortune"
+            },
+            {
+                "episode_number": "15",
+                "name": "triple threat"
+            },
+            {
+                "episode_number": "16",
+                "name": "campfire tales"
+            },
+            {
+                "episode_number": "17",
+                "name": "to change a changeling"
+            },
+            {
+                "episode_number": "18",
+                "name": "daring done?"
+            },
+            {
+                "episode_number": "19",
+                "name": "it isn't the mane thing about you"
+            },
+            {
+                "episode_number": "20",
+                "name": "a health of information"
+            },
+            {
+                "episode_number": "21",
+                "name": "marks and recreation"
+            },
+            {
+                "episode_number": "22",
+                "name": "once upon a zeppelin"
+            },
+            {
+                "episode_number": "23",
+                "name": "secrets and pies"
+            },
+            {
+                "episode_number": "24",
+                "name": "uncommon bond"
+            },
+            {
+                "episode_number": "25-26",
+                "name": "shadow play"
+            }
+        ]
+    },
+    {
+        "title": "6",
+        "mode": "Season",
+        "episodes": [
+            {
+                "episode_number": "1-2",
+                "name": "the crystalling"
+            },
+            {
+                "episode_number": "3",
+                "name": "the gift of the maud pie"
+            },
+            {
+                "episode_number": "4",
+                "name": "on your marks"
+            },
+            {
+                "episode_number": "5",
+                "name": "gauntlet of fire"
+            },
+            {
+                "episode_number": "6",
+                "name": "no second prances"
+            },
+            {
+                "episode_number": "7",
+                "name": "newbie dash"
+            },
+            {
+                "episode_number": "8",
+                "name": "a hearth's warming tail"
+            },
+            {
+                "episode_number": "9",
+                "name": "the saddle row review"
+            },
+            {
+                "episode_number": "10",
+                "name": "applejack's \"day\" off"
+            },
+            {
+                "episode_number": "11",
+                "name": "flutter brutter"
+            },
+            {
+                "episode_number": "12",
+                "name": "spice up your life"
+            },
+            {
+                "episode_number": "13",
+                "name": "stranger than fan fiction"
+            },
+            {
+                "episode_number": "14",
+                "name": "the cart before the ponies"
+            },
+            {
+                "episode_number": "15",
+                "name": "28 pranks later"
+            },
+            {
+                "episode_number": "16",
+                "name": "the times they are a changeling"
+            },
+            {
+                "episode_number": "17",
+                "name": "dungeons and discords"
+            },
+            {
+                "episode_number": "18",
+                "name": "buckball season"
+            },
+            {
+                "episode_number": "19",
+                "name": "the fault in our cutie marks"
+            },
+            {
+                "episode_number": "20",
+                "name": "viva las pegasus"
+            },
+            {
+                "episode_number": "21",
+                "name": "every little thing she does"
+            },
+            {
+                "episode_number": "22",
+                "name": "ppov"
+            },
+            {
+                "episode_number": "23",
+                "name": "where the apple lies"
+            },
+            {
+                "episode_number": "24",
+                "name": "top bolt"
+            },
+            {
+                "episode_number": "25-26",
+                "name": "to where and back again"
+            }
+        ]
+    },
+    {
+        "title": "5",
+        "mode": "Season",
+        "episodes": [
+            {
+                "episode_number": "1-2",
+                "name": "the cutie map"
+            },
+            {
+                "episode_number": "3",
+                "name": "castle sweet castle"
+            },
+            {
+                "episode_number": "4",
+                "name": "bloom and gloom"
+            },
+            {
+                "episode_number": "5",
+                "name": "tanks for the memories"
+            },
+            {
+                "episode_number": "6",
+                "name": "appleoosa's most wanted"
+            },
+            {
+                "episode_number": "7",
+                "name": "make new friends but keep discord"
+            },
+            {
+                "episode_number": "8",
+                "name": "the lost treasure of griffonstone"
+            },
+            {
+                "episode_number": "9",
+                "name": "slice of life (episode)"
+            },
+            {
+                "episode_number": "10",
+                "name": "princess spike"
+            },
+            {
+                "episode_number": "11",
+                "name": "party pooped"
+            },
+            {
+                "episode_number": "12",
+                "name": "amending fences"
+            },
+            {
+                "episode_number": "13",
+                "name": "do princesses dream of magic sheep"
+            },
+            {
+                "episode_number": "14",
+                "name": "canterlot boutique"
+            },
+            {
+                "episode_number": "15",
+                "name": "rarity investigates"
+            },
+            {
+                "episode_number": "16",
+                "name": "made in manehattan"
+            },
+            {
+                "episode_number": "17",
+                "name": "brotherhooves social"
+            },
+            {
+                "episode_number": "18",
+                "name": "crusaders of the lost mark"
+            },
+            {
+                "episode_number": "19",
+                "name": "the one where pinkie pie knows"
+            },
+            {
+                "episode_number": "20",
+                "name": "hearthbreakers"
+            },
+            {
+                "episode_number": "21",
+                "name": "scare master"
+            },
+            {
+                "episode_number": "22",
+                "name": "what about discord?"
+            },
+            {
+                "episode_number": "23",
+                "name": "the hooffields and mccolts"
+            },
+            {
+                "episode_number": "24",
+                "name": "the mane attraction"
+            },
+            {
+                "episode_number": "25-26",
+                "name": "the cutie remark"
+            }
+        ]
+    },
+    {
+        "title": "4",
+        "mode": "Season",
+        "episodes": [
+            {
+                "episode_number": "1-2",
+                "name": "princess twilight sparkle (episode)"
+            },
+            {
+                "episode_number": "3",
+                "name": "castle mane-ia"
+            },
+            {
+                "episode_number": "4",
+                "name": "daring don't"
+            },
+            {
+                "episode_number": "5",
+                "name": "flight to the finish"
+            },
+            {
+                "episode_number": "6",
+                "name": "power ponies"
+            },
+            {
+                "episode_number": "7",
+                "name": "bats!"
+            },
+            {
+                "episode_number": "8",
+                "name": "rarity takes manehattan"
+            },
+            {
+                "episode_number": "9",
+                "name": "pinkie apple pie"
+            },
+            {
+                "episode_number": "10",
+                "name": "rainbow falls"
+            },
+            {
+                "episode_number": "11",
+                "name": "three's a crowd"
+            },
+            {
+                "episode_number": "12",
+                "name": "pinkie pride"
+            },
+            {
+                "episode_number": "13",
+                "name": "simple ways"
+            },
+            {
+                "episode_number": "14",
+                "name": "filli vanilli"
+            },
+            {
+                "episode_number": "15",
+                "name": "twilight time"
+            },
+            {
+                "episode_number": "16",
+                "name": "it ain't easy being breezies"
+            },
+            {
+                "episode_number": "17",
+                "name": "somepony to watch over me"
+            },
+            {
+                "episode_number": "18",
+                "name": "maud pie (episode)"
+            },
+            {
+                "episode_number": "19",
+                "name": "for whom the sweetie belle toils"
+            },
+            {
+                "episode_number": "20",
+                "name": "leap of faith"
+            },
+            {
+                "episode_number": "21",
+                "name": "testing testing 1-2-3"
+            },
+            {
+                "episode_number": "22",
+                "name": "trade ya"
+            },
+            {
+                "episode_number": "23",
+                "name": "inspiration manifestation"
+            },
+            {
+                "episode_number": "24",
+                "name": "equestria games"
+            },
+            {
+                "episode_number": "25-26",
+                "name": "twilight's kingdom"
+            }
+        ]
+    },
+    {
+        "title": "3",
+        "mode": "Season",
+        "episodes": [
+            {
+                "episode_number": "1-2",
+                "name": "the crystal empire"
+            },
+            {
+                "episode_number": "3",
+                "name": "too many pinkie pies"
+            },
+            {
+                "episode_number": "4",
+                "name": "one bad apple"
+            },
+            {
+                "episode_number": "5",
+                "name": "magic duel"
+            },
+            {
+                "episode_number": "6",
+                "name": "sleepless in ponyville"
+            },
+            {
+                "episode_number": "7",
+                "name": "wonderbolts academy"
+            },
+            {
+                "episode_number": "8",
+                "name": "just for sidekicks"
+            },
+            {
+                "episode_number": "9",
+                "name": "apple family reunion"
+            },
+            {
+                "episode_number": "10",
+                "name": "spike at your service"
+            },
+            {
+                "episode_number": "11",
+                "name": "keep calm and flutter on"
+            },
+            {
+                "episode_number": "12",
+                "name": "games ponies play"
+            },
+            {
+                "episode_number": "13",
+                "name": "magical mystery cure"
+            }
+        ]
+    },
+    {
+        "title": "2",
+        "mode": "Season",
+        "episodes": [
+            {
+                "episode_number": "1-2",
+                "name": "the return of harmony"
+            },
+            {
+                "episode_number": "3",
+                "name": "lesson zero"
+            },
+            {
+                "episode_number": "4",
+                "name": "luna eclipsed"
+            },
+            {
+                "episode_number": "5",
+                "name": "sisterhooves social"
+            },
+            {
+                "episode_number": "6",
+                "name": "the cutie pox"
+            },
+            {
+                "episode_number": "7",
+                "name": "may the best pet win"
+            },
+            {
+                "episode_number": "8",
+                "name": "the mysterious mare do well"
+            },
+            {
+                "episode_number": "9",
+                "name": "sweet and elite"
+            },
+            {
+                "episode_number": "10",
+                "name": "secret of my excess"
+            },
+            {
+                "episode_number": "11",
+                "name": "family appreciation day"
+            },
+            {
+                "episode_number": "12",
+                "name": "baby cakes"
+            },
+            {
+                "episode_number": "13",
+                "name": "hearth's warming eve (episode)"
+            },
+            {
+                "episode_number": "14",
+                "name": "the last roundup"
+            },
+            {
+                "episode_number": "15",
+                "name": "the super speedy cider squeezy 6000"
+            },
+            {
+                "episode_number": "16",
+                "name": "read it and weep"
+            },
+            {
+                "episode_number": "17",
+                "name": "hearts and hooves day (episode)"
+            },
+            {
+                "episode_number": "18",
+                "name": "a friend in deed"
+            },
+            {
+                "episode_number": "19",
+                "name": "putting your hoof down"
+            },
+            {
+                "episode_number": "20",
+                "name": "it's about time"
+            },
+            {
+                "episode_number": "21",
+                "name": "dragon quest"
+            },
+            {
+                "episode_number": "22",
+                "name": "hurricane fluttershy"
+            },
+            {
+                "episode_number": "23",
+                "name": "ponyville confidential"
+            },
+            {
+                "episode_number": "24",
+                "name": "mmmystery on the friendship express"
+            },
+            {
+                "episode_number": "25-26",
+                "name": "a canterlot wedding"
+            }
+        ]
+    },
+    {
+        "title": "1",
+        "mode": "Season",
+        "episodes": [
+            {
+                "episode_number": "1-2",
+                "name": "friendship is magic"
+            },
+            {
+                "episode_number": "3",
+                "name": "the ticket master"
+            },
+            {
+                "episode_number": "4",
+                "name": "applebuck season"
+            },
+            {
+                "episode_number": "5",
+                "name": "griffon the brush off"
+            },
+            {
+                "episode_number": "6",
+                "name": "boast busters"
+            },
+            {
+                "episode_number": "7",
+                "name": "dragonshy"
+            },
+            {
+                "episode_number": "8",
+                "name": "look before you sleep"
+            },
+            {
+                "episode_number": "9",
+                "name": "bridle gossip"
+            },
+            {
+                "episode_number": "10",
+                "name": "swarm of the century"
+            },
+            {
+                "episode_number": "11",
+                "name": "winter wrap up"
+            },
+            {
+                "episode_number": "12",
+                "name": "call of the cutie"
+            },
+            {
+                "episode_number": "13",
+                "name": "fall weather friends"
+            },
+            {
+                "episode_number": "14",
+                "name": "suited for success"
+            },
+            {
+                "episode_number": "15",
+                "name": "feeling pinkie keen"
+            },
+            {
+                "episode_number": "16",
+                "name": "sonic rainboom (episode)"
+            },
+            {
+                "episode_number": "17",
+                "name": "stare master"
+            },
+            {
+                "episode_number": "18",
+                "name": "the show stoppers"
+            },
+            {
+                "episode_number": "19",
+                "name": "a dog and pony show"
+            },
+            {
+                "episode_number": "20",
+                "name": "green isn't your color"
+            },
+            {
+                "episode_number": "21",
+                "name": "over a barrel"
+            },
+            {
+                "episode_number": "22",
+                "name": "a bird in the hoof"
+            },
+            {
+                "episode_number": "23",
+                "name": "the cutie mark chronicles"
+            },
+            {
+                "episode_number": "24",
+                "name": "owl's well that ends well"
+            },
+            {
+                "episode_number": "25",
+                "name": "party of one"
+            },
+            {
+                "episode_number": "26",
+                "name": "the best night ever"
+            }
+        ]
+    }
+]
