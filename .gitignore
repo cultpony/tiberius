@@ -1,0 +1,5 @@
+/target
+/proxy-prod.sh
+/.env
+/sqlx-data.json
+/data
