@@ -71,11 +71,28 @@ pub enum RenderIntent {
 #[derive(Default, Clone)]
 pub struct ImageBlockHeader(pub String);
 
-pub async fn image_block_default_sort<S: Into<String>>(req: &HTTPReq, client: &mut Client, query: S, page: u64, page_size: u64) -> Result<Markup> {
-    image_block::<S, &str, &str>(req, client, query, None, None, page, page_size).await
+pub async fn image_block_default_sort<S: Into<String>, S1: Into<String>>(
+    req: &HTTPReq,
+    client: &mut Client,
+    query: S,
+    page: u64,
+    page_size: u64,
+    filter_title: S1,
+) -> Result<Markup> {
+    image_block::<S, &str, &str, S1>(
+        req,
+        client,
+        query,
+        None,
+        None,
+        page,
+        page_size,
+        filter_title,
+    )
+    .await
 }
 
-pub async fn image_block<S1: Into<String>, S2: Into<String>, S3: Into<String>>(
+pub async fn image_block<S1: Into<String>, S2: Into<String>, S3: Into<String>, S4: Into<String>>(
     req: &HTTPReq,
     client: &mut Client,
     query: S1,
@@ -83,10 +100,18 @@ pub async fn image_block<S1: Into<String>, S2: Into<String>, S3: Into<String>>(
     order_by: Option<S3>,
     page: u64,
     page_size: u64,
+    filter_title: S4,
 ) -> Result<Markup> {
     let (total, images) = Image::search(client, query, sort_by, order_by, page, page_size).await?;
     let header = req.ext::<ImageBlockHeader>().cloned().unwrap_or_default();
-    let pagination = PaginationCtl::new(req, &["q", "sf", "sd"], total)?;
+    let pagination = PaginationCtl::new(
+        req,
+        &["q", "sf", "sd"],
+        total,
+        "images",
+        "image",
+        filter_title,
+    )?;
     Ok(html! {
         .block#imagelist-container {
             section.block__header.page__header.flex {

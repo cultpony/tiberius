@@ -3,3 +3,4 @@
 /.env
 /sqlx-data.json
 /data
+/keys

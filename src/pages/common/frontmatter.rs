@@ -1,4 +1,7 @@
-use std::{collections::BTreeMap, fmt::{Debug, write}};
+use std::{
+    collections::BTreeMap,
+    fmt::{write, Debug},
+};
 
 use crate::{
     app::{common::Query, HTTPReq, PageTitle},
@@ -12,13 +15,14 @@ use crate::{
             static_path, stylesheet_path, thumb_url,
         },
     },
+    request_helper::CSRFToken,
     request_timer::RequestTimerRequestExt,
-    session::Session,
+    session::{SessionExt, SessionReqExt},
 };
 use anyhow::Result;
 use either::Either;
 use log::trace;
-use maud::{Markup, PreEscaped, html};
+use maud::{html, Markup, PreEscaped};
 use philomena_models::{
     Channel, Client, Conversation, Filter, Forum, Image, ImageThumbType, Notification, SiteNotice,
     Tag, User,
@@ -37,8 +41,9 @@ pub fn viewport_meta_tags(req: &HTTPReq) -> Markup {
 }
 
 pub fn csrf_meta_tag(req: &HTTPReq) -> Markup {
-    let session = req.ext::<Session>();
-    let csrf = session.map(|x| x.csrf_token()).flatten();
+    let session = req.session();
+    let csrf = session.get::<CSRFToken>("csrf_token");
+    let csrf: Option<String> = csrf.map(|x| x.into());
     match csrf {
         None => html! {},
         Some(csrf) => html! {
@@ -334,10 +339,9 @@ pub fn header_staff_links(req: &HTTPReq) -> Markup {
     }
 }
 
-pub fn flash_warnings(req: &HTTPReq) -> Result<Markup> {
-    let site_notices: Option<&Vec<SiteNotice>> = req.ext::<Vec<SiteNotice>>();
-    let empty_notices = Vec::new();
-    let site_notices = site_notices.unwrap_or(&empty_notices);
+pub fn flash_warnings(req: &mut HTTPReq) -> Result<Markup> {
+    let site_notices: Option<Vec<SiteNotice>> = req.ext::<Vec<SiteNotice>>().cloned();
+    let site_notices = site_notices.unwrap_or_default();
     Ok(html! {
         @for notice in site_notices {
             .flash.flash--site-notice {
@@ -359,12 +363,14 @@ pub fn flash_warnings(req: &HTTPReq) -> Result<Markup> {
             (cdn_host(req));
             " for the site to work properly.";
         }
-        @match get_flash(req)? {
-            Flash::Info(text) => { .flash.flash--success { (text) } }
-            Flash::Alert(text) => { .flash.flash--warning { (text) } }
-            Flash::Error(text) => { .flash.flash--warning { (text) } }
-            Flash::Warning(text) => { .flash.flash--warning { (text) } }
-            Flash::None => {},
+        @for flash in get_flash(req)? {
+            @match flash {
+                Flash::Info(text) => { .flash.flash--success { (text) } }
+                Flash::Alert(text) => { .flash.flash--warning { (text) } }
+                Flash::Error(text) => { .flash.flash--warning { (text) } }
+                Flash::Warning(text) => { .flash.flash--warning { (text) } }
+                Flash::None => {},
+            }
         }
     })
 }
@@ -433,11 +439,9 @@ pub fn footer(req: &HTTPReq) -> Result<Markup> {
 }
 
 pub fn ignored_tag_list<'a>(req: &'a HTTPReq) -> &'a [i32] {
-    let session = req.ext::<Session>();
-    if let Some(session) = session {
-        if let Some(filter) = session.active_filter() {
-            return filter.hidden_tag_ids.as_slice();
-        }
+    let session = req.session();
+    if let Some(filter) = session.active_filter(req) {
+        return filter.hidden_tag_ids.as_slice();
     }
     &[]
 }
@@ -463,9 +467,25 @@ pub fn clientside_data<'a>(req: &'a HTTPReq) -> Result<Markup> {
         insert_csd!(data, filter_id, filter.id);
         insert_csd!(data, filter_id, filter.id);
         insert_csd!(data, hidden_tag_list, filter.hidden_tag_ids);
-        insert_csd!(data, hidden_filter, filter.hidden_complex_str.as_ref().map(|x|x.clone()).unwrap_or("".to_string()));
+        insert_csd!(
+            data,
+            hidden_filter,
+            filter
+                .hidden_complex_str
+                .as_ref()
+                .map(|x| x.clone())
+                .unwrap_or("".to_string())
+        );
         insert_csd!(data, spoilered_tag_list, filter.spoilered_tag_ids);
-        insert_csd!(data, spoilered_filter, filter.spoilered_complex_str.as_ref().map(|x|x.clone()).unwrap_or("".to_string()));
+        insert_csd!(
+            data,
+            spoilered_filter,
+            filter
+                .spoilered_complex_str
+                .as_ref()
+                .map(|x| x.clone())
+                .unwrap_or("".to_string())
+        );
     }
     insert_csd!(data, user_is_signed_in, user.is_some());
     insert_csd!(data, interactions, interactions.unwrap_or(&Vec::new()));
@@ -503,13 +523,18 @@ pub fn clientside_data<'a>(req: &'a HTTPReq) -> Result<Markup> {
             data.insert(k.clone(), v.clone());
         }
     }
-    let data: Vec<String> = data.iter().map(|(k, v)| {
-        let mut s = String::new();
-        use std::fmt::Write;
-        maud::Escaper::new(&mut s).write_str(&v.to_string()).expect("could not write data-store");
-        let s = s.trim_matches('\"');
-        format!("data-{}=\"{}\"", k, s)
-    }).collect();
+    let data: Vec<String> = data
+        .iter()
+        .map(|(k, v)| {
+            let mut s = String::new();
+            use std::fmt::Write;
+            maud::Escaper::new(&mut s)
+                .write_str(&v.to_string())
+                .expect("could not write data-store");
+            let s = s.trim_matches('\"');
+            format!("data-{}=\"{}\"", k, s)
+        })
+        .collect();
     let data = data.join(" ");
     let data = format!(r#"<div class="js-datastore" {}></div>"#, data);
     Ok(PreEscaped(data))
@@ -524,7 +549,7 @@ pub fn container_class(req: &HTTPReq) -> String {
     "".to_string()
 }
 
-pub async fn app(req: &HTTPReq, mut client: Client, body: Markup) -> Result<Markup> {
+pub async fn app(req: &mut HTTPReq, mut client: Client, body: Markup) -> Result<Markup> {
     Ok(html! {
         (maud::DOCTYPE)
         html lang="en" {
@@ -543,7 +568,7 @@ pub async fn app(req: &HTTPReq, mut client: Client, body: Markup) -> Result<Mark
                 }
             ) }
             link rel="stylesheet" href=(stylesheet_path(&req)?);
-            @if req.ext::<Session>().and_then(|x| Some(x.has_user())).unwrap_or(false) {
+            @if req.user().is_some() {
                 link rel="stylesheet" href=(dark_stylesheet_path(&req)?) media="(prefers-color-scheme: dark)";
             }
             link rel="icon" href="/favicon.ico" type="image/x-icon";
@@ -559,7 +584,7 @@ pub async fn app(req: &HTTPReq, mut client: Client, body: Markup) -> Result<Mark
                 (burger());
                 div.(container_class(&req))#container {
                     (header(&req, &mut client).await?);
-                    (flash_warnings(&req)?);
+                    (flash_warnings(req)?);
                     main.(layout_class(&req))#content { (body) }
                     (footer(&req)?);
                     form.hidden {

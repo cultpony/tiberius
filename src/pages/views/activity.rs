@@ -1,9 +1,16 @@
-use crate::{app::HTTPReq, pages::common::{image::{HeaderSize, ImageSize, image_block, image_block_default_sort, image_box}, streambox::stream_box}, request_helper::SafeSqlxRequestExt};
+use crate::{
+    app::HTTPReq,
+    pages::common::{
+        image::{image_block, image_block_default_sort, image_box, HeaderSize, ImageSize},
+        streambox::stream_box,
+    },
+    request_helper::SafeSqlxRequestExt,
+};
 use anyhow::Result;
 use maud::{html, Markup};
 use philomena_models::Image;
 
-pub async fn html(req: HTTPReq) -> Result<Markup> {
+pub async fn html(mut req: HTTPReq) -> Result<Markup> {
     let mut client = req.get_db_client().await?;
     let show_sidebar = true; //TODO: check setting
     let featured_image = Image::get_featured(&mut client).await?;
@@ -55,12 +62,12 @@ pub async fn html(req: HTTPReq) -> Result<Markup> {
                     }
                 }
                 .column-layout__main {
-                    (image_block_default_sort(&req, &mut client, "created_at.lte:3 minutes ago, processed:true", 0, 25).await?)
+                    (image_block_default_sort(&req, &mut client, "created_at.lte:3 minutes ago, processed:true", 0, 25, "recently uploaded").await?)
                 }
             }
         }
     };
     Ok(html! {
-        (crate::pages::common::frontmatter::app(&req, client, body).await?);
+        (crate::pages::common::frontmatter::app(&mut req, client, body).await?);
     })
 }

@@ -188,11 +188,11 @@ pub fn registration_path() -> PathBuf {
 }
 
 pub fn logout_path() -> PathBuf {
-    PathBuf::from_str("/sessions").expect("logout path must be valid")
+    PathBuf::from_str("/sessions/logout").expect("logout path must be valid")
 }
 
 pub fn login_path() -> PathBuf {
-    PathBuf::from_str("/sessions/new").expect("new session path must be valid")
+    PathBuf::from_str("/sessions/login").expect("new session path must be valid")
 }
 
 pub fn forum_route(forum: &Forum) -> Result<PathBuf> {

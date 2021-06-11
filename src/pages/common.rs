@@ -2,6 +2,7 @@ use crate::{app::HTTPReq, config::Configuration};
 use log::{error, trace, warn};
 use tide::http::mime;
 
+pub mod channels;
 pub mod flash;
 pub mod frontmatter;
 pub mod image;

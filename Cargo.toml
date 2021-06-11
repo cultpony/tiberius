@@ -5,6 +5,7 @@ authors = ["Cult Pony"]
 edition = "2018"
 license = "AGPL-3.0"
 publish = false
+resolver = "2"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -21,7 +22,7 @@ r2d2 = "0.8.9"
 better-panic = "0.2"
 envy = "0.4"
 kankyo = "0.3"
-tide = "0.16"
+#tide = "0.16"
 anyhow = "1.0"
 securefmt = "0.1.1"
 lazy_static = "1.4"
@@ -45,6 +46,13 @@ uri-builder = "0.1.0"
 rust-embed = { version = "5.8.0", features = ["compression"] }
 new_mime_guess = "2.1.0"
 async-trait = "0.1.50"
+clap = { version = "2.33.3", features = ["wrap_help"] }
+#tide-fluent-routes = "0.1.5"
+josekit = "0.7.1"
+paseto = "2.0.0"
+serde_cbor = "0.11.1"
+ring = "0.16.20"
+rocket = "0.5.0-rc.1"
 
 [features]
 default = []

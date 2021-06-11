@@ -4,22 +4,46 @@ use philomena_models::{Channel, Client};
 use sqlxmq::{job, Checkpoint, CurrentJob};
 use tide::Request;
 
-use crate::request_helper::SafeSqlxRequestExt;
+use crate::{config::Configuration, request_helper::SafeSqlxRequestExt};
 
-#[job(channel_name = "picarto_tv_refresh_channels")]
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct PicartoConfig {
+    pub config: Configuration,
+    pub all_channels: Vec<Channel>,
+    pub done_channels: Vec<i32>,
+    pub started: bool,
+}
+
+impl Default for PicartoConfig {
+    fn default() -> Self {
+        Self {
+            config: Configuration::default(),
+            all_channels: Vec::new(),
+            done_channels: Vec::new(),
+            started: false,
+        }
+    }
+}
+
+#[job]
 pub async fn run_job(mut current_job: CurrentJob) -> Result<()> {
     let pool = current_job.pool();
-    let mut client = Request::get_db_client_standalone(pool.clone()).await?;
+    let progress: PicartoConfig = current_job
+        .json()?
+        .expect("job requires configuration copy");
     info!("Job {}: Refreshing picarto channels", current_job.id());
+    let mut client = Request::get_db_client_standalone(pool.clone(), &progress.config).await?;
     let mut progress = {
-        if let Some(previous_progress) = current_job.json()? {
-            previous_progress
+        if progress.started {
+            progress
         } else {
             let all_channels =
                 Channel::get_all_channels(&mut client, Some("PicartoChannel")).await?;
-            let progress = Progress {
+            let progress = PicartoConfig {
+                config: progress.config,
                 all_channels: all_channels,
                 done_channels: Vec::new(),
+                started: true,
             };
             progress
         }
@@ -36,18 +60,20 @@ pub async fn run_job(mut current_job: CurrentJob) -> Result<()> {
         checkpoint.set_json(&progress)?;
         current_job.checkpoint(&checkpoint).await?;
     }
+    info!("Job {}: Completed refresh", current_job.id());
     current_job.complete().await?;
     Ok(())
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Clone, Debug)]
 pub struct Progress {
+    config: Configuration,
     all_channels: Vec<Channel>,
     done_channels: Vec<i32>,
 }
 
 async fn refresh_channel(client: &mut Client, chan: &mut Channel) -> Result<()> {
-    let http_client = crate::http_client()?;
+    let http_client = client.http();
     let url = format!(
         "https://api.picarto.tv/api/v1/channel/name/{}",
         chan.short_name

@@ -1,10 +1,10 @@
 use anyhow::Result;
 use philomena_models::{ApiKey, Client};
 use sqlx::{pool::PoolConnection, Pool, Postgres};
-use tide::Middleware;
 
 use crate::{
     app::DBPool,
+    config::Configuration,
     http_client,
     state::{AuthToken, State},
 };
@@ -12,15 +12,60 @@ use async_trait::async_trait;
 
 pub type DbRef = PoolConnection<Postgres>;
 
+#[derive(serde::Deserialize, Copy, Clone, PartialEq, Eq)]
+pub enum FormMethod {
+    #[serde(rename = "delete")]
+    Delete,
+    #[serde(rename = "create")]
+    Create,
+    #[serde(rename = "update")]
+    Update,
+}
+
+#[derive(serde::Deserialize, Clone, PartialEq, Eq)]
+#[serde(transparent)]
+pub struct CSRFToken(String);
+
+impl Into<String> for CSRFToken {
+    fn into(self) -> String {
+        self.0
+    }
+}
+
+#[derive(serde::Deserialize, rocket::form::FromForm)]
+pub struct ApiFormData<T> {
+    #[serde(rename = "_csrf_token")]
+    csrf_token: CSRFToken,
+    #[serde(rename = "_method")]
+    method: Option<FormMethod>,
+    #[serde(flatten, bound(deserialize = "T: serde::Deserialize<'de>"))]
+    pub data: T,
+}
+
+impl<T> ApiFormData<T> {
+    pub fn verify_csrf(&self, method: Option<FormMethod>) -> bool {
+        // verify method expected == method gotten
+        if method != self.method {
+            return false
+        }
+        //TODO: verify CSRF valid!
+        true
+    }
+    pub fn method(&self) -> Option<FormMethod> {
+        self.method
+    }
+}
+
 #[async_trait]
 pub trait SafeSqlxRequestExt {
     /// Caller must ensure they drop the database!
     async fn get_db(&self) -> std::result::Result<DbRef, sqlx::Error>;
     fn get_api_key(&self) -> ApiKey;
     async fn get_db_client(&self) -> Result<Client>;
-    async fn get_db_client_standalone(pool: DBPool) -> Result<Client>;
+    async fn get_db_client_standalone(pool: DBPool, config: &Configuration) -> Result<Client>;
 }
 
+/*
 #[async_trait]
 impl SafeSqlxRequestExt for tide::Request<State> {
     async fn get_db<'b>(&'b self) -> std::result::Result<DbRef, sqlx::Error> {
@@ -36,22 +81,22 @@ impl SafeSqlxRequestExt for tide::Request<State> {
     async fn get_db_client(&self) -> Result<Client> {
         Ok(Client::new(
             self.get_db().await?,
-            http_client()?,
-            Some(self.state().config.forward_to.to_string()),
+            http_client(self.state().config())?,
+            Some(self.state().config().forward_to.to_string()),
             "http".to_string(),
             self.get_api_key(),
         ))
     }
-    async fn get_db_client_standalone(pool: DBPool) -> Result<Client> {
+    async fn get_db_client_standalone(pool: DBPool, config: &Configuration) -> Result<Client> {
         Ok(Client::new(
             pool.acquire().await?,
-            http_client()?,
+            http_client(config)?,
             None,
             "http".to_string(),
             ApiKey::new(None),
         ))
     }
-}
+}*/
 
 pub struct SqlxMiddleware {
     pool: Pool<Postgres>,
@@ -67,7 +112,7 @@ impl SqlxMiddleware {
     }
 }
 
-#[tide::utils::async_trait]
+/*#[tide::utils::async_trait]
 impl Middleware<State> for SqlxMiddleware {
     async fn handle(
         &self,
@@ -85,3 +130,4 @@ impl Middleware<State> for SqlxMiddleware {
         Ok(next.run(req).await)
     }
 }
+*/

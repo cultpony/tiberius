@@ -19,7 +19,7 @@ pub async fn raw_proxy(req: &mut Request<State>) -> Result<ProxyRet> {
         "origin",
     ];*/
     trace!("creating client");
-    let client: reqwest::Client = crate::http_client()?;
+    let client: reqwest::Client = crate::http_client(req.state().config())?;
     let mut url = req.url().clone();
     trace!("proxying to {}", url);
     let new_host = &req.state().config.forward_to;

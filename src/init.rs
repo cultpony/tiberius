@@ -11,6 +11,7 @@ lazy_static! {
         flexi_logger::Logger::with(
             flexi_logger::LogSpecification::default(LevelFilter::Warn)
                 .module("sqlx", LevelFilter::Warn)
+                .module("sqlx::query", LevelFilter::Error)
                 .module("sqlxmq", LevelFilter::Warn)
                 .module("tiberius", LevelFilter::Trace)
                 .module("philomena_models", LevelFilter::Trace)

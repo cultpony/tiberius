@@ -1,5 +1,6 @@
 use std::time::Instant;
 
+use rocket::fairing::{Fairing, Info, Kind};
 use tide::Request;
 
 use crate::state::State;
@@ -21,6 +22,20 @@ impl<State: Clone + Send + Sync + 'static> tide::Middleware<State> for RequestTi
         );
 
         Ok(res)
+    }
+}
+
+#[rocket::async_trait]
+impl Fairing for RequestTimer {
+    fn info(&self) -> Info {
+        Info {
+            name: "Request Timer",
+            kind: Kind::Request | Kind::Response,
+        }
+    }
+
+    async fn on_request(&self, request: &mut Request<'_>, _: &mut Data<'_>) {
+        request.
     }
 }
 

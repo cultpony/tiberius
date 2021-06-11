@@ -1,88 +1,129 @@
 use anyhow::{Context, Result};
+use chrono::Utc;
 use erlang_term::Term;
 use philomena_models::{Client, Filter, User};
+use sqlx::{pool::PoolConnection, PgPool, Postgres};
+use tide::{
+    sessions::{Session, SessionStore},
+    Request,
+};
 
-#[derive(Clone, securefmt::Debug)]
-pub struct Session {
-    #[sensitive]
-    user: Option<SessionUser>,
+use crate::{app::HTTPReq, state::State};
+
+#[derive(Clone, Debug)]
+pub struct PostgresSessionStore {
+    client: PgPool,
+    table_name: String,
 }
 
-#[derive(Clone, securefmt::Debug)]
-pub struct SessionUser {
-    user: philomena_models::User,
-    filter: philomena_models::Filter,
-    user_token: Vec<u8>,
-    totp_token: Option<Vec<u8>>,
-    csrf_token: Option<String>,
-    live_socket_id: Option<String>,
+impl PostgresSessionStore {
+    pub fn from_client(client: PgPool) -> Self {
+        Self {
+            client,
+            table_name: "user_sessions".into(),
+        }
+    }
+    async fn connection(&self) -> sqlx::Result<PoolConnection<Postgres>> {
+        self.client.acquire().await
+    }
+    pub async fn cleanup(&self) -> sqlx::Result<()> {
+        let mut conn = self.connection().await?;
+        sqlx::query(&format!(
+            "DELETE FROM {} WHERE expires < $1",
+            self.table_name
+        ))
+        .bind(Utc::now())
+        .execute(&mut conn)
+        .await?;
+
+        Ok(())
+    }
+    pub async fn count(&self) -> sqlx::Result<i64> {
+        let (count,) = sqlx::query_as(&format!("SELECT COUNT(*) FROM {}", self.table_name))
+            .fetch_one(&mut self.connection().await?)
+            .await?;
+        Ok(count)
+    }
 }
 
-impl Session {
-    pub fn has_user(&self) -> bool {
-        self.user.is_some()
+#[tide::utils::async_trait]
+impl SessionStore for PostgresSessionStore {
+    async fn load_session(&self, cookie_value: String) -> Result<Option<tide::sessions::Session>> {
+        let id = tide::sessions::Session::id_from_cookie_value(&cookie_value)?;
+        let mut conn = self.connection().await?;
+        let result: Option<(String,)> = sqlx::query_as(&format!(
+            "SELECT session FROM {} WHERE id = $1 AND (expires IS NULL OR expires > $2",
+            self.table_name
+        ))
+        .bind(&id)
+        .bind(Utc::now())
+        .fetch_optional(&mut conn)
+        .await?;
+        Ok(result
+            .map(|(session,)| serde_json::from_str(&session))
+            .transpose()?)
     }
-    pub fn user<'a>(&'a self) -> Option<&'a User> {
-        if let Some(user) = &self.user {
-            Some(&user.user)
+
+    async fn store_session(&self, session: tide::sessions::Session) -> Result<Option<String>> {
+        let id = session.id();
+        let string = serde_json::to_string(&session)?;
+        let mut conn = self.connection().await?;
+
+        sqlx::query(&format!(
+            r#"INSERT INTO {}
+            (id, session, expires) SELECT $1, $2, $3
+            ON CONFLICT(id) DO UPDATE SET
+                expires = EXCLUDED.expires,
+                session = EXCLUDED.session"#,
+            self.table_name
+        ))
+        .bind(&id)
+        .bind(&string)
+        .bind(&session.expiry())
+        .execute(&mut conn)
+        .await?;
+        Ok(session.into_cookie_value())
+    }
+
+    async fn destroy_session(&self, session: tide::sessions::Session) -> Result<()> {
+        let id = session.id();
+        let mut conn = self.connection().await?;
+        sqlx::query(&format!("DELETE FROM {} WHERE id = $1", self.table_name))
+            .bind(&id)
+            .execute(&mut conn)
+            .await?;
+        Ok(())
+    }
+
+    async fn clear_store(&self) -> Result<()> {
+        let mut conn = self.connection().await?;
+        sqlx::query(&format!("TRUNCATE {}", self.table_name))
+            .execute(&mut conn)
+            .await?;
+        Ok(())
+    }
+}
+
+pub trait SessionExt {
+    fn active_filter<'a>(&self, req: &'a HTTPReq) -> Option<&'a Filter>;
+}
+
+impl SessionExt for Session {
+    fn active_filter<'a>(&self, req: &'a HTTPReq) -> Option<&'a Filter> {
+        if let Some(filter) = req.ext::<Filter>() {
+            return Some(filter);
         } else {
-            None
+            return None;
         }
     }
-    pub fn active_filter<'a>(&'a self) -> Option<&'a Filter> {
-        if let Some(user) = &self.user {
-            Some(&user.filter)
-        } else {
-            None
-        }
-    }
-    pub fn csrf_token<'a>(&'a self) -> Option<&'a str> {
-        if let Some(user) = &self.user {
-            user.csrf_token.as_ref().map(|x| x.as_str())
-        } else {
-            None
-        }
-    }
-    pub async fn new_from_cookie(client: &mut Client, data: Term) -> Result<Self> {
-        let data = data.as_map();
-        let data = match data {
-            Some(v) => v,
-            None => return Ok(Self { user: None }),
-        };
-        let csrf_token = data.get("_csrf_token").and_then(|x| x.clone().as_string());
-        let user_token = data.get("user_token").and_then(|x| x.clone().as_bytes());
-        let live_socket_id = data
-            .get("live_socket_id")
-            .and_then(|x| x.clone().as_string());
-        let totp_token = data.get("totp_token").and_then(|x| x.clone().as_bytes());
-        match user_token {
-            None => return Ok(Self { user: None }),
-            Some(user_token) => {
-                let user =
-                    philomena_models::User::get_user_for_session(client, user_token.clone()).await;
-                let user = match user {
-                    Ok(v) => v,
-                    Err(_) => return Ok(Self { user: None }),
-                };
-                let user = match user {
-                    None => return Ok(Self { user: None }),
-                    Some(v) => v,
-                };
-                Ok(Self {
-                    user: Some(SessionUser {
-                        filter: user
-                            .get_filter(client)
-                            .await
-                            .context("getting filter for user")?
-                            .unwrap_or(Filter::default_filter(client).await?),
-                        user,
-                        user_token,
-                        csrf_token,
-                        totp_token,
-                        live_socket_id,
-                    }),
-                })
-            }
-        }
+}
+
+pub trait SessionReqExt {
+    fn user(&self) -> Option<&User>;
+}
+
+impl SessionReqExt for Request<State> {
+    fn user(&self) -> Option<&User> {
+        self.ext::<User>()
     }
 }
