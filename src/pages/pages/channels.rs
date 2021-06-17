@@ -1,18 +1,14 @@
-use crate::{
-    app::{HTTPReq, PageTitle},
-    pages::common::{
+use crate::{app::{HTTPReq, PageTitle}, error::TiberiusResult, pages::common::{
         channels::channel_box,
-        maud2tide,
         pagination::PaginationCtl,
         pluralize,
         routes::{artist_route, channel_nsfw_path, channel_route, path2url, todo_path},
         APIMethod,
-    },
-    request_helper::{ApiFormData, SafeSqlxRequestExt},
-};
-use anyhow::Result;
+    }, request_helper::{ApiFormData, SafeSqlxRequestExt}};
 use maud::{html, Markup};
 use philomena_models::{Channel, Client, Image};
+use rocket::http::{CookieJar, Status};
+use rocket::uri;
 
 #[derive(serde::Deserialize)]
 pub struct ChannelQuery {
@@ -37,21 +33,20 @@ pub async fn read() -> rocket::response::Redirect {
     todo!()
 }
 
-#[get("/channels")]
-pub async fn list_channels() -> Markup {
-    req.set_ext(PageTitle::from("Livestreams"));
-    let mut client = req.get_db_client().await?;
+#[get("/channels?<cq>")]
+pub async fn list_channels(cookies: &CookieJar<'_>, client: Client, cq: ChannelQuery) -> TiberiusResult<(Status, Markup)> {
+    let title = PageTitle::from("Livestreams");
     let channels = Channel::get_all_channels::<String>(&mut client, None).await?;
     //TODO: honor NSFW channel setting
     let pages = PaginationCtl::new(
-        &req,
+        &todo!(),
         &["cq"],
         Channel::count(&mut client, false).await?,
         "channels",
         "channel",
         "",
     )?;
-    let cq: ChannelQuery = req.query()?;
+    let show_hide_nsfw_uri = todo!();
     let body = html! {
         h1 { "Livestreams" }
         form.hform {
@@ -66,15 +61,15 @@ pub async fn list_channels() -> Markup {
                     (pages.pagination())
                 }
 
-                @if let Some(cookie) = req.cookie("chan_nsfw") {
+                @if let Some(cookie) = cookies.get("chan_nsfw") {
                     @if cookie.value() == "true" {
-                        a href=(path2url(&req, channel_nsfw_path(APIMethod::Delete))?) data-method="delete" {
+                        a href=(show_hide_nsfw_uri) data-method="delete" {
                             i.fa.fa-eye-slash {}
                             "Hide NSFW streams"
                         }
                     }
                 } else {
-                    a href=(path2url(&req, channel_nsfw_path(APIMethod::Delete))?) data-method="create" {
+                    a href=(show_hide_nsfw_uri) data-method="create" {
                         i.fa.fa-eye {}
                         "Show NSFW stream"
                     }
@@ -83,7 +78,7 @@ pub async fn list_channels() -> Markup {
 
             .block__content {
                 @for channel in channels {
-                    (channel_box(&req, &mut client, &channel).await?)
+                    (channel_box(&todo!(), &mut client, &channel).await?)
                 }
             }
 
@@ -105,6 +100,6 @@ pub async fn list_channels() -> Markup {
             "A: Send a private message to a site administrator with a link to the stream and the artist tag if applicable."
         }
     };
-    let app = crate::pages::common::frontmatter::app(&mut req, client, body).await?;
-    maud2tide(html! { (app) }, StatusCode::Ok)
+    let app = crate::pages::common::frontmatter::app(todo!(), client, body).await?;
+    Ok((Status::Ok, html! { (app) }))
 }

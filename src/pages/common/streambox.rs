@@ -1,15 +1,16 @@
 use crate::app::HTTPReq;
-use anyhow::Result;
+use crate::error::TiberiusResult;
 use maud::html;
 use maud::Markup;
 use maud::PreEscaped;
 use philomena_models::Channel;
 use philomena_models::Client;
+use rocket::Request;
 use sqlx::{query_as, Acquire};
 use std::str::FromStr;
 use url::Url;
 
-pub async fn stream_box(req: &HTTPReq, client: &mut Client) -> Result<Markup> {
+pub async fn stream_box(req: &Request<'_>, client: &mut Client) -> TiberiusResult<Markup> {
     let channels: Vec<Channel> = {
         query_as!(
             Channel,

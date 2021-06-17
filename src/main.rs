@@ -2,7 +2,6 @@
 
 use std::{io::ErrorKind, path::Path, str::FromStr, time::Duration};
 
-use anyhow::Result;
 use log::{debug, info, trace};
 use reqwest::{header::HeaderMap, Proxy};
 use sqlx::Postgres;
@@ -11,25 +10,20 @@ mod api;
 mod app;
 mod assets;
 mod config;
-mod error_handler;
 mod init;
+mod error;
 mod pages;
-mod proxy;
+//mod proxy;
 mod request_helper;
-mod request_timer;
 mod session;
 mod state;
 
 use config::Configuration;
 use state::State;
 
-use crate::{
-    pages::{todo_page, todo_page_fn, views},
-    request_helper::SqlxMiddleware,
-    session::PostgresSessionStore,
-};
+use crate::{app::{DBPool, common::CSPHeader}, assets::AssetLoader, error::TiberiusResult, pages::{todo_page, todo_page_fn, views}, request_helper::SqlxMiddleware, session::PostgresSessionStore};
 
-pub fn http_client(config: &Configuration) -> Result<reqwest::Client> {
+pub fn http_client(config: &Configuration) -> TiberiusResult<reqwest::Client> {
     let client = reqwest::Client::builder()
         .connect_timeout(std::time::Duration::from_millis(500))
         .timeout(std::time::Duration::from_secs(5))
@@ -64,7 +58,7 @@ fn common_headers() -> HeaderMap {
     hm
 }
 
-async fn run_migrations(config: &Configuration, db_conn: sqlx::Pool<Postgres>) -> Result<()> {
+async fn run_migrations(config: &Configuration, db_conn: sqlx::Pool<Postgres>) -> TiberiusResult<()> {
     info!("Migrating database");
     sqlx::migrate!("./migrations").run(&db_conn).await?;
     info!("Database migrated!");
@@ -84,10 +78,10 @@ impl StatelessPaths {
     }
 }
 
-async fn server_start() -> Result<()> {
+async fn server_start() -> TiberiusResult<()> {
     let config = envy::from_env::<Configuration>()?;
     info!("Starting with config {:?}", config);
-    let db_conn = config.db_conn().await?;
+    let db_conn: DBPool = config.db_conn().await?;
     run_migrations(&config, db_conn.clone()).await?;
     debug!("Starting job runner");
     let job_runner = app::jobs::runner(db_conn.clone()).await;
@@ -96,12 +90,14 @@ async fn server_start() -> Result<()> {
     let rkt = rocket::build();
     let rkt = rkt.manage(State::new(config.clone()).await?);
     let rkt = rkt.manage(db_conn.clone());
+    let rkt = rkt.manage(config.clone());
+    let rkt = rkt.attach(CSPHeader);
+    let rkt = rkt.attach(AssetLoader::new(&config)?);
+    let rkt = rkt.attach(PostgresSessionStore::from_client(db_conn.clone()));
     let rkt = rkt.mount("/", routes![
         crate::pages::channels::list_channels,
         crate::pages::channels::set_nsfw,
     ]);
-
-    rkt.launch();
     /*let mut app = tide::with_state(State::new(config.clone()).await?);
     {
         use tide::utils::After;
@@ -200,7 +196,8 @@ async fn server_start() -> Result<()> {
         let config = config.clone();
         tokio::spawn(async move { app::jobs::scheduler(db_conn, config).await })
     };
-    let server = app.listen(config.listen_on);
+    let server = rkt.launch();
+    //let server = app.listen(config.listen_on);
     tokio::select! {
         r = server => {
             match r {
@@ -219,7 +216,7 @@ async fn server_start() -> Result<()> {
     Ok(())
 }
 
-fn main() -> Result<()> {
+fn main() -> TiberiusResult<()> {
     crate::init::LOGGER.flush();
     use tokio::runtime::Builder;
     let runtime = Builder::new_multi_thread()
@@ -324,11 +321,8 @@ fn main() -> Result<()> {
                 .expect("could not establish db connection");
             use philomena_models::*;
             let client = Client::new(
-                db_conn.acquire().await.expect("db connection died"),
-                http_client(&config).expect("could not get http client"),
-                None,
-                "http".to_string(),
-                ApiKey::new(None),
+                db_conn.clone(),
+                &config.search_dir,
             );
             let mut table: Box<dyn philomena_models::VerifiableTable> = match table {
                 "images" => Image::verifier(client, db_conn, start_id, stop_id, 10240),

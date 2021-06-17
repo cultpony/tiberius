@@ -1,11 +1,11 @@
 use std::{path::PathBuf, str::FromStr};
 
-use crate::{app::HTTPReq, pages::common::APIMethod};
-use anyhow::Result;
+use crate::{app::HTTPReq, error::TiberiusResult, pages::common::APIMethod};
 use either::Either;
 use philomena_models::{Channel, Client, Forum, Image, ImageThumbType, ImageThumbUrl, Tag, User};
+use rocket::Request;
 
-pub fn stylesheet_path(req: &HTTPReq) -> Result<String> {
+pub fn stylesheet_path(req: &Request<'_>) -> TiberiusResult<String> {
     Ok(if let Some(user) = req.ext::<User>() {
         let mut path = PathBuf::from_str("css/")?;
         assert!(
@@ -27,17 +27,17 @@ pub fn stylesheet_path(req: &HTTPReq) -> Result<String> {
     })
 }
 
-pub fn dark_stylesheet_path(req: &HTTPReq) -> Result<String> {
+pub fn dark_stylesheet_path(req: &Request<'_>) -> TiberiusResult<String> {
     Ok(static_path(req, PathBuf::from_str("css/dark.css")?)
         .to_string_lossy()
         .to_string())
 }
 
-pub fn api_json_oembed_url(req: &HTTPReq) -> Result<url::Url> {
+pub fn api_json_oembed_url(req: &Request<'_>) -> TiberiusResult<url::Url> {
     path2url(req, "/oembed")
 }
 
-pub fn path2url<S: Into<PathBuf>>(req: &HTTPReq, path: S) -> Result<url::Url> {
+pub fn path2url<S: Into<PathBuf>>(req: &Request<'_>, path: S) -> TiberiusResult<url::Url> {
     use uri_builder::URI;
     let path: PathBuf = path.into();
     let path = path.to_string_lossy().to_string();
@@ -48,7 +48,7 @@ pub fn path2url<S: Into<PathBuf>>(req: &HTTPReq, path: S) -> Result<url::Url> {
     Ok(url::Url::from_str(&uri.to_string())?)
 }
 
-pub fn static_path<S: Into<PathBuf>>(_req: &HTTPReq, path: S) -> PathBuf {
+pub fn static_path<S: Into<PathBuf>>(_req: &Request<'_>, path: S) -> PathBuf {
     // Statics are hosted on root, but on a different hash name, where to get?
     let path: PathBuf = path.into();
     assert!(
@@ -80,11 +80,11 @@ pub fn image_url(img_id: Either<i64, &Image>) -> PathBuf {
 pub struct ShowHidden(pub bool);
 
 pub async fn thumb_url(
-    req: &HTTPReq,
+    req: &Request<'_>,
     client: &mut Client,
     img: Either<i64, &Image>,
     thumb: ImageThumbType,
-) -> Result<PathBuf> {
+) -> TiberiusResult<PathBuf> {
     let show_hidden = req.ext::<ShowHidden>().unwrap_or(&ShowHidden(false)).0;
     let image: Image = match img {
         Either::Right(img) => (img.clone()),
@@ -125,10 +125,10 @@ pub async fn thumb_url(
 }
 
 pub async fn thumb_urls(
-    req: &HTTPReq,
+    req: &Request<'_>,
     client: &mut Client,
     img: Either<i64, &Image>,
-) -> Result<ImageThumbUrl> {
+) -> TiberiusResult<ImageThumbUrl> {
     Ok(ImageThumbUrl {
         rendered: thumb_url(req, client, img, ImageThumbType::Rendered).await?,
         full: thumb_url(req, client, img, ImageThumbType::Full).await?,
@@ -171,15 +171,15 @@ pub fn todo_path() -> PathBuf {
     PathBuf::from_str("/todo").unwrap()
 }
 
-pub fn profile_path_current_user(req: &HTTPReq) -> PathBuf {
+pub fn profile_path_current_user(req: &Request<'_>) -> PathBuf {
     todo_path()
 }
 
-pub fn gallery_patch_current_user(req: &HTTPReq) -> PathBuf {
+pub fn gallery_patch_current_user(req: &Request<'_>) -> PathBuf {
     todo_path()
 }
 
-pub fn profile_artist_path_current_user(req: &HTTPReq) -> PathBuf {
+pub fn profile_artist_path_current_user(req: &Request<'_>) -> PathBuf {
     todo_path()
 }
 
@@ -195,11 +195,11 @@ pub fn login_path() -> PathBuf {
     PathBuf::from_str("/sessions/login").expect("new session path must be valid")
 }
 
-pub fn forum_route(forum: &Forum) -> Result<PathBuf> {
+pub fn forum_route(forum: &Forum) -> TiberiusResult<PathBuf> {
     Ok(PathBuf::from_str(&format!("/forum/{}", forum.short_name))?)
 }
 
-pub fn cdn_host(req: &HTTPReq) -> String {
+pub fn cdn_host(req: &Request<'_>) -> String {
     let cdn_host = req.state().config.cdn_host.clone();
     cdn_host.unwrap_or(req.host().unwrap_or("this site's domain").to_string())
 }

@@ -1,16 +1,12 @@
-use crate::{
-    app::HTTPReq,
-    pages::common::{
+use crate::{app::HTTPReq, error::TiberiusResult, pages::common::{
         pluralize,
         routes::{artist_route, channel_route, path2url},
-    },
-};
-use anyhow::Result;
+    }};
 use maud::{html, Markup};
 use philomena_models::{Channel, Client};
 
-pub async fn channel_box(req: &HTTPReq, client: &mut Client, channel: &Channel) -> Result<Markup> {
-    let channel_route = path2url(req, channel_route(channel))?;
+pub async fn channel_box(client: &mut Client, channel: &Channel) -> TiberiusResult<Markup> {
+    let channel_route = todo!("channel route");
     let link_class = "media-box__header media-box__header--channel media-box__header--link";
     let artist_tag = channel.associated_artist_tag(client).await?;
     Ok(html! {
@@ -44,7 +40,7 @@ pub async fn channel_box(req: &HTTPReq, client: &mut Client, channel: &Channel) 
             }
 
             @if let Some(artist_tag) = artist_tag {
-                a.(link_class) href=(path2url(req, artist_route(&artist_tag))?) {
+                a.(link_class) href=(todo!("artist tag route")) {
                     i.fa.fa-fw.fa-tags { }
                     (artist_tag.name);
                 }

@@ -3,17 +3,13 @@ mod picarto_tv;
 
 use std::error::Error;
 
-use anyhow::Result;
 use log::{error, info};
 use sqlxmq::JobRegistry;
 use tokio_cron_scheduler::{Job, JobScheduler};
 
-use crate::{
-    app::{jobs::picarto_tv::PicartoConfig, DBPool},
-    config::Configuration,
-};
+use crate::{app::{jobs::picarto_tv::PicartoConfig, DBPool}, config::Configuration, error::TiberiusResult};
 
-pub async fn runner(db: DBPool) -> Result<sqlxmq::OwnedHandle> {
+pub async fn runner(db: DBPool) -> TiberiusResult<sqlxmq::OwnedHandle> {
     let mut registry = JobRegistry::new(&[picarto_tv::run_job, cleanup_sessions::run_job]);
     registry.set_error_handler(job_err_handler);
     Ok(registry.runner(&db).set_concurrency(10, 20).run().await?)

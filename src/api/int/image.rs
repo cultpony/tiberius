@@ -1,5 +1,8 @@
+use std::borrow::Cow;
+
 use crate::app::HTTPReq;
 
-pub async fn favorite(req: HTTPReq) -> tide::Result {
+#[post("/image/favorite")]
+pub async fn favorite() -> String {
     todo!();
 }

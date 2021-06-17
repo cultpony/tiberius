@@ -1,10 +1,9 @@
-use anyhow::Result;
 use log::{info, trace};
 use philomena_models::{Channel, Client};
+use rocket::Request;
 use sqlxmq::{job, Checkpoint, CurrentJob};
-use tide::Request;
 
-use crate::{config::Configuration, request_helper::SafeSqlxRequestExt};
+use crate::{config::Configuration, error::TiberiusResult, http_client, request_helper::SafeSqlxRequestExt};
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct PicartoConfig {
@@ -26,7 +25,7 @@ impl Default for PicartoConfig {
 }
 
 #[job]
-pub async fn run_job(mut current_job: CurrentJob) -> Result<()> {
+pub async fn run_job(mut current_job: CurrentJob) -> TiberiusResult<()> {
     let pool = current_job.pool();
     let progress: PicartoConfig = current_job
         .json()?
@@ -55,7 +54,7 @@ pub async fn run_job(mut current_job: CurrentJob) -> Result<()> {
         if progress.done_channels.contains(&channel.id) {
             continue;
         }
-        refresh_channel(&mut client, &mut channel).await?;
+        refresh_channel(&progress.config, &mut client, &mut channel).await?;
         progress.done_channels.push(channel.id);
         checkpoint.set_json(&progress)?;
         current_job.checkpoint(&checkpoint).await?;
@@ -72,8 +71,8 @@ pub struct Progress {
     done_channels: Vec<i32>,
 }
 
-async fn refresh_channel(client: &mut Client, chan: &mut Channel) -> Result<()> {
-    let http_client = client.http();
+async fn refresh_channel(config: &Configuration, client: &mut Client, chan: &mut Channel) -> TiberiusResult<()> {
+    let http_client = http_client(config)?;
     let url = format!(
         "https://api.picarto.tv/api/v1/channel/name/{}",
         chan.short_name

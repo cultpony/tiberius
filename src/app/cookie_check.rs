@@ -1,10 +1,11 @@
 // Original from https://github.com/liamwhite/cookie_check
 // Credit to LiamWhite, MIT License applies
 
-use anyhow::Result;
 use openssl::hash::MessageDigest;
 use openssl::symm::Cipher;
 use std::str;
+
+use crate::error::TiberiusResult;
 
 const PHOENIX_AAD: [u8; 7] = *b"A128GCM";
 
@@ -29,7 +30,7 @@ pub struct IV(Vec<u8>);
 pub struct AuthTag(Vec<u8>);
 
 impl KeyData {
-    pub fn new(secret: Vec<u8>, salt: Vec<u8>, sign_salt: Vec<u8>) -> Result<Self> {
+    pub fn new(secret: Vec<u8>, salt: Vec<u8>, sign_salt: Vec<u8>) -> TiberiusResult<Self> {
         let key = {
             let mut key: [u8; 32] = [0; 32];
             openssl::pkcs5::pbkdf2_hmac(&secret, &salt, 1000, MessageDigest::sha256(), &mut key)?;
@@ -55,7 +56,7 @@ impl KeyData {
         })
     }
 
-    pub fn new_str(secret: &str, salt: &str, sign_salt: &str) -> Result<Self> {
+    pub fn new_str(secret: &str, salt: &str, sign_salt: &str) -> TiberiusResult<Self> {
         Self::new(
             secret.as_bytes().to_vec(),
             salt.as_bytes().to_vec(),
@@ -63,7 +64,7 @@ impl KeyData {
         )
     }
 
-    pub fn decrypt_and_verify_cookie(&self, cookie: &[u8]) -> Result<Vec<u8>> {
+    pub fn decrypt_and_verify_cookie(&self, cookie: &[u8]) -> TiberiusResult<Vec<u8>> {
         let (aad, wcek, iv, data, auth_tag) = Self::decode_cookie(&cookie)?;
         let cek = self.unwrap_cek(&wcek)?;
         let decrypted = Self::decrypt_session(&cek, &aad, &iv, &data, &auth_tag)?;
@@ -76,7 +77,7 @@ impl KeyData {
         iv: &IV,
         data: &Vec<u8>,
         auth_tag: &AuthTag,
-    ) -> Result<Vec<u8>> {
+    ) -> TiberiusResult<Vec<u8>> {
         Ok(openssl::symm::decrypt_aead(
             Cipher::aes_128_gcm(),
             &cek.0,
@@ -87,7 +88,7 @@ impl KeyData {
         )?)
     }
 
-    fn decode_cookie(cookie: &[u8]) -> Result<(AAD, WCEK, IV, Vec<u8>, AuthTag)> {
+    fn decode_cookie(cookie: &[u8]) -> TiberiusResult<(AAD, WCEK, IV, Vec<u8>, AuthTag)> {
         let decoded = str::from_utf8(cookie)?;
         let parts: Vec<&str> = decoded.split(".").collect();
 
@@ -112,7 +113,7 @@ impl KeyData {
         Ok((aad, cek, iv, data, auth_tag))
     }
 
-    fn unwrap_cek(&self, wrapped_cek: &WCEK) -> Result<CEK> {
+    fn unwrap_cek(&self, wrapped_cek: &WCEK) -> TiberiusResult<CEK> {
         let cipher_text = &wrapped_cek.0[0..16]; // 128 bit data
         let cipher_tag = &wrapped_cek.0[16..32]; // 128 bit AEAD tag
         let iv = &wrapped_cek.0[32..44]; // 96 bit IV

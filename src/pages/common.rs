@@ -1,6 +1,5 @@
 use crate::{app::HTTPReq, config::Configuration};
 use log::{error, trace, warn};
-use tide::http::mime;
 
 pub mod channels;
 pub mod flash;
@@ -42,15 +41,6 @@ pub fn camoed_url(req: &HTTPReq, url: &url::Url) -> String {
             url.to_string()
         }
     }
-}
-
-pub fn maud2tide(text: maud::PreEscaped<String>, status: tide::http::StatusCode) -> tide::Result {
-    trace!("converting HTML render to response with code {:?}", status);
-    let text: String = text.into();
-    Ok(tide::Response::builder(status)
-        .body(text)
-        .content_type(mime::HTML)
-        .build())
 }
 
 pub fn pluralize<S: Into<String>>(singular: S, plural: S, count: i32) -> String {

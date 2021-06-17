@@ -1,8 +1,8 @@
 use std::{path::PathBuf, str::FromStr};
 
-use anyhow::Result;
+use reqwest::header::HOST;
 
-use crate::app::{DBPool, HTTPReq};
+use crate::{app::{DBPool, HTTPReq}, error::TiberiusResult};
 
 fn default_data_root() -> String {
     "./res".to_string()
@@ -68,9 +68,6 @@ pub struct Configuration {
     #[serde(default = "default_philomena_signing_salt", skip_serializing)]
     #[sensitive]
     pub philomena_signing_salt: String,
-    #[serde(skip_serializing)]
-    #[sensitive]
-    pub philomena_secret: Option<String>,
     #[serde(default = "default_postgres_host")]
     pub postgres_host: String,
     #[serde(default = "default_postgres_port")]
@@ -99,10 +96,12 @@ pub struct Configuration {
     /// Default Value: "./keys"
     #[serde(default = "default_key_directory")]
     pub key_directory: std::path::PathBuf,
+    #[serde(alias = "TANTIVY_INDEX", alias = "INDEX_PATH")]
+    pub search_dir: std::path::PathBuf,
 }
 
 impl Configuration {
-    pub async fn db_conn(&self) -> Result<DBPool> {
+    pub async fn db_conn(&self) -> TiberiusResult<DBPool> {
         let opts = sqlx::postgres::PgConnectOptions::new()
             .application_name(&crate::package_full())
             .host(&self.postgres_host)
@@ -127,7 +126,7 @@ impl Configuration {
         self.static_host
             .as_ref()
             .cloned()
-            .unwrap_or(req.host().unwrap_or("localhost").to_string())
+            .unwrap_or(req.headers().get_one("host").unwrap_or("localhost").to_string())
     }
 }
 
@@ -145,7 +144,6 @@ impl Default for Configuration {
             session_cookie: default_session_cookie(),
             philomena_encryption_salt: default_philomena_encryption_salt(),
             philomena_signing_salt: default_philomena_signing_salt(),
-            philomena_secret: None,
             postgres_host: "localhost".to_string(),
             postgres_port: 5432,
             postgres_user: "postgres".to_string(),
@@ -157,9 +155,10 @@ impl Default for Configuration {
             static_root: "./res".to_string(),
             cdn_host: None,
             image_url_root: "/img".to_string(),
-            data_root: PathBuf::from_str("./data").expect("invalid default path"),
+            data_root: PathBuf::from_str("./data").expect("invalid data root path"),
             proxy: None,
-            key_directory: PathBuf::from_str("./keys").expect("invalid default path"),
+            key_directory: PathBuf::from_str("./keys").expect("invalid key dir path"),
+            search_dir: PathBuf::from_str("./search").expect("invalid search path")
         }
     }
 }

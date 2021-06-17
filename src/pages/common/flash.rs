@@ -1,6 +1,5 @@
-use crate::app::HTTPReq;
+use crate::{app::HTTPReq, error::TiberiusResult};
 
-use anyhow::Result;
 use log::trace;
 
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -33,14 +32,14 @@ impl Default for Flash {
     }
 }
 
-pub fn get_flash(req: &mut HTTPReq) -> Result<Vec<Flash>> {
+pub fn get_flash(req: &mut HTTPReq) -> TiberiusResult<Vec<Flash>> {
     trace!("loading flash notices from session");
     let flashlist = req.session().get::<Vec<Flash>>("flash");
     req.session_mut().remove("flash");
     Ok(flashlist.unwrap_or_default())
 }
 
-pub fn put_flash(req: &mut HTTPReq, f: Flash) -> Result<()> {
+pub fn put_flash(req: &mut HTTPReq, f: Flash) -> TiberiusResult<()> {
     trace!("putting flash into session");
     let flashlist = req.session_mut().get::<Vec<Flash>>("flash");
     if let Some(mut flashlist) = flashlist {

@@ -1,54 +1,56 @@
-use anyhow::Result;
-use async_std::sync::RwLock;
-use tide::Request;
+use std::{borrow::Cow, path::PathBuf, str::FromStr};
 
-use crate::{
-    app::HTTPReq, config::Configuration, pages::common::frontmatter::FooterData, state::State,
-};
+use async_std::sync::RwLock;
+use rocket::{Request, State, fairing::{Fairing, Info, Kind}, http::{ContentType, Status}, response::stream::ByteStream};
+use rocket::response::status;
+use rocket::response::stream::ReaderStream;
+use rocket::response::content;
+
+use crate::{config::Configuration, error::{TiberiusError, TiberiusResult}, pages::{common::frontmatter::FooterData, not_found_page}};
 
 #[derive(rust_embed::RustEmbed)]
 #[folder = "res/assets-build/"]
 #[prefix = "/static/"]
 pub struct Assets;
 
-pub async fn serve_asset(req: HTTPReq) -> tide::Result {
-    let path = req.url().path();
-    return_asset(path).await
+#[get("/favicon.ico")]
+pub async fn serve_favicon_ico() -> TiberiusResult<status::Custom<content::Custom<ReaderStream![std::io::Cursor<Cow<'static, [u8]>>]>>> {
+    serve_static_file(PathBuf::from_str("/static/favicon.ico")?).await
 }
 
-pub async fn serve_topfile(req: HTTPReq) -> tide::Result {
-    let path = match req.url().path() {
-        "/favicon.ico" => "/static/favicon.ico",
-        "/favicon.svg" => "/static/favicon.svg",
-        "/robots.txt" => "/static/robots.txt",
-        _ => {
-            return Ok(tide::Response::builder(404)
-                .content_type(tide::http::mime::PLAIN)
-                .body("not found")
-                .build())
-        }
-    };
-    return_asset(path).await
+#[get("/favicon.svg")]
+pub async fn serve_favicon_svg() -> TiberiusResult<status::Custom<content::Custom<ReaderStream![std::io::Cursor<Cow<'static, [u8]>>]>>> {
+    serve_static_file(PathBuf::from_str("/static/favicon.ico")?).await
 }
 
-pub async fn return_asset(path: &str) -> tide::Result {
-    let file = Assets::get(path);
+#[get("/robots.txt")]
+pub async fn serve_robots() -> TiberiusResult<status::Custom<content::Custom<ReaderStream![std::io::Cursor<Cow<'static, [u8]>>]>>> {
+    serve_static_file(PathBuf::from_str("/static/robots.txt")?).await
+}
+
+#[get("/static/<path..>")]
+pub async fn serve_asset(path: PathBuf) -> TiberiusResult<status::Custom<content::Custom<ReaderStream![std::io::Cursor<Cow<'static, [u8]>>]>>> {
+    serve_static_file(path).await
+}
+
+pub async fn serve_static_file(file: PathBuf) -> TiberiusResult<status::Custom<content::Custom<ReaderStream![std::io::Cursor<Cow<'static, [u8]>>]>>> {
+    let file = Assets::get(file.to_str().unwrap());
     Ok(match file {
-        None => tide::Response::builder(404)
-            .content_type(tide::http::mime::PLAIN)
-            .body("not found")
-            .build(),
+        None => return Err(TiberiusError::Other("file not found".to_string())),
         Some(file) => {
-            let content_type = new_mime_guess::from_path(path);
+            let content_type = new_mime_guess::from_path(PathBuf::from(String::from_utf8_lossy(file.as_ref()).to_string()));
             let content_type = content_type.first();
             let content_type = match content_type {
-                None => tide::http::mime::PLAIN.essence().to_string(),
+                None => rocket::http::ContentType::Plain.to_string(),
                 Some(t) => t.essence_str().to_string(),
             };
-            tide::Response::builder(200)
-                .content_type(&*content_type)
-                .body(&file[..])
-                .build()
+            status::Custom(
+                Status::Ok,
+                content::Custom(
+                    ContentType::from_str(&content_type).map_err(|x| TiberiusError::Other(x))?,
+                    ReaderStream::one(std::io::Cursor::new(file))
+                )
+            )
         }
     })
 }
@@ -86,7 +88,7 @@ pub struct AssetLoader {
 }
 
 impl AssetLoader {
-    pub fn new(c: &Configuration) -> Result<Self> {
+    pub fn new(c: &Configuration) -> TiberiusResult<Self> {
         let dataroot = std::path::PathBuf::from(&c.static_root);
         let mut data = dataroot.clone();
         data.push("footer.json");
@@ -102,30 +104,34 @@ impl AssetLoader {
     }
 }
 
-#[tide::utils::async_trait]
-impl<State: Clone + Send + Sync + 'static> tide::Middleware<State> for AssetLoader {
-    async fn handle(&self, mut req: Request<State>, next: tide::Next<'_, State>) -> tide::Result {
-        let data: FooterData = self.data.read().await.clone();
-        let siteconf: SiteConfig = self.siteconf.read().await.clone();
-        req.set_ext(data);
-        req.set_ext(siteconf);
-        let res = next.run(req).await;
-        Ok(res)
+#[rocket::async_trait]
+impl Fairing for AssetLoader {
+    fn info(&self) -> rocket::fairing::Info {
+        Info {
+            name: "Asset and Internal Configuration Loader",
+            kind: Kind::Ignite | Kind::Request,
+        }
+    }
+
+    async fn on_ignite(&self, rocket: rocket::Rocket<rocket::Build>) -> rocket::fairing::Result {
+        rocket.manage(self.data.read().await.clone());
+        rocket.manage(self.siteconf.read().await.clone());
+        Ok(rocket)
     }
 }
 
+#[rocket::async_trait]
 pub trait AssetLoaderRequestExt {
-    fn site_config(&self) -> &SiteConfig;
-    fn footer_data(&self) -> &FooterData;
+    async fn site_config(&self) -> &State<SiteConfig>;
+    async fn footer_data(&self) -> &State<FooterData>;
 }
 
-impl AssetLoaderRequestExt for Request<State> {
-    fn site_config(&self) -> &SiteConfig {
-        self.ext::<SiteConfig>()
-            .expect("SiteConfig expected but not in connection")
+#[rocket::async_trait]
+impl AssetLoaderRequestExt for Request<'_> {
+    async fn site_config(&self) -> &State<SiteConfig> {
+        self.guard().await.unwrap()
     }
-    fn footer_data(&self) -> &FooterData {
-        self.ext::<FooterData>()
-            .expect("FooterData expected but not in connection")
+    async fn footer_data(&self) -> &State<FooterData> {
+        self.guard().await.unwrap()
     }
 }

@@ -1,19 +1,55 @@
-use anyhow::{Context, Result};
-use chrono::Utc;
-use erlang_term::Term;
-use philomena_models::{Client, Filter, User};
-use sqlx::{pool::PoolConnection, PgPool, Postgres};
-use tide::{
-    sessions::{Session, SessionStore},
-    Request,
-};
+use std::{collections::BTreeMap, convert::Infallible};
 
-use crate::{app::HTTPReq, state::State};
+use chrono::{Duration, Utc};
+use philomena_models::{Client, Filter, User};
+use rocket::{
+    fairing::{Fairing, Info, Kind},
+    http::Cookie,
+    request::{FromRequest, Outcome},
+    Build, Data, Request, Response, Rocket, State,
+};
+use sqlx::{pool::PoolConnection, PgPool, Postgres};
+use uuid::Uuid;
+
+use crate::{
+    app::{DBPool, HTTPReq},
+    error::{TiberiusError, TiberiusResult},
+};
 
 #[derive(Clone, Debug)]
 pub struct PostgresSessionStore {
     client: PgPool,
     table_name: String,
+    cookie_name: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct Session {
+    id: Uuid,
+    created: i64,
+    expires: i64,
+    data: BTreeMap<String, serde_json::Value>,
+}
+
+impl Session {
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+    pub fn new() -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            created: chrono::Utc::now().naive_utc().timestamp_millis(),
+            expires: chrono::Utc::now()
+                .naive_utc()
+                .checked_add_signed(Duration::days(7))
+                .expect("must be valid")
+                .timestamp_millis(),
+            data: BTreeMap::new(),
+        }
+    }
+    pub fn expiry(&self) -> i64 {
+        self.expires
+    }
 }
 
 impl PostgresSessionStore {
@@ -21,6 +57,7 @@ impl PostgresSessionStore {
         Self {
             client,
             table_name: "user_sessions".into(),
+            cookie_name: "_tiberius_session".into(),
         }
     }
     async fn connection(&self) -> sqlx::Result<PoolConnection<Postgres>> {
@@ -44,12 +81,12 @@ impl PostgresSessionStore {
             .await?;
         Ok(count)
     }
-}
 
-#[tide::utils::async_trait]
-impl SessionStore for PostgresSessionStore {
-    async fn load_session(&self, cookie_value: String) -> Result<Option<tide::sessions::Session>> {
-        let id = tide::sessions::Session::id_from_cookie_value(&cookie_value)?;
+    async fn load_session(&self, cookie_value: String) -> TiberiusResult<Option<Session>> {
+        if cookie_value == "" {
+            return Ok(None);
+        }
+        let id: Uuid = cookie_value.parse()?;
         let mut conn = self.connection().await?;
         let result: Option<(String,)> = sqlx::query_as(&format!(
             "SELECT session FROM {} WHERE id = $1 AND (expires IS NULL OR expires > $2",
@@ -64,7 +101,7 @@ impl SessionStore for PostgresSessionStore {
             .transpose()?)
     }
 
-    async fn store_session(&self, session: tide::sessions::Session) -> Result<Option<String>> {
+    async fn store_session(&self, session: Session) -> TiberiusResult<String> {
         let id = session.id();
         let string = serde_json::to_string(&session)?;
         let mut conn = self.connection().await?;
@@ -82,10 +119,10 @@ impl SessionStore for PostgresSessionStore {
         .bind(&session.expiry())
         .execute(&mut conn)
         .await?;
-        Ok(session.into_cookie_value())
+        Ok(session.id().to_string())
     }
 
-    async fn destroy_session(&self, session: tide::sessions::Session) -> Result<()> {
+    async fn destroy_session(&self, session: Session) -> TiberiusResult<()> {
         let id = session.id();
         let mut conn = self.connection().await?;
         sqlx::query(&format!("DELETE FROM {} WHERE id = $1", self.table_name))
@@ -95,7 +132,7 @@ impl SessionStore for PostgresSessionStore {
         Ok(())
     }
 
-    async fn clear_store(&self) -> Result<()> {
+    async fn clear_store(&self) -> TiberiusResult<()> {
         let mut conn = self.connection().await?;
         sqlx::query(&format!("TRUNCATE {}", self.table_name))
             .execute(&mut conn)
@@ -104,26 +141,65 @@ impl SessionStore for PostgresSessionStore {
     }
 }
 
-pub trait SessionExt {
-    fn active_filter<'a>(&self, req: &'a HTTPReq) -> Option<&'a Filter>;
+pub struct SessionID(pub Option<Uuid>);
+
+impl Default for SessionID {
+    fn default() -> Self {
+        Self(None)
+    }
 }
 
-impl SessionExt for Session {
-    fn active_filter<'a>(&self, req: &'a HTTPReq) -> Option<&'a Filter> {
-        if let Some(filter) = req.ext::<Filter>() {
-            return Some(filter);
-        } else {
-            return None;
+impl SessionID {
+    fn as_str(&self) -> String {
+        self.0
+            .map(|f| f.to_string())
+            .unwrap_or(Uuid::new_v4().to_string())
+    }
+}
+
+#[rocket::async_trait]
+impl Fairing for PostgresSessionStore {
+    fn info(&self) -> Info {
+        Info {
+            name: "Session Middleware",
+            kind: Kind::Request | Kind::Response,
+        }
+    }
+
+    async fn on_ignite(&self, rocket: Rocket<Build>) -> rocket::fairing::Result {
+        Ok(rocket.manage(self.clone()))
+    }
+
+    async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut Response<'r>) {
+        let session: Option<Session> = req.guard().await.succeeded();
+
+        if let Some(session) = session {
+            res.adjoin_header(
+                Cookie::build(self.cookie_name, session.id().to_string())
+                    .path("/")
+                    .finish(),
+            )
         }
     }
 }
 
-pub trait SessionReqExt {
-    fn user(&self) -> Option<&User>;
-}
-
-impl SessionReqExt for Request<State> {
-    fn user(&self) -> Option<&User> {
-        self.ext::<User>()
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for Session {
+    async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+        let session_store: &State<PostgresSessionStore> =
+            request.guard().await.expect("no session store");
+        let session_id = request.cookies().get(&session_store.cookie_name);
+        if let Some(session_id) = session_id {
+            let session_data = session_store
+                .load_session(session_id.value().to_string())
+                .await;
+            if let Ok(Some(session_data)) = session_data {
+                return Outcome::Success(session_data);
+            }
+        }
+        let new_session = Session::new();
+        Outcome::Success(new_session)
     }
+
+    type Error = TiberiusError;
 }

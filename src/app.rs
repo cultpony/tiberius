@@ -1,5 +1,5 @@
 pub mod common;
-pub mod cookie_check;
+//pub mod cookie_check;
 pub mod jobs;
 
 pub type DBPool = sqlx::PgPool;
@@ -7,7 +7,7 @@ pub type DBConnection = sqlx::PgConnection;
 pub type DBTx<'a> = &'a mut sqlx::Transaction<'a, sqlx::Postgres>;
 pub type DBTxOwned<'a> = sqlx::Transaction<'a, sqlx::Postgres>;
 
-pub type HTTPReq = tide::Request<crate::state::State>;
+pub type HTTPReq<'a> = rocket::Request<'a>;
 
 #[derive(Clone)]
 pub struct PageTitle(String);

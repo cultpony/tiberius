@@ -2,7 +2,6 @@ use maud::Markup;
 use philomena_models::User;
 
 use crate::{app::HTTPReq, pages::common::flash::{Flash, put_flash}, request_helper::{ApiFormData, FormMethod, SafeSqlxRequestExt}};
-use anyhow::Result;
 
 #[get("/sessions/login")]
 pub async fn new_session(req: HTTPReq) -> tide::Result {

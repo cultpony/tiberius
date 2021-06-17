@@ -1,16 +1,13 @@
-use std::path::PathBuf;
+use std::{borrow::Cow, path::PathBuf};
 
-use anyhow::Result;
 use maud::{html, Markup, Render};
 use philomena_models::{Client, Image, ImageThumbType};
+use rocket::Request;
 
-use crate::{
-    app::HTTPReq,
-    pages::common::{
+use crate::{app::HTTPReq, error::TiberiusResult, pages::common::{
         pagination::PaginationCtl,
         routes::{image_url, thumb_url},
-    },
-};
+    }};
 
 #[derive(Debug, Clone, Copy)]
 pub enum ImageSize {
@@ -68,17 +65,29 @@ pub enum RenderIntent {
     NotRendered,
 }
 
-#[derive(Default, Clone)]
-pub struct ImageBlockHeader(pub String);
+#[derive(Clone, Copy)]
+pub enum ImageBlockHeader{
+    Small,
+    Default,
+}
+
+impl ToString for ImageBlockHeader {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Small => "media-box__header--small",
+            Self::Default => "",
+        }
+    }
+}
 
 pub async fn image_block_default_sort<S: Into<String>, S1: Into<String>>(
-    req: &HTTPReq,
+    req: &Request<'_>,
     client: &mut Client,
     query: S,
     page: u64,
     page_size: u64,
     filter_title: S1,
-) -> Result<Markup> {
+) -> TiberiusResult<Markup> {
     image_block::<S, &str, &str, S1>(
         req,
         client,
@@ -93,17 +102,17 @@ pub async fn image_block_default_sort<S: Into<String>, S1: Into<String>>(
 }
 
 pub async fn image_block<S1: Into<String>, S2: Into<String>, S3: Into<String>, S4: Into<String>>(
-    req: &HTTPReq,
+    req: Request<'_>,
     client: &mut Client,
+    header: ImageBlockHeader,
     query: S1,
     sort_by: Option<S2>,
     order_by: Option<S3>,
     page: u64,
     page_size: u64,
     filter_title: S4,
-) -> Result<Markup> {
+) -> TiberiusResult<Markup> {
     let (total, images) = Image::search(client, query, sort_by, order_by, page, page_size).await?;
-    let header = req.ext::<ImageBlockHeader>().cloned().unwrap_or_default();
     let pagination = PaginationCtl::new(
         req,
         &["q", "sf", "sd"],
@@ -116,7 +125,7 @@ pub async fn image_block<S1: Into<String>, S2: Into<String>, S3: Into<String>, S
         .block#imagelist-container {
             section.block__header.page__header.flex {
                 span.block__header__title.page_title.hide-mobile {
-                    (header.0)
+                    (header.to_string())
                 }
                 .page__pagination { (pagination.pagination()) }
 
@@ -155,13 +164,13 @@ pub async fn image_block<S1: Into<String>, S2: Into<String>, S3: Into<String>, S
     })
 }
 
-pub async fn image_box(
-    req: &HTTPReq,
+pub async fn image_box<'a>(
+    req: &Request<'a>,
     client: &mut Client,
     image: Image,
     image_size: ImageSize,
     header_size: HeaderSize,
-) -> Result<Markup> {
+) -> TiberiusResult<Markup> {
     let size_class = match image_size {
         ImageSize::Large => "media-box__content--large",
         ImageSize::Medium => "media-box__content--featured",
@@ -171,30 +180,32 @@ pub async fn image_box(
         HeaderSize::ThumbSmall => "media-box__header--small",
         HeaderSize::None => "",
     };
-
+    let interactions = html!{
+        a.interaction--fave href="#" rel="nofollow" data-image-id=(image.id) {
+            span.fave-span title="Fave!" {
+                i.fa.fa-star {}
+            }
+            span.favorites title="Favorites" data-image-id=(image.id) { (image.faves_count) }
+        }
+        a.interaction--upvote href="#" rel="nofollow" data-image-id=(image.id) {
+            i.fa.fa-arrow-up title="Yay!" {}
+        }
+        span.score title="Score" data-image-id=(image.id) { (image.score) }
+        a.interaction--downvote href="#" rel="nofollow" data-image-id=(image.id) {
+            i.fa.fa-arrow-down title="Neigh!" {}
+        }
+        a.interaction--comments href=(format!("/{}#comments", image.id)) title="Comments" {
+            i.fa.fa-comments {}
+            span.comments-count data-image-id=(image.id) { (image.comments_count) }
+        }
+        a.interaction--hide href="#" rel="nofollow" data-image-id=(image.id) {
+            i.fa.fa-eye-slash title="Hide" {}
+        }
+    };
     Ok(html! {
         .media-box data-image-id=(image.id) {
             .media-box__header.media-box__header--link-row.(header_class) data-image-id=(image.id) {
-                a.interaction--fave href="#" rel="nofollow" data-image-id=(image.id) {
-                    span.fave-span title="Fave!" {
-                        i.fa.fa-star {}
-                    }
-                    span.favorites title="Favorites" data-image-id=(image.id) { (image.faves_count) }
-                }
-                a.interaction--upvote href="#" rel="nofollow" data-image-id=(image.id) {
-                    i.fa.fa-arrow-up title="Yay!" {}
-                }
-                span.score title="Score" data-image-id=(image.id) { (image.score) }
-                a.interaction--downvote href="#" rel="nofollow" data-image-id=(image.id) {
-                    i.fa.fa-arrow-down title="Neigh!" {}
-                }
-                a.interaction--comments href=(format!("/{}#comments", image.id)) title="Comments" {
-                    i.fa.fa-comments {}
-                    span.comments-count data-image-id=(image.id) { (image.comments_count) }
-                }
-                a.interaction--hide href="#" rel="nofollow" data-image-id=(image.id) {
-                    i.fa.fa-eye-slash title="Hide" {}
-                }
+                (interactions)
             }
             .media-box__content.flex.flex--centered.flex--centered-distributed.(size_class) {
                 (image_container(req, client, image, image_size.into()).await?)
@@ -203,12 +214,12 @@ pub async fn image_box(
     })
 }
 
-pub async fn image_container(
-    req: &HTTPReq,
+pub async fn image_container<'a>(
+    req: &Request<'a>,
     client: &mut Client,
     image: Image,
     image_size: ImageThumbType,
-) -> Result<Markup> {
+) -> TiberiusResult<Markup> {
     let link = image_url(either::Right(&image));
     if image.duplicate_id.is_some() {
         return Ok(html! { .media-box__overlay { strong { "Marked duplicate" } } });
@@ -228,20 +239,21 @@ pub async fn image_container(
 
 impl RenderIntent {
     pub async fn from_image(
-        req: &HTTPReq,
+        req: &Request<'_>,
         client: &mut Client,
         image: Image,
         size: ImageThumbType,
-    ) -> Result<Self> {
+    ) -> TiberiusResult<Self> {
         let vid = image.image_mime_type.clone().unwrap_or_default() == "video/webm";
         let gif = image.image_mime_type.clone().unwrap_or_default() == "image/gif";
         let alt = image.title_text(client).await?;
         let hidpi = req
-            .cookie("hidpi")
+            .cookies()
+            .get("hidpi")
             .map(|x| x.value() == "true")
             .unwrap_or(false);
         let webm = req
-            .cookie("webm")
+            .cookies().get("webm")
             .map(|x| x.value() == "true")
             .unwrap_or(false);
         let use_gif = vid
@@ -258,12 +270,14 @@ impl RenderIntent {
         } else if filtered && !vid {
             RenderIntent::FilteredImage { hover_text: alt }
         } else if hidpi && !(gif || vid) {
-            let small_url = thumb_url(req, client, either::Right(&image), ImageThumbType::Small)
-                .await?
-                .to_string_lossy()
-                .to_string();
-            let medium_url = thumb_url(req, client, either::Right(&image), ImageThumbType::Medium)
-                .await?
+            let small_url: PathBuf = thumb_url(req, client, either::Right(&image), ImageThumbType::Small)
+                .await?;
+            let small_url: Cow<str> = small_url
+                .to_string_lossy();
+            let small_url: String = small_url.to_string();
+            let medium_url: PathBuf = thumb_url(req, client, either::Right(&image), ImageThumbType::Medium)
+                .await?;
+            let medium_url = medium_url
                 .to_string_lossy()
                 .to_string();
             RenderIntent::HiDpi {
@@ -272,12 +286,14 @@ impl RenderIntent {
                 hover_text: alt,
             }
         } else if !vid || use_gif {
-            let small_url = thumb_url(req, client, either::Right(&image), ImageThumbType::Small)
-                .await?
+            let small_url: PathBuf = thumb_url(req, client, either::Right(&image), ImageThumbType::Small)
+                .await?;
+            let small_url: String = small_url
                 .to_string_lossy()
                 .to_string();
-            let medium_url = thumb_url(req, client, either::Right(&image), ImageThumbType::Medium)
-                .await?
+                let medium_url: PathBuf = thumb_url(req, client, either::Right(&image), ImageThumbType::Medium)
+                .await?;
+            let medium_url = medium_url
                 .to_string_lossy()
                 .to_string();
             RenderIntent::Image {
@@ -287,7 +303,7 @@ impl RenderIntent {
                 webm,
             }
         } else {
-            let path = thumb_url(req, client, either::Right(&image), size).await?;
+            let path: PathBuf = thumb_url(req, client, either::Right(&image), size).await?;
             RenderIntent::Video {
                 webm: path.to_string_lossy().to_string(),
                 mp4: path.to_string_lossy().replace(".webm", ".mp4"),
@@ -295,7 +311,7 @@ impl RenderIntent {
             }
         })
     }
-    pub fn render(self, link: PathBuf) -> Result<Markup> {
+    pub fn render(self, link: PathBuf) -> TiberiusResult<Markup> {
         use RenderIntent::*;
         Ok(match self {
             FilteredImage { hover_text } => {

@@ -1,14 +1,14 @@
 use std::{collections::BTreeMap, ops::Range};
 
-use anyhow::Result;
 use maud::{html, Markup};
+use rocket::Request;
 
-use crate::app::HTTPReq;
+use crate::error::TiberiusResult;
 
 const SURROUNDING_PAGES: u64 = 3;
 
 pub struct PaginationCtl<'a> {
-    req: &'a HTTPReq,
+    req: &'a Request<'a>,
     extra_params: BTreeMap<String, String>,
     pages: u64,
     current_page: u64,
@@ -33,13 +33,13 @@ pub struct PageSize(u8);
 
 impl<'a> PaginationCtl<'a> {
     pub fn new<S1: Into<String> + Clone, S2: Into<String>, S3: Into<String>, S4: Into<String>>(
-        req: &'a HTTPReq,
+        req: &'a Request<'a>,
         keep_params: &[S1],
         item_count: u64,
         plural: S2,
         singular: S3,
         suffix: S4,
-    ) -> Result<Self> {
+    ) -> TiberiusResult<Self> {
         let keep_params = keep_params.to_vec();
         let keep_params: Vec<String> = keep_params.into_iter().map(|x| x.into()).collect();
         let mut extra_params = BTreeMap::new();
@@ -66,12 +66,12 @@ impl<'a> PaginationCtl<'a> {
             suffix,
         })
     }
-    pub fn current_offset(req: &'a HTTPReq, page_size: u32) -> u64 {
+    pub fn current_offset(req: &'a Request<'a>, page_size: u32) -> u64 {
         let current_page = req.query::<PageQuery>().unwrap_or_default().page;
         let current_page_size = Self::get_pagesize_from_req(req) as u64;
         (current_page - 1) * current_page_size
     }
-    fn get_pagesize_from_req(req: &'a HTTPReq) -> u8 {
+    fn get_pagesize_from_req(req: &'a Request<'a>) -> u8 {
         req.ext::<PageSize>()
             .unwrap_or(&PageSize(25))
             .0

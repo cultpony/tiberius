@@ -22,18 +22,14 @@ r2d2 = "0.8.9"
 better-panic = "0.2"
 envy = "0.4"
 kankyo = "0.3"
-#tide = "0.16"
-anyhow = "1.0"
 securefmt = "0.1.1"
 lazy_static = "1.4"
 base64 = "0.12"
-openssl = "0.10"
-erlang-term = "0.1.1"
 philomena-models = { path = "../philomena-models" }
 sqlx = { version = "0.5.2", features = ["postgres", "chrono", "time", "macros", "json", "runtime-tokio-rustls", "offline", "migrate"] }
 url = { version = "2.2", features = ["serde"] }
 url_serde = "0.2"
-maud = "0.22.2"
+maud = { git = "https://github.com/mbr/maud", branch = "mbr/rocket-0.5", features = ["rocket"] }
 regex = "1.5.3"
 sqlxmq = { version = "0.1.2", default-features = false, features = ["runtime-tokio-rustls"] }
 tokio-cron-scheduler = "0.2.1"
@@ -47,12 +43,14 @@ rust-embed = { version = "5.8.0", features = ["compression"] }
 new_mime_guess = "2.1.0"
 async-trait = "0.1.50"
 clap = { version = "2.33.3", features = ["wrap_help"] }
-#tide-fluent-routes = "0.1.5"
 josekit = "0.7.1"
 paseto = "2.0.0"
 serde_cbor = "0.11.1"
 ring = "0.16.20"
-rocket = "0.5.0-rc.1"
+rocket = { version = "0.5.0-rc.1", features = ["secrets", "uuid", "json", "msgpack"] }
+rand = "0.8.3"
+thiserror = "1.0.24"
+uuid = "0.8.1"
 
 [features]
 default = []

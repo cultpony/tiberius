@@ -1,12 +1,13 @@
 use maud::Markup;
 
-use crate::app::HTTPReq;
-use anyhow::Result;
+use crate::error::TiberiusResult;
 
-pub async fn show_image(req: HTTPReq) -> tide::Result {
+#[get("/<image>")]
+pub async fn show_image(image: u64) -> TiberiusResult<Markup> {
     todo!()
 }
 
-pub async fn new_image(req: HTTPReq) -> tide::Result {
+#[post("/image")]
+pub async fn new_image() -> TiberiusResult<Markup> {
     todo!()
 }

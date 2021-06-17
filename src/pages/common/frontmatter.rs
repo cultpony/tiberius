@@ -3,10 +3,7 @@ use std::{
     fmt::{write, Debug},
 };
 
-use crate::{
-    app::{common::Query, HTTPReq, PageTitle},
-    assets::AssetLoaderRequestExt,
-    pages::common::{
+use crate::{app::{common::Query, HTTPReq, PageTitle}, assets::{AssetLoaderRequestExt, SiteConfig}, error::TiberiusResult, pages::common::{
         flash::{get_flash, Flash},
         routes::{
             api_json_oembed_url, cdn_host, dark_stylesheet_path, forum_route,
@@ -14,12 +11,7 @@ use crate::{
             profile_artist_path_current_user, profile_path_current_user, registration_path,
             static_path, stylesheet_path, thumb_url,
         },
-    },
-    request_helper::CSRFToken,
-    request_timer::RequestTimerRequestExt,
-    session::{SessionExt, SessionReqExt},
-};
-use anyhow::Result;
+    }, request_helper::CSRFToken};
 use either::Either;
 use log::trace;
 use maud::{html, Markup, PreEscaped};
@@ -27,10 +19,12 @@ use philomena_models::{
     Channel, Client, Conversation, Filter, Forum, Image, ImageThumbType, Notification, SiteNotice,
     Tag, User,
 };
+use rocket::uri;
+use rocket::Request;
 
-pub fn viewport_meta_tags(req: &HTTPReq) -> Markup {
+pub fn viewport_meta_tags(req: &Request) -> Markup {
     let mobile_uas = ["Mobile", "webOS"];
-    if let Some(value) = req.header(tide::http::headers::USER_AGENT) {
+    if let Some(value) = req.header(rocket::http::hyper::header::USER_AGENT) {
         for mobile_ua in &mobile_uas {
             if value.to_string().contains(mobile_ua) {
                 return html! { meta name="viewport" content="width=device-width, initial-scale=1"; };
@@ -52,16 +46,11 @@ pub fn csrf_meta_tag(req: &HTTPReq) -> Markup {
     }
 }
 
-pub fn theme_name(req: &HTTPReq) -> &str {
-    if let Some(user) = req.ext::<User>() {
-        user.theme.as_str()
-    } else {
-        "default"
-    }
+pub fn theme_name(user: Option<&User>) -> &str {
+    user.map(|u| u.theme.as_str()).unwrap_or("default")
 }
 
-pub async fn open_graph(req: &HTTPReq, client: &mut Client) -> Result<Markup> {
-    let image = req.ext::<Image>();
+pub async fn open_graph(image: Option<&Image>, client: &mut Client) -> TiberiusResult<Markup> {
     let filtered = !image.map(|x| x.thumbnails_generated).unwrap_or(false);
     let description = image
         .map(|img| {
@@ -95,22 +84,22 @@ pub async fn open_graph(req: &HTTPReq, client: &mut Client) -> Result<Markup> {
                 }
             }
 
-            link rel="alternate" type="application/json-+oembed" href=(api_json_oembed_url(req)?) title="oEmbed JSON Profile";
-            link rel="canonical" href=(path2url(req, image_url(either::Right(image)))?);
+            link rel="alternate" type="application/json-+oembed" href=(todo!("oembed url")) title="oEmbed JSON Profile";
+            link rel="canonical" href=(todo!("image url"));
 
             @match (image.image_mime_type.as_ref().map(|x| x.as_str()), filtered) {
                 (Some("video/webm"), false) => {
                     meta property="og:type" content="video.other";
-                    meta property="og:image" content=(path2url(req, thumb_url(req, client, either::Right(image), ImageThumbType::Rendered).await?)?);
-                    meta property="og:video" content=(path2url(req, thumb_url(req, client, either::Right(image), ImageThumbType::Large).await?)?);
+                    meta property="og:image" content=(todo!("image thumb rendered"));
+                    meta property="og:video" content=(todo!("image thumb large"));
                 },
                 (Some("image/svg+xml"), false) => {
                     meta property="og:type" content="website";
-                    meta property="og:image" content=(path2url(req, thumb_url(req, client, either::Right(image), ImageThumbType::Rendered).await?)?);
+                    meta property="og:image" content=(todo!("image thumb rendered"));
                 },
                 (_, false) => {
                     meta property="og:type" content="website";
-                    meta property="og:image" content=(path2url(req, thumb_url(req, client, either::Right(image), ImageThumbType::Large).await?)?);
+                    meta property="og:image" content=(todo!("image thumb large"));
                 },
                 _ => { meta property="og:type" content="website"; },
             }
@@ -149,12 +138,9 @@ pub fn burger() -> Markup {
     }
 }
 
-pub async fn header(req: &HTTPReq, client: &mut Client) -> Result<Markup> {
+pub async fn header(req: &Request<'_>, site_config: SiteConfig, user: User, notifications: Vec<Notification>, conversations: Vec<Conversation>, client: &mut Client) -> TiberiusResult<Markup> {
+    let filter: Option<Filter> = req.guard().await;
     trace!("preloading data for header html");
-    let user = req.ext::<User>();
-    let notifications = req.ext::<Vec<Notification>>();
-    let conversations = req.ext::<Vec<Conversation>>();
-    let filter = req.ext::<Filter>();
     let current_filter = filter
         .map(|x| x.name().to_string())
         .unwrap_or(Filter::default_filter(client).await?.name().to_string());
@@ -170,14 +156,14 @@ pub async fn header(req: &HTTPReq, client: &mut Client) -> Result<Markup> {
                     }
                     a.header__link href="/" {
                         i.fa.fw.favicon-home {}
-                        span.fa__text.hide-limited-desktop.hide_mobile { (req.site_config().site_name()) }
+                        span.fa__text.hide-limited-desktop.hide_mobile { (site_config.site_name()) }
                     }
                     a.header__link.hide_mobile href="/images/new" title="Upload" {
                         i.fa.fa-upload {}
                     }
                     form.header__search.flex.flex--nowrap.flex--centered.hform {
                         input.input.header__input.header__input--search#q name="q" title="For terms all required, separate with ',' or 'AND'; also supports 'OR' for optional terms and '-' or 'NOT' for negation. Search with a blank query for more options or click the ? for syntax help."
-                            value=(req.ext::<Query>().unwrap_or(&Query::empty()).to_string()) placeholder="Search" autocapitalize="none";
+                            value=(req.guard::<Query>().unwrap_or(&Query::empty()).to_string()) placeholder="Search" autocapitalize="none";
                     }
 
                     //TODO: sf+sd params https://github.com/derpibooru/philomena/blob/355ce491accae4702f273334271813e93a261e0f/lib/philomena_web/templates/layout/_header.html.slime#L17
@@ -230,24 +216,24 @@ pub async fn header(req: &HTTPReq, client: &mut Client) -> Result<Markup> {
                             // TODO: user change hide/spoiler form https://github.com/derpibooru/philomena/blob/355ce491accae4702f273334271813e93a261e0f/lib/philomena_web/templates/layout/_header.html.slime#L55
 
                             .dropdown.header_dropdown {
-                                a.header__link.header__link.user href=(path2url(req, profile_path_current_user(req))?) {
+                                a.header__link.header__link.user href=(todo!("current user profile path")) {
                                     //TODO: render user attribution view
                                     span.header__link-user__dropdown__content.hide-mobile.js-burger-links data-click-preventdefault="true";
                                 }
                                 nav.dropdown__content.dropdown_content-right.hdie-mobile.js-burger-links {
-                                    a.header__link href=(path2url(req, profile_path_current_user(req))?) { (user.name); }
+                                    a.header__link href=(todo!("current user profile path")) { (user.name); }
                                     a.header__link href="/search?q=my:watched" { i.fa.fa-fw.fa-eye { "Watched"; } }
                                     a.header__link href="/search?q=my:faves" { i.fa.fa-fw.fa-start { "Faves"; } }
                                     a.header__link href="/search?q=my:upvotes" { i.fa.fa-fw.fa-arrow-up { "Upvotes"; } }
-                                    a.header__link href=(path2url(req, gallery_patch_current_user(req))?) { i.fa.fa-fw.fa-image { "Galleries"; }}
+                                    a.header__link href=(todo!("user galleries path")) { i.fa.fa-fw.fa-image { "Galleries"; }}
                                     a.header__link href="/search?q=my:uploads" { i.fa.fa-fw.fa-upload { "Uploads"; } }
                                     a.header__link href="/comments?cq=my:comments" { i.fa.fa-fw.fa-comments { "Comments"; } }
                                     a.header__link href="/posts?pq=my:watched" { i.fa.fa-fw.fa-pen-square { "Posts"; } }
-                                    a.header__link href=(path2url(req, profile_artist_path_current_user(req))?) { i.fa.fa-fw.fa-link { "Links"; } }
+                                    a.header__link href=(todo!("artist profile page")) { i.fa.fa-fw.fa-link { "Links"; } }
                                     a.header__link href="/settings/edit" { i.fa.fa-fw.fa-cogs { "Settings"; } }
                                     a.header__link href="/conversations" { i.fa.fa-fw.fa-envelope { "Messages"; } }
-                                    a.header__link href=(path2url(req, registration_path())?) { i.fa.fa-fw.fa-user { "Account"; } }
-                                    a.header__link href=(path2url(req, logout_path())?) { i.fa.fa-fw.fa-sign-out-alt { "Logout"; } }
+                                    a.header__link href=(todo!("account management page")) { i.fa.fa-fw.fa-user { "Account"; } }
+                                    a.header__link href=(todo!("logout path")) { i.fa.fa-fw.fa-sign-out-alt { "Logout"; } }
                                 }
                             }
                         } @else {
@@ -257,8 +243,8 @@ pub async fn header(req: &HTTPReq, client: &mut Client) -> Result<Markup> {
                                     i.fa.fa-fw.fa-cogs.hide-desktop { "Settings" }
                                 }
                             }
-                            a.header__link href=(path2url(req, registration_path())?) { "Register" }
-                            a.header__link href=(path2url(req, login_path())?) { "Login" }
+                            a.header__link href=(todo!("register path")) { "Register" }
+                            a.header__link href=(todo!("login path")) { "Login" }
                         }
                     }
                 }
@@ -266,16 +252,16 @@ pub async fn header(req: &HTTPReq, client: &mut Client) -> Result<Markup> {
         }
         nav.header.header--secondary {
             .flex.flex--centered.flex--spaced-out.flex--wrap {
-                (header_navigation_links(req, client).await?)
+                (header_navigation_links(client).await?)
                 @if user.map(|x| x.role.as_str()) != Some("user") {
-                    (header_staff_links(req))
+                    (header_staff_links())
                 }
             }
         }
     })
 }
 
-pub async fn header_navigation_links<'a>(req: &HTTPReq, client: &mut Client) -> Result<Markup> {
+pub async fn header_navigation_links<'a>(client: &mut Client) -> TiberiusResult<Markup> {
     trace!("generating header_nav links");
     Ok(html! {
         .hide-mobile {
@@ -312,7 +298,7 @@ pub async fn header_navigation_links<'a>(req: &HTTPReq, client: &mut Client) -> 
                 }
                 .dropdown__content {
                     @for forum in Forum::all(client).await? {
-                        a.header__link href=(path2url(req, forum_route(&forum)?)?) {
+                        a.header__link href=(todo!("forum route")) {
                             (forum.name)
                         }
                     }
@@ -331,7 +317,7 @@ pub async fn header_navigation_links<'a>(req: &HTTPReq, client: &mut Client) -> 
     })
 }
 
-pub fn header_staff_links(req: &HTTPReq) -> Markup {
+pub fn header_staff_links() -> Markup {
     html! {
         .flex.flex--cenetered.header--secondary__admin-links.stretched-mobile-links.js-staff-action {
             //TODO: add staff links
@@ -339,8 +325,8 @@ pub fn header_staff_links(req: &HTTPReq) -> Markup {
     }
 }
 
-pub fn flash_warnings(req: &mut HTTPReq) -> Result<Markup> {
-    let site_notices: Option<Vec<SiteNotice>> = req.ext::<Vec<SiteNotice>>().cloned();
+pub fn flash_warnings(req: &Request) -> TiberiusResult<Markup> {
+    let site_notices: Option<Vec<SiteNotice>> = req.guard();
     let site_notices = site_notices.unwrap_or_default();
     Ok(html! {
         @for notice in site_notices {
@@ -377,8 +363,8 @@ pub fn flash_warnings(req: &mut HTTPReq) -> Result<Markup> {
 
 pub struct LayoutClass(String);
 
-pub fn layout_class(req: &HTTPReq) -> &str {
-    if let Some(layout_class) = req.ext::<LayoutClass>() {
+pub fn layout_class<'a>(req: &Request) -> &'a str {
+    if let Some(layout_class) = req.guard::<LayoutClass>() {
         return layout_class.0.as_str();
     }
     "layout--narrow"
@@ -401,7 +387,7 @@ pub struct FooterRow {
 }
 
 impl FooterRow {
-    pub fn url(&self, req: &HTTPReq) -> Result<String> {
+    pub fn url(&self, req: &HTTPReq) -> TiberiusResult<String> {
         match &self.url {
             Either::Left(url) => Ok(url.to_string()),
             Either::Right(path) => Ok(path2url(req, path)?.to_string()),
@@ -409,7 +395,7 @@ impl FooterRow {
     }
 }
 
-pub fn footer(req: &HTTPReq) -> Result<Markup> {
+pub fn footer(req: &HTTPReq) -> TiberiusResult<Markup> {
     let time = req.expired_time_ms();
     let footer_data = req.footer_data();
     Ok(html! {
@@ -449,7 +435,7 @@ pub fn ignored_tag_list<'a>(req: &'a HTTPReq) -> &'a [i32] {
 pub type ClientSideExtra = std::collections::BTreeMap<String, serde_json::Value>;
 pub type Interactions = Vec<()>;
 
-pub fn clientside_data<'a>(req: &'a HTTPReq) -> Result<Markup> {
+pub fn clientside_data<'a>(req: &'a HTTPReq) -> TiberiusResult<Markup> {
     let extra = req.ext::<ClientSideExtra>();
     let interactions = req.ext::<Interactions>();
     let user = req.ext::<User>();
@@ -549,7 +535,7 @@ pub fn container_class(req: &HTTPReq) -> String {
     "".to_string()
 }
 
-pub async fn app(req: &mut HTTPReq, mut client: Client, body: Markup) -> Result<Markup> {
+pub async fn app(req: &Request<'_>, mut client: Client, body: Markup) -> TiberiusResult<Markup> {
     Ok(html! {
         (maud::DOCTYPE)
         html lang="en" {
