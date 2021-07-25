@@ -1,7 +1,9 @@
-/target
-/proxy-prod.sh
-/.env
-/sqlx-data.json
+**/target
+**/proxy-prod.sh
+**/.env
+**/sqlx-data.json
 /data
-/keys
-/local-data
+**/keys
+**/local-data
+**/index
+**/Rocket.toml

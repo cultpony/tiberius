@@ -1,0 +1,56 @@
+[package]
+name = "tiberius-jobs"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-std = { version = "1.9", features = ["attributes", "tokio1"] }
+async-trait = "0.1.50"
+base64 = "0.12"
+bcrypt = "0.10.0"
+better-panic = "0.2"
+camo-url = "0.1.2"
+cap-async-std = "0.14.1"
+cap-std = "0.14.1"
+chrono = "0.4.19"
+chrono-humanize = "0.2.1"
+clap = { version = "2.33.3", features = ["wrap_help"] }
+csp = "0.1.0"
+either = { version = "1.6.1", features = ["serde"] }
+envy = "0.4"
+flexi_logger = "0.17"
+hex = "0.4.3"
+human_bytes = "0.3.0"
+itertools = "0.10.1"
+josekit = "0.7.1"
+kankyo = "0.3"
+lazy_static = "1.4"
+log = "0.4"
+maud = { git = "https://github.com/mbr/maud", branch = "mbr/rocket-0.5", features = ["rocket"] }
+new_mime_guess = "2.1.0"
+paseto = "2.0.0"
+r2d2 = "0.8.9"
+rand = "0.8.3"
+regex = "1.5.3"
+reqwest = { version = "0.11", features = ["json", "socks", "cookies"] }
+ring = "0.16.20"
+rocket = { version = "0.5.0-rc.1", features = ["secrets", "uuid", "json", "msgpack"] }
+rust-embed = { version = "5.8.0", features = ["compression"] }
+securefmt = "0.1.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_cbor = "0.11.1"
+serde_derive = "1.0"
+serde_json = "1.0"
+sqlx = { version = "0.5.2", features = ["postgres", "chrono", "time", "macros", "json", "runtime-tokio-rustls", "offline", "migrate"] }
+sqlxmq = { version = "0.2.1", default-features = false, features = ["runtime-tokio-rustls"] }
+thiserror = "1.0.24"
+tiberius-core = { path = "../tiberius-core" }
+tiberius-models = { path = "../tiberius-models" }
+tokio = { version = "1.3", features = ["full"] }
+tokio-cron-scheduler = "0.2.1"
+uri-builder = "0.1.0"
+url = { version = "2.2", features = ["serde"] }
+url_serde = "0.2"
+uuid = "0.8.1"
