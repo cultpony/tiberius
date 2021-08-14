@@ -1,36 +1,36 @@
-use std::fmt::Display;
 use itertools::Itertools;
-use tiberius_core::app::PageTitle;
-use tiberius_core::error::TiberiusResult;
-use tiberius_core::session::Session;
-use tiberius_core::state::{SiteNotices, TiberiusRequestState, TiberiusState};
+use std::fmt::Display;
 use std::{
     collections::BTreeMap,
     fmt::{write, Debug},
 };
+use tiberius_core::app::PageTitle;
 use tiberius_core::assets::{QuickTagTableContent, SiteConfig};
+use tiberius_core::error::TiberiusResult;
+use tiberius_core::session::Session;
+use tiberius_core::state::{SiteNotices, TiberiusRequestState, TiberiusState};
 
 use crate::pages::common::image::image_thumb_urls;
-use crate::{pages::common::{
-        flash::{get_flash},
-        routes::{
-            cdn_host, dark_stylesheet_path,
-            static_path, stylesheet_path, thumb_url,
-        },
-    }};
+use crate::pages::common::{
+    flash::get_flash,
+    routes::{cdn_host, dark_stylesheet_path, static_path, stylesheet_path, thumb_url},
+};
 use either::Either;
-use log::trace;
 use maud::{html, Markup, PreEscaped};
+use rocket::Request;
+use rocket::{request::FromRequest, uri, State};
 use tiberius_models::{
     Channel, Client, Conversation, Filter, Forum, Image, ImageThumbType, Notification, SiteNotice,
     Tag, User,
 };
-use rocket::{State, request::FromRequest, uri};
-use rocket::Request;
+use tracing::trace;
 
 pub fn viewport_meta_tags(rstate: &TiberiusRequestState<'_>) -> Markup {
     let mobile_uas = ["Mobile", "webOS"];
-    if let Some(value) = rstate.headers.get_one(rocket::http::hyper::header::USER_AGENT.as_str()) {
+    if let Some(value) = rstate
+        .headers
+        .get_one(rocket::http::hyper::header::USER_AGENT.as_str())
+    {
         for mobile_ua in &mobile_uas {
             if value.to_string().contains(mobile_ua) {
                 return html! { meta name="viewport" content="width=device-width, initial-scale=1"; };
@@ -63,8 +63,12 @@ pub fn no_avatar_svg() -> Markup {
 
 pub async fn open_graph(state: &TiberiusState, image: Option<Image>) -> TiberiusResult<Markup> {
     let mut client = state.get_db_client().await?;
-    let filtered = !image.as_ref().map(|x| x.thumbnails_generated).unwrap_or(false);
-    let description = image.as_ref()
+    let filtered = !image
+        .as_ref()
+        .map(|x| x.thumbnails_generated)
+        .unwrap_or(false);
+    let description = image
+        .as_ref()
         .map(|img| {
             format!(
                 "{} - {} - Manebooru",
@@ -139,7 +143,7 @@ pub fn burger() -> Markup {
             a href="/images/new" { i.fa.fa-fw.fa-upload {} "Upload" }
             a href="/forums" { i.fas.fa-fw.fa-pen-square {} "Forums" }
             a href="/tags" { i.fa.fa-fw.fa-tag {} "Tags" }
-            a href="/search?q=first_seen_at.gt:3 days ago&amp;sf=wilson_score&amp;sd=desc" { i.fas.fa-fw.fa-poll {} "Rankings" }
+            a href="/search?q=first_seen_at.gt:10+minutes+ago&amp;sf=wilson_score&amp;sd=desc" { i.fas.fa-fw.fa-poll {} "Rankings" }
             a href="/filters" { i.fa.fa-fw.fa-filter {} "Filters" }
             a href="/galleries" { i.fa.fa-fw.fa-image {} "Galleries" }
             a href="/comments" { i.fa.fa-fw.fa-comments {} "Comments" }
@@ -151,10 +155,10 @@ pub fn burger() -> Markup {
 }
 
 pub fn tag_editor<S1: Display, S2: Display>(editor_type: S1, name: S2) -> Markup {
-    let ta_class= format!("js-taginput-{}", name);
+    let ta_class = format!("js-taginput-{}", name);
     html! {
         .js-tag-block.(format!("fancy-tag-{}", editor_type)) {
-            textarea.input.input--wide.tagsinput.js-image-input.js-taginput.js-taginput-plain.hidden#image_tag_input.(ta_class) autocomplete="off" name="image[tag_input]" placeholder="Add tags seperated with commas" {}
+            textarea.input.input--wide.tagsinput.js-image-input.js-taginput.js-taginput-plain.hidden#image_tag_input.(ta_class) autocomplete="off" name="image.tag_input" placeholder="Add tags seperated with commas" {}
             .js-taginput.input.input--wide.tagsinput.js-taginput-fancy data-click-focus=(format!(".js-taginput-input.js-taginput-{}", name)) {
                 input.input.js-taginput-input.(format!("js-taginput-{}", name))#(format!("taginput-fancy-{}", name)) type="text" placeholder="add a tag" autocomplete="off" autocapitalize="none" data-ac="true" data-ac-min-length="3" data-ac-source="/tags/autocomplete?term=" {}
             }
@@ -185,7 +189,7 @@ pub fn tag_link(uri: bool, tag: &str, name: &str) -> Markup {
     } else {
         "#".to_string()
     };
-    html!{
+    html! {
         a href=(uri) data-tag-name=(tag) data-click-addtag=(tag) { (name) }
     }
 }
@@ -262,7 +266,11 @@ pub fn quick_tag_table(state: &TiberiusState) -> Markup {
     }
 }
 
-pub async fn header(site_config: &SiteConfig, state: &TiberiusState, rstate: &TiberiusRequestState<'_>) -> TiberiusResult<Markup> {
+pub async fn header(
+    site_config: &SiteConfig,
+    state: &TiberiusState,
+    rstate: &TiberiusRequestState<'_>,
+) -> TiberiusResult<Markup> {
     let notifications = rstate.notifications().await?;
     let mut client = state.get_db_client().await?;
     let filter: Filter = rstate.filter(state).await?;
@@ -287,11 +295,11 @@ pub async fn header(site_config: &SiteConfig, state: &TiberiusState, rstate: &Ti
                         i.fa.fa-upload {}
                     }
                 }
-                
+
                 form.header__search.flex.flex--nowrap.flex--centered.hform action=(uri!(crate::pages::images::search_empty)) method="GET" {
                     input.input.header__input.header__input--search#q name="q" title="For terms all required, separate with ',' or 'AND'; also supports 'OR' for optional terms and '-' or 'NOT' for negation. Search with a blank query for more options or click the ? for syntax help."
                         value=(rstate.search_query().await?.to_string()) placeholder="Search" autocapitalize="none";
-                    
+
                     //TODO: sf+sd params https://github.com/derpibooru/philomena/blob/355ce491accae4702f273334271813e93a261e0f/lib/philomena_web/templates/layout/_header.html.slime#L17
 
                     //TODO: hides_images https://github.com/derpibooru/philomena/blob/355ce491accae4702f273334271813e93a261e0f/lib/philomena_web/templates/layout/_header.html.slime#L22
@@ -338,7 +346,7 @@ pub async fn header(site_config: &SiteConfig, state: &TiberiusState, rstate: &Ti
 
                         // TODO: user change hide/spoiler form https://github.com/derpibooru/philomena/blob/355ce491accae4702f273334271813e93a261e0f/lib/philomena_web/templates/layout/_header.html.slime#L55
                         form#spoiler-quick-form.header__filter-form.hide-mobile.hide-limited-desktop action="// TODO: quick spoiler form" method="POST" {}
-                        
+
 
                         .dropdown.header_dropdown {
                             a.header__link.header__link-user href=(uri!(crate::pages::session::registration)) {
@@ -452,12 +460,14 @@ pub fn header_staff_links() -> Markup {
     }
 }
 
-
-pub async fn flash_warnings(state: &TiberiusState, rstate: &TiberiusRequestState<'_>) -> TiberiusResult<Markup> {
+pub async fn flash_warnings(
+    state: &TiberiusState,
+    rstate: &TiberiusRequestState<'_>,
+) -> TiberiusResult<Markup> {
     let site_notices: Option<SiteNotices> = state.site_notices();
     let site_notices = site_notices.unwrap_or_default();
     use tiberius_core::state::Flash;
-    let flash_body = html! { 
+    let flash_body = html! {
         @for flash in get_flash(state, rstate).await? {
             @match flash {
                 Flash::Info(text) => { .flash.flash--success { (text) } }
@@ -505,8 +515,10 @@ pub async fn layout_class(req: &TiberiusRequestState<'_>) -> String {
     req.layout_class().await.to_string()
 }
 
-
-pub async fn footer(state: &TiberiusState, rstate: &TiberiusRequestState<'_>) -> TiberiusResult<Markup> {
+pub async fn footer(
+    state: &TiberiusState,
+    rstate: &TiberiusRequestState<'_>,
+) -> TiberiusResult<Markup> {
     let end_time = rstate.started_at;
     let time = end_time.elapsed();
     let time: f32 = time.as_secs_f32() * 1000f32; // TODO: reimplement measuring this
@@ -538,11 +550,13 @@ pub async fn footer(state: &TiberiusState, rstate: &TiberiusRequestState<'_>) ->
     })
 }
 
-pub async fn ignored_tag_list<'a>(state: &TiberiusState, rstate: &TiberiusRequestState<'_>) -> TiberiusResult<Vec<i32>> {
+pub async fn ignored_tag_list<'a>(
+    state: &TiberiusState,
+    rstate: &TiberiusRequestState<'_>,
+) -> TiberiusResult<Vec<i32>> {
     let filter = rstate.filter(state).await?;
     return Ok(filter.hidden_tag_ids);
 }
-
 
 macro_rules! insert_csd {
     ($i:ident, $s:ident, $j:expr) => {
@@ -552,7 +566,12 @@ macro_rules! insert_csd {
     };
 }
 
-pub async fn image_clientside_data<'a>(state: &TiberiusState, rstate: &TiberiusRequestState<'_>, image: &Image, inner: Markup) -> TiberiusResult<Markup> {
+pub async fn image_clientside_data<'a>(
+    state: &TiberiusState,
+    rstate: &TiberiusRequestState<'_>,
+    image: &Image,
+    inner: Markup,
+) -> TiberiusResult<Markup> {
     let mut data: BTreeMap<String, serde_json::Value> = BTreeMap::new();
     let mut client = state.get_db_client().await?;
 
@@ -564,7 +583,12 @@ pub async fn image_clientside_data<'a>(state: &TiberiusState, rstate: &TiberiusR
     insert_csd!(data, height, image.image_height.unwrap_or(0));
     insert_csd!(data, image_id, image.id);
     insert_csd!(data, image_tag_aliases, image.tags_text(&mut client).await?);
-    let tag_ids: Vec<_> = image.get_tag_ids(&mut client).await?.into_iter().map(|x| x.tag_id).collect();
+    let tag_ids: Vec<_> = image
+        .get_tag_ids(&mut client)
+        .await?
+        .into_iter()
+        .map(|x| x.tag_id)
+        .collect();
     insert_csd!(data, image_tags, tag_ids);
     insert_csd!(data, score, image.score);
     // TODO: allow other than full
@@ -576,7 +600,10 @@ pub async fn image_clientside_data<'a>(state: &TiberiusState, rstate: &TiberiusR
     Ok(csd_to_markup("image-show-container", data, inner).await?)
 }
 
-pub async fn clientside_data<'a>(state: &TiberiusState, rstate: &TiberiusRequestState<'_>) -> TiberiusResult<Markup> {
+pub async fn clientside_data<'a>(
+    state: &TiberiusState,
+    rstate: &TiberiusRequestState<'_>,
+) -> TiberiusResult<Markup> {
     let extra = rstate.csd_extra().await?;
     let interactions = rstate.interactions().await?;
     let user = rstate.user(state).await?;
@@ -623,7 +650,11 @@ pub async fn clientside_data<'a>(state: &TiberiusState, rstate: &TiberiusRequest
         insert_csd!(data, watched_tag_list, user.watched_tag_ids);
         insert_csd!(data, fancy_tag_edit, user.fancy_tag_field_on_edit);
         insert_csd!(data, fancy_tag_upload, user.fancy_tag_field_on_upload);
-        insert_csd!(data, ignored_tag_list, ignored_tag_list(state, rstate).await?);
+        insert_csd!(
+            data,
+            ignored_tag_list,
+            ignored_tag_list(state, rstate).await?
+        );
         insert_csd!(
             data,
             hide_staff_tools,
@@ -638,11 +669,15 @@ pub async fn clientside_data<'a>(state: &TiberiusState, rstate: &TiberiusRequest
     for (k, v) in extra {
         data.insert(k.clone(), v.clone());
     }
-    
+
     Ok(csd_to_markup("js-datastore", data, PreEscaped("".to_string())).await?)
 }
 
-async fn csd_to_markup<S: std::fmt::Display>(class: S, data: BTreeMap<String, serde_json::Value>, inner: Markup) -> TiberiusResult<Markup> {
+async fn csd_to_markup<S: std::fmt::Display>(
+    class: S,
+    data: BTreeMap<String, serde_json::Value>,
+    inner: Markup,
+) -> TiberiusResult<Markup> {
     let data: Vec<String> = data
         .iter()
         .map(|(k, v)| {
@@ -660,11 +695,19 @@ async fn csd_to_markup<S: std::fmt::Display>(class: S, data: BTreeMap<String, se
         })
         .collect();
     let data = data.join(" ");
-    let data = format!(r#"<div class="{}" {}>{}</div>"#, class, data, inner.into_string());
+    let data = format!(
+        r#"<div class="{}" {}>{}</div>"#,
+        class,
+        data,
+        inner.into_string()
+    );
     Ok(PreEscaped(data))
 }
 
-pub async fn container_class(state: &TiberiusState, rstate: &TiberiusRequestState<'_>) -> TiberiusResult<String> {
+pub async fn container_class(
+    state: &TiberiusState,
+    rstate: &TiberiusRequestState<'_>,
+) -> TiberiusResult<String> {
     if let Some(user) = rstate.user(state).await? {
         if user.use_centered_layout {
             return Ok("layout--center-aligned".to_string());
@@ -673,8 +716,15 @@ pub async fn container_class(state: &TiberiusState, rstate: &TiberiusRequestStat
     Ok("".to_string())
 }
 
-pub async fn app(state: &TiberiusState, rstate: &TiberiusRequestState<'_>, page_title: Option<PageTitle>, client: &mut Client, body: Markup, image: Option<Image>) -> TiberiusResult<Markup> {
-    let meta = html!{
+pub async fn app(
+    state: &TiberiusState,
+    rstate: &TiberiusRequestState<'_>,
+    page_title: Option<PageTitle>,
+    client: &mut Client,
+    body: Markup,
+    image: Option<Image>,
+) -> TiberiusResult<Markup> {
+    let meta = html! {
         meta charset="UTF-8";
         meta http-equiv="X-UA-Compatible" content="IE=edge";
         (viewport_meta_tags(rstate));
@@ -691,7 +741,7 @@ pub async fn app(state: &TiberiusState, rstate: &TiberiusRequestState<'_>, page_
             }
         ) }
     };
-    let links_and_meta = html!{
+    let links_and_meta = html! {
         link rel="stylesheet" href=(stylesheet_path(state, rstate).await?);
         @if rstate.user(state).await?.is_some() {
             link rel="stylesheet" href=(dark_stylesheet_path(rstate)?) media="(prefers-color-scheme: dark)";

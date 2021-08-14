@@ -2,24 +2,25 @@ use std::str::FromStr;
 
 use async_std::path::PathBuf;
 use chrono::Datelike;
-use log::trace;
-use tiberius_core::error::{TiberiusError, TiberiusResult};
-use tiberius_core::request_helper::{CustomResponse, TiberiusResponse};
-use tiberius_core::state::TiberiusState;
-use tiberius_models::Image;
 use rocket::http::{ContentType, Status};
 use rocket::response::content;
 use rocket::response::status;
 use rocket::response::stream::ReaderStream;
 use rocket::tokio::fs::File;
 use rocket::State;
+use tiberius_core::config::Configuration;
+use tiberius_core::error::{TiberiusError, TiberiusResult};
+use tiberius_core::request_helper::{CustomResponse, TiberiusResponse};
+use tiberius_core::state::TiberiusState;
+use tiberius_models::{Image, ImageThumbType};
+use tracing::trace;
 
 #[get("/img/thumb/<id>/<thumbtype>/<_filename>")]
 pub async fn image_thumb_get_simple(
     state: &State<TiberiusState>,
     id: u64,
     thumbtype: String,
-    _filename: String
+    _filename: String,
 ) -> TiberiusResult<status::Custom<content::Custom<ReaderStream![File]>>> {
     let mut client = state.get_db_client().await?;
     let image = Image::get_id(&mut client, id as i64).await?;
@@ -28,24 +29,9 @@ pub async fn image_thumb_get_simple(
             "Could not find image thumb".to_string(),
         )),
         Some(image) => {
-            let created = image.created_at;
-            let year = created.year();
-            let month = created.month();
-            let day = created.day();
-            Ok(image_thumb_get(
-                state,
-                year as u16,
-                month as u8,
-                day as u8,
-                id,
-                format!(
-                    "{}.{}",
-                    thumbtype,
-                    image.image_format.unwrap_or("png".to_string())
-                ),
-                "".to_string(),
-            )
-            .await?)
+            let path = PathBuf::from(image.thumbnail_path(ImageThumbType::Small).await?);
+            let config = state.config();
+            Ok(read_static(state, &path, Some(image)).await?)
         }
     }
 }
@@ -109,14 +95,24 @@ pub async fn image_thumb_get(
         id = id,
         thumbtype = thumbtype
     );
-    trace!("requesting static file {}", path);
-    let path = PathBuf::from_str(&path)?;
+    let mut client = state.get_db_client().await?;
+    let image = Image::get_id(&mut client, id as i64).await?;
+    Ok(read_static(state, &PathBuf::from(path), image).await?)
+}
+
+async fn read_static(
+    state: &State<TiberiusState>,
+    path: &PathBuf,
+    image: Option<Image>,
+) -> TiberiusResult<status::Custom<content::Custom<ReaderStream![File]>>> {
+    let config = state.config();
+    trace!("requesting static file {}", path.display());
     let path = config.data_root.clone().join(path);
     let path = if let Ok(md) = path.symlink_metadata() {
         if md.file_type().is_symlink() {
             trace!("using full path image");
-            let mut client = state.get_db_client().await?;
-            let image = Image::get_id(&mut client, id as i64).await?;
+            let client = state.get_db_client().await?;
+            let image = image;
             if let Some(image) = image {
                 if let Some(image_path) = image.image {
                     let path = PathBuf::from_str(&image_path)?;

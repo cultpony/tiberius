@@ -2,11 +2,16 @@ use std::collections::BTreeMap;
 use std::{borrow::Cow, path::PathBuf, str::FromStr};
 
 use async_std::sync::RwLock;
-use log::info;
-use rocket::{Request, State, fairing::{Fairing, Info, Kind}, http::{ContentType, Status}, response::stream::ByteStream};
+use rocket::response::content;
 use rocket::response::status;
 use rocket::response::stream::ReaderStream;
-use rocket::response::content;
+use rocket::{
+    fairing::{Fairing, Info, Kind},
+    http::{ContentType, Status},
+    response::stream::ByteStream,
+    Request, State,
+};
+use tracing::info;
 
 use crate::config::Configuration;
 use crate::error::{TiberiusError, TiberiusResult};
@@ -43,18 +48,29 @@ pub async fn serve_static_file(file: PathBuf) -> TiberiusResult<FileResponse> {
     let path = file.clone();
     let file = Assets::get(file.to_str().unwrap());
     Ok(match file {
-        None => return Err(TiberiusError::Other(format!("file {} not found", path.display()))),
+        None => {
+            return Err(TiberiusError::Other(format!(
+                "file {} not found",
+                path.display()
+            )))
+        }
         Some(file) => {
-            let content_type = new_mime_guess::from_ext(&path.extension().unwrap_or_default().to_string_lossy());
+            let content_type =
+                new_mime_guess::from_ext(&path.extension().unwrap_or_default().to_string_lossy());
             let content_type = content_type.first();
             let content_type = match content_type {
                 None => rocket::http::ContentType::Plain.to_string(),
                 Some(t) => t.essence_str().to_string(),
             };
-            info!("Serving static file {} with content type {}", path.display(), content_type);
-            FileResponse{
+            trace!(
+                "Serving static file {} with content type {}",
+                path.display(),
+                content_type
+            );
+            FileResponse {
                 content: file.to_vec(),
-                content_type: ContentType::from_str(&content_type).map_err(|x| TiberiusError::Other(x))?,
+                content_type: ContentType::from_str(&content_type)
+                    .map_err(|x| TiberiusError::Other(x))?,
             }
         }
     })
@@ -154,9 +170,9 @@ pub struct AssetLoader {
 
 impl AssetLoader {
     pub fn new(c: &Configuration) -> TiberiusResult<Self> {
-        log::info!("Configuring Assets");
+        tracing::info!("Configuring Assets");
         let dataroot = std::path::PathBuf::from(&c.static_root);
-        log::debug!("Data root for static assets is {}", dataroot.display());
+        tracing::debug!("Data root for static assets is {}", dataroot.display());
         let mut data = dataroot.clone();
         data.push("footer.json");
         let data = std::fs::File::open(data)?;
@@ -169,7 +185,11 @@ impl AssetLoader {
         quicktagtable.push("quick_tag_table.json");
         let quicktagtable = std::fs::File::open(quicktagtable)?;
         let quicktagtable = serde_json::from_reader(quicktagtable)?;
-        Ok(Self { data, siteconf, quicktagtable, })
+        Ok(Self {
+            data,
+            siteconf,
+            quicktagtable,
+        })
     }
     pub fn footer_data(&self) -> &FooterData {
         &self.data
@@ -182,6 +202,4 @@ impl AssetLoader {
     }
 }
 
-pub trait TiberiusStateAssetExt {
-    
-}
+pub trait TiberiusStateAssetExt {}

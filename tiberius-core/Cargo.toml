@@ -15,9 +15,10 @@ csp = "0.1.0"
 either = { version = "1.6.1", features = ["serde"] }
 envy = "0.4"
 hex = "0.4.3"
+image = "0.23"
 itertools = "0.10.1"
 lazy_static = "1.4"
-log = "0.4"
+tracing = "0.1.26"
 maud = { git = "https://github.com/mbr/maud", branch = "mbr/rocket-0.5", features = ["rocket"] }
 new_mime_guess = "2.1.0"
 paseto = "2.0.0"

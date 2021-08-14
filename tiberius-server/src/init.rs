@@ -1,6 +1,6 @@
-use flexi_logger::LoggerHandle;
+use flexi_logger::{LevelFilter, LoggerHandle};
 use lazy_static::lazy_static;
-use log::{info, LevelFilter};
+use tracing::info;
 
 lazy_static! {
     pub static ref LOGGER: LoggerHandle = {
@@ -12,12 +12,12 @@ lazy_static! {
             flexi_logger::LogSpecification::default(LevelFilter::Warn)
                 .module("sqlx", LevelFilter::Warn)
                 .module("sqlx::query", LevelFilter::Warn)
-                .module("sqlxmq", LevelFilter::Info)
+                .module("sqlxmq", LevelFilter::Warn)
                 .module("tiberius", LevelFilter::Trace)
                 .module("tiberius_models", LevelFilter::Trace)
                 .module("tiberius_jobs", LevelFilter::Trace)
                 .module("tiberius_core", LevelFilter::Trace)
-                .module("philomena_searcher", LevelFilter::Trace)
+                .module("tiberius_search", LevelFilter::Warn)
                 .build(),
         )
         .start()

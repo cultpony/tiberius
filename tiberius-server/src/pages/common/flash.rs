@@ -1,12 +1,14 @@
-use log::trace;
-use rocket::response::{Responder};
+use rocket::response::Responder;
 use rocket::{http::private::cookie::CookieBuilder, State};
 use tiberius_core::config::Configuration;
 use tiberius_core::error::TiberiusResult;
 use tiberius_core::state::{Flash, TiberiusRequestState, TiberiusState};
+use tracing::trace;
 
-
-pub async fn get_flash(state: &TiberiusState, rstate: &TiberiusRequestState<'_>) -> TiberiusResult<Vec<Flash>> {
+pub async fn get_flash(
+    state: &TiberiusState,
+    rstate: &TiberiusRequestState<'_>,
+) -> TiberiusResult<Vec<Flash>> {
     trace!("loading flash notices from session");
     let config: &Configuration = &state.config;
     let flash_cookie = rstate.cookie_jar.get(&config.flash_cookie);
@@ -24,13 +26,18 @@ pub async fn get_flash(state: &TiberiusState, rstate: &TiberiusRequestState<'_>)
     Ok(flashlist)
 }
 
-pub async fn put_flash(state: &TiberiusState, rstate: &TiberiusRequestState<'_>, f: Flash) -> TiberiusResult<()> {
+pub async fn put_flash(
+    state: &TiberiusState,
+    rstate: &TiberiusRequestState<'_>,
+    f: Flash,
+) -> TiberiusResult<()> {
     trace!("putting flash into session");
     let mut flashlist = get_flash(state, rstate).await?;
     flashlist.push(f);
     let config: &Configuration = &state.config;
     let flashlist = serde_json::to_string(&flashlist)?;
-    rstate.cookie_jar
+    rstate
+        .cookie_jar
         .add(CookieBuilder::new(config.flash_cookie.clone(), flashlist).finish());
     Ok(())
 }

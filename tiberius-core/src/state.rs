@@ -3,10 +3,16 @@ use std::{convert::Infallible, sync::Arc};
 
 use async_std::{fs::File, path::Path};
 use chrono::{NaiveDate, NaiveDateTime, Utc};
+use rocket::{
+    fairing::Fairing,
+    fs::NamedFile,
+    http::{ContentType, CookieJar, HeaderMap},
+    request::{FlashMessage, FromRequest, Outcome},
+    response::stream::ReaderStream,
+    Request,
+};
 use tiberius_models::{ApiKey, Client, Conversation, Filter, Notification, SiteNotice, User};
-use rocket::{Request, fairing::Fairing, fs::NamedFile, http::{ContentType, CookieJar, HeaderMap}, request::{FlashMessage, FromRequest, Outcome}, response::stream::ReaderStream};
 
-use crate::LayoutClass;
 use crate::app::DBPool;
 use crate::assets::{AssetLoader, SiteConfig};
 use crate::config::Configuration;
@@ -14,6 +20,7 @@ use crate::error::{TiberiusError, TiberiusResult};
 use crate::footer::FooterData;
 use crate::request_helper::DbRef;
 use crate::session::Session;
+use crate::LayoutClass;
 
 #[derive(Clone)]
 pub struct TiberiusState {
@@ -21,6 +28,7 @@ pub struct TiberiusState {
     pub cryptokeys: CryptoKeys,
     pub db_pool: DBPool,
     pub asset_loader: AssetLoader,
+    pub client: Client,
 }
 
 impl TiberiusState {
@@ -35,16 +43,21 @@ impl TiberiusState {
         &self.config
     }
     pub async fn get_db_client(&self) -> TiberiusResult<Client> {
-        Ok(Client::new(
+        Ok(self.client.clone())
+        /*Ok(Client::new(
             self.get_db_pool().await,
             &self.get_config().await.search_dir,
-        ))
+        ))*/
     }
-    pub async fn get_db_client_standalone(pool: DBPool, config: &Configuration) -> TiberiusResult<Client> {
-        Ok(Client::new(
-            pool,
-            &config.search_dir,
-        ))
+    #[instrument]
+    pub async fn get_db_client_standalone(
+        pool: DBPool,
+        config: &Configuration,
+    ) -> TiberiusResult<Client> {
+        // calling this unnecessarily is bad as it means we loose in-proc cache
+        // and locks on data
+        warn!("Creating standalone database client");
+        Ok(Client::new(pool, &config.search_dir))
     }
 }
 
@@ -61,7 +74,7 @@ pub struct TiberiusRequestState<'a> {
 impl<'r> FromRequest<'r> for TiberiusRequestState<'r> {
     type Error = Infallible;
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        Outcome::Success(Self{
+        Outcome::Success(Self {
             cookie_jar: request.cookies(),
             headers: request.headers(),
             uri: request.uri(),
@@ -88,16 +101,16 @@ pub struct EncryptedData<T> {
 impl TiberiusState {
     pub async fn new(config: Configuration) -> TiberiusResult<Self> {
         let cryptokeys = {
-            log::info!("Loading cryptographic keys");
+            tracing::info!("Loading cryptographic keys");
             let path = config.key_directory.canonicalize()?;
-            log::debug!("Loading keys from {}", path.display());
-            log::debug!("Loading ed25519 key");
+            tracing::debug!("Loading keys from {}", path.display());
+            tracing::debug!("Loading ed25519 key");
             let ed25519key = async_std::fs::read(path.join(Path::new("ed25519.pkcs8"))).await?;
-            log::debug!("Loading main encryption key");
+            tracing::debug!("Loading main encryption key");
             let randomkeystr = async_std::fs::read(path.join(Path::new("main.key"))).await?;
             assert!(randomkeystr.len() == 64, "Random key must have 64 bytes");
             let ed25519key = ring::signature::Ed25519KeyPair::from_pkcs8(&ed25519key)?;
-            log::debug!("Loading encryption keys complete");
+            tracing::debug!("Loading encryption keys complete");
             let mut randomkey: [u8; 64] = [0; 64];
             for char in 0..64 {
                 randomkey[char] = randomkeystr[char];
@@ -107,10 +120,11 @@ impl TiberiusState {
                 random_key: randomkey,
             }
         };
-        log::debug!("Grabbing Database Pool for HTTP Stateful Requests");
+        tracing::debug!("Grabbing Database Pool for HTTP Stateful Requests");
         let db_pool = config.db_conn().await?;
         Ok(Self {
             config: config.clone(),
+            client: Client::new(db_pool.clone(), &config.search_dir),
             cryptokeys,
             db_pool,
             asset_loader: AssetLoader::new(&config)?,
@@ -142,21 +156,20 @@ impl TiberiusState {
         self.asset_loader.footer_data()
     }
     pub fn site_notices(&self) -> Option<SiteNotices> {
-        Some(SiteNotices(vec![
-            SiteNotice{
-                id: 0,
-                title: "TestBoard".to_string(),
-                text: "Tiberius is still in development, please report us any bugs and mind the gap!".to_string(),
-                link: None,
-                link_text: None,
-                live: true,
-                start_date: NaiveDate::from_ymd(1,1,1).and_hms(1,1,1),
-                finish_date: chrono::Utc::now().naive_utc(),
-                created_at: NaiveDate::from_ymd(1,1,1).and_hms(1,1,1),
-                updated_at: NaiveDate::from_ymd(1,1,1).and_hms(1,1,1),
-                user_id: 0,
-            }
-        ]))
+        Some(SiteNotices(vec![SiteNotice {
+            id: 0,
+            title: "TestBoard".to_string(),
+            text: "Tiberius is still in development, please report us any bugs and mind the gap!"
+                .to_string(),
+            link: None,
+            link_text: None,
+            live: true,
+            start_date: NaiveDate::from_ymd(1, 1, 1).and_hms(1, 1, 1),
+            finish_date: chrono::Utc::now().naive_utc(),
+            created_at: NaiveDate::from_ymd(1, 1, 1).and_hms(1, 1, 1),
+            updated_at: NaiveDate::from_ymd(1, 1, 1).and_hms(1, 1, 1),
+            user_id: 0,
+        }]))
     }
 }
 
@@ -190,7 +203,10 @@ impl<'a> TiberiusRequestState<'a> {
 
 impl<'a> TiberiusRequestState<'a> {
     pub async fn user(&self, state: &TiberiusState) -> TiberiusResult<Option<User>> {
-        Ok(self.session.get_user(&mut state.get_db_client().await?).await?)
+        Ok(self
+            .session
+            .get_user(&mut state.get_db_client().await?)
+            .await?)
     }
     pub async fn filter(&self, state: &TiberiusState) -> TiberiusResult<Filter> {
         let mut client = state.get_db_client().await?;
@@ -237,7 +253,6 @@ impl Default for SiteNotices {
     }
 }
 
-
 #[derive(serde::Deserialize, serde::Serialize, Clone)]
 pub enum Flash {
     Info(String),
@@ -268,7 +283,8 @@ impl Flash {
             Self::Warning(_) => "warning",
             Self::Error(_) => "error",
             Self::None => "none",
-        }.to_string()
+        }
+        .to_string()
     }
 
     fn message(&self) -> String {
@@ -281,7 +297,11 @@ impl Flash {
         }
     }
 
-    pub fn into_resp<'r, 'o, T>(self, r: T) -> rocket::response::Flash<T> where 'o : 'r, T: rocket::response::Responder<'r, 'o> {
+    pub fn into_resp<'r, 'o, T>(self, r: T) -> rocket::response::Flash<T>
+    where
+        'o: 'r,
+        T: rocket::response::Responder<'r, 'o>,
+    {
         rocket::response::Flash::new(r, self.kind(), self.message())
     }
 

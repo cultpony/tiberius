@@ -1,16 +1,25 @@
-use maud::{Markup, PreEscaped, html};
+use std::str::FromStr;
+
+use async_std::path::PathBuf;
+use maud::{html, Markup, PreEscaped};
 use rocket::form::Form;
+use rocket::fs::TempFile;
+use rocket::response::Redirect;
+use rocket::State;
+use sha2::Digest;
 use tiberius_core::app::PageTitle;
 use tiberius_core::error::TiberiusResult;
 use tiberius_core::request_helper::{HtmlResponse, RedirectResponse, TiberiusResponse};
 use tiberius_core::state::{Flash, TiberiusRequestState, TiberiusState};
+use tiberius_jobs::process_image::ImageProcessConfig;
 use tiberius_models::Image;
-use rocket::response::Redirect;
-use rocket::State;
+use tokio::task::spawn_blocking;
+use tracing::debug;
 
 use crate::pages::common::frontmatter::{image_clientside_data, quick_tag_table, tag_editor};
 use crate::pages::common::human_date;
 use crate::pages::common::image::{image_thumb_urls, show_vote_counts};
+use crate::MAX_IMAGE_DIMENSION;
 
 #[get("/<image>")]
 pub async fn show_image(
@@ -136,9 +145,13 @@ pub async fn show_image(
     let scaled_value: f32 = 1.0;
     let data_uris = image_thumb_urls(&image).await?;
     let data_uris = serde_json::to_string(&data_uris)?;
-    let thumb_url = uri!(crate::pages::files::image_thumb_get_simple(id = image.id as u64, thumbtype = "full", _filename = image.filename()));
+    let thumb_url = uri!(crate::pages::files::image_thumb_get_simple(
+        id = image.id as u64,
+        thumbtype = "full",
+        _filename = image.filename()
+    ));
     let thumb_url = thumb_url.to_string();
-    let image_target = html!{
+    let image_target = html! {
         .block.block--fixed.block--warning.block--no-margin.image-filtered.hidden {
             strong {
                 a href="#" { "This image is blocked by your current filter - click here to display it anyway" }
@@ -251,7 +264,10 @@ pub async fn show_image(
 }
 
 #[get("/images/new")]
-pub async fn upload_image(state: &State<TiberiusState>, rstate: TiberiusRequestState<'_>) -> TiberiusResult<TiberiusResponse<()>> {
+pub async fn upload_image(
+    state: &State<TiberiusState>,
+    rstate: TiberiusRequestState<'_>,
+) -> TiberiusResult<TiberiusResponse<()>> {
     let mut client = state.get_db_client().await?;
     let user = rstate.session.get_user(&mut client).await?;
     let image_form_image = html! {
@@ -263,11 +279,11 @@ pub async fn upload_image(state: &State<TiberiusState>, rstate: TiberiusRequestS
                 }
             }
             .field {
-                input.input.js-scraper#image_image type="file" name="image[image]" {}
+                input.input.js-scraper#image_image type="file" name="image.image" {}
                 // TODO: show proc errors here
             }
             .field.field--inline {
-                input.input.input--wide.js-scraper#image_scraper_url type="url" name="image[scraper_url]" placeholder="Link a deviantART page, a Tumblr post, or the image directly" {}
+                input.input.input--wide.js-scraper#image_scraper_url type="url" name="image.scraper_url" placeholder="Link a deviantART page, a Tumblr post, or the image directly" {}
                 button.button.button--seperate-left#js-scraper-preview data-disable-with="Fetch" disabled="" title="Fetch image at the specified URL" type="button" {
                     "Fetch"
                 }
@@ -278,19 +294,19 @@ pub async fn upload_image(state: &State<TiberiusState>, rstate: TiberiusRequestS
     let image_form_source = html! {
         .field {
             label for="image_source_url" { "The page you found this image on" }
-            input.input.input--wide.js-image-input#image_source_url name="image[source_url]" placeholder="Source URL" type="url" {}
+            input.input.input--wide.js-image-input#image_source_url name="image.source_url" placeholder="Source URL" type="url" {}
         }
     };
     let image_tag_form = html! {
         .field {
-            label for="image[tag_input]" {
+            label for="image.tag_input" {
                 "Describe with " strong { " 3+ " } " tags, including ratings and applicable artist tags"
             }
             (tag_editor("upload", "tag_input"))
 
             p { "You can mouse over tags below to view a description, and click to add. Short tag names can be used and will expand to full." }
 
-            .block.js-tagtable data-target="[name=\"image[tag_input]\"]" {
+            .block.js-tagtable data-target="[name=\"image.tag_input\"]" {
                 (quick_tag_table(state))
             }
         }
@@ -305,8 +321,8 @@ pub async fn upload_image(state: &State<TiberiusState>, rstate: TiberiusRequestS
                 .block__tab.selected data-tab="write" {
                     //TODO: help
                     //TODO: toolbar
-                    
-                    textarea.input.input--wide.input--text.js-preview-description.js-image-input.js-toolbar-input id="description" name="image[description]" placeholder="Describe this image in plain words - this should generally be info about the image that doesn't belong in the tags or source." {}
+
+                    textarea.input.input--wide.input--text.js-preview-description.js-image-input.js-toolbar-input id="description" name="image.description" placeholder="Describe this image in plain words - this should generally be info about the image that doesn't belong in the tags or source." {}
                 }
                 .block__tab.hidden data-tab="preview" {
                     "Loading preview..."
@@ -318,11 +334,11 @@ pub async fn upload_image(state: &State<TiberiusState>, rstate: TiberiusRequestS
         @if user.is_some() {
             .field {
                 label for="anonymous" { "Post anonymously" }
-                input.checkbox type="checkbox" id="anonymous" name="image[anonymous]" value="true" {} //TODO: load this from server settings
+                input.checkbox type="checkbox" id="anonymous" name="image.anonymous" value="true" {} //TODO: load this from server settings
             }
         }
     };
-    
+
     let body = html! {
         form action=(uri!(new_image())) enctype="multipart/form-data" method="post" {
             @match user {
@@ -386,14 +402,276 @@ pub async fn upload_image(state: &State<TiberiusState>, rstate: TiberiusRequestS
     }))
 }
 
-pub struct ImageUpload {
+#[derive(rocket::FromForm, Debug)]
+pub struct ImageUpload<'a> {
+    pub anonymous: bool,
+    pub source_url: Option<String>,
+    pub tag_input: String,
+    pub description: Option<String>,
+    pub scraper_url: Option<String>,
+    pub image: TempFile<'a>,
+}
 
+#[derive(rocket::FromForm, Debug)]
+pub struct ImageUploadWrapper<'a> {
+    pub image: ImageUpload<'a>,
 }
 
 #[post("/image", data = "<image>")]
-pub async fn new_image(image: Form<ImageUpload>) -> TiberiusResult<RedirectResponse> {
-    log::debug!("got image: image");
-    todo!()
+pub async fn new_image(
+    mut image: Form<ImageUploadWrapper<'_>>,
+    state: &State<TiberiusState>,
+) -> TiberiusResult<TiberiusResponse<()>> {
+    let image = &mut image.image;
+    tracing::debug!("got image: {:?}", image);
+    let image_path = image.image.path();
+    let image_path = match image_path {
+        None => {
+            return Ok(RedirectResponse::new(
+                uri!(upload_image),
+                Some(Flash::Error(
+                    "We encountered an error during upload: Image vanished from disk".to_string(),
+                )),
+            ))
+        }
+        Some(v) => v,
+    };
+    let content_type = image.image.content_type();
+    debug!("Got image content_type: {:?}", content_type);
+    let content_type = content_type
+        .map(|x| &x.0)
+        .map(|x| format!("{}/{}", x.top(), x.sub()));
+    let ext = match content_type.as_ref().map(|x| x.as_str()) {
+        None => {
+            return Ok(RedirectResponse::new(
+                uri!(upload_image),
+                Some(Flash::Error(
+                    "Couldn't tell what you uploaded, sorry!".to_string(),
+                )),
+            ))
+        }
+        // Images
+        Some("image/png") => ".png",
+        Some("image/gif") => ".gif",
+        Some("image/bmp") => ".bmp",
+        Some("image/jpeg") => ".jpg",
+        Some("image/webp") => ".webp",
+        Some("image/avif") => ".avif",
+        Some("image/svg+xml") => {
+            return Ok(RedirectResponse::new(
+                uri!(upload_image),
+                Some(Flash::Error(
+                    "We don't support SVG uploads yet.".to_string(),
+                )),
+            ))
+        }
+        Some("image/x-icon") => ".ico",
+        Some("image/tiff") => ".tiff",
+        // Audio
+        Some("audio/flac") => {
+            return Ok(RedirectResponse::new(
+                uri!(upload_image),
+                Some(Flash::Error(
+                    "We don't support audio uploads yet.".to_string(),
+                )),
+            ))
+        }
+        Some("audio/wav") => {
+            return Ok(RedirectResponse::new(
+                uri!(upload_image),
+                Some(Flash::Error(
+                    "We don't support audio uploads yet.".to_string(),
+                )),
+            ))
+        }
+        Some("audio/aac") => {
+            return Ok(RedirectResponse::new(
+                uri!(upload_image),
+                Some(Flash::Error(
+                    "We don't support audio uploads yet.".to_string(),
+                )),
+            ))
+        }
+        Some("audio/webm") => {
+            return Ok(RedirectResponse::new(
+                uri!(upload_image),
+                Some(Flash::Error(
+                    "We don't support audio uploads yet.".to_string(),
+                )),
+            ))
+        }
+        // Video,
+        Some("video/ogg") => {
+            return Ok(RedirectResponse::new(
+                uri!(upload_image),
+                Some(Flash::Error(
+                    "We don't support video uploads yet.".to_string(),
+                )),
+            ))
+        }
+        Some("video/webm") => {
+            return Ok(RedirectResponse::new(
+                uri!(upload_image),
+                Some(Flash::Error(
+                    "We don't support video uploads yet.".to_string(),
+                )),
+            ))
+        }
+        Some("video/mpeg") => {
+            return Ok(RedirectResponse::new(
+                uri!(upload_image),
+                Some(Flash::Error(
+                    "We don't support video uploads yet.".to_string(),
+                )),
+            ))
+        }
+        Some("video/mp4") => {
+            return Ok(RedirectResponse::new(
+                uri!(upload_image),
+                Some(Flash::Error(
+                    "We don't support video uploads yet.".to_string(),
+                )),
+            ))
+        }
+        // Other
+        Some(q) => {
+            return Ok(RedirectResponse::new(
+                uri!(upload_image),
+                Some(Flash::Error(format!(
+                    "We can't process images of the type {}",
+                    q
+                ))),
+            ))
+        }
+    };
+    {
+        let img = image::io::Reader::open(image_path)?;
+        match img.with_guessed_format()?.into_dimensions() {
+            Ok(v) => {
+                debug!("Image metadata: {:?}", v);
+                if v.0 > MAX_IMAGE_DIMENSION || v.1 > MAX_IMAGE_DIMENSION {
+                    return Ok(RedirectResponse::new(uri!(upload_image), Some(Flash::Error(format!("We can't process image: It's too large, the image is {}x{} but we only support up to {}x{}", v.0, v.1, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION)))));
+                }
+                debug!("Image within max dimensions, proceeding");
+            }
+            Err(e) => {
+                return Ok(RedirectResponse::new(
+                    uri!(upload_image),
+                    Some(Flash::Error(format!("We can't process image: {}", e))),
+                ));
+            }
+        }
+    }
+    let (sha3_256_hash, sha512_hash) = {
+        let mut file = std::fs::File::open(image_path)?;
+        let mut hasher_sha3 = sha3::Sha3_256::default();
+        let mut hasher_sha2 = sha2::Sha512::default();
+        let res = spawn_blocking(move || -> Result<(String, String), std::io::Error> {
+            std::io::copy(&mut file, &mut hasher_sha3)?;
+            std::io::copy(&mut file, &mut hasher_sha2)?;
+            let sha3 = hex::encode(hasher_sha3.finalize().to_vec());
+            let sha2 = hex::encode(hasher_sha2.finalize().to_vec());
+            Ok((sha3, sha2))
+        })
+        .await??;
+        res
+    };
+    let config = state.config();
+    let unixts = chrono::Utc::now();
+    let mut subdir = config.data_root.clone();
+    subdir.push("images");
+    if !subdir.exists() {
+        std::fs::create_dir(&subdir)?;
+    }
+    subdir.push(unixts.format("%Y/%m/%d").to_string());
+    if !subdir.exists() {
+        std::fs::create_dir_all(&subdir)?;
+    }
+    // 128 characters prevents issues with ZFS and similar filesystems with 255 max filenames
+    // 128 is still enough to provide dedup over any single day unless someone uploads 2⁶⁴ files
+    subdir.push(format!("{}{}", &sha3_256_hash[0..(128 / 8)], ext));
+    let new_path = subdir;
+    if new_path.exists() {
+        //TODO: handle existing uploads instead of ignoring it
+        error!("implement handling already uploaded images");
+    } else {
+        debug!("persisting file to {}", new_path.display());
+        image.image.copy_to(&new_path).await?;
+    }
+    // reprocess image to ensure it's not only valid but in a good base format with good compat in all devices
+    {
+        let content_type = content_type.expect("at this point we must know the content mime type");
+        match content_type.as_str() {
+            "image/svg+xml" => {
+                let mut nfile = new_path.clone();
+                nfile.set_extension("svg11");
+                let inkscape = std::process::Command::new("inkscape")
+                    .arg(new_path)
+                    .arg("--export-plain-svg")
+                    .arg("--export-type=svg")
+                    .arg("--export-filename")
+                    .arg(&nfile)
+                    .output()?;
+                if !inkscape.status.success() {
+                    return Err(tiberius_core::error::TiberiusError::Other(
+                        "Inkscape could not convert to SVG1.1".to_string(),
+                    ));
+                }
+                assert!(nfile.is_file(), "inkscape must have created new file");
+                todo!("downconvert svg to svg1.1");
+            }
+            v => {
+                todo!("downconvert {}", v)
+            }
+        }
+    }
+    let tags: Vec<(String, Option<String>)> = image
+        .tag_input
+        .split(',')
+        .map(|x| x.trim())
+        .map(|x| {
+            x.split_once(":")
+                .map(|(x, y)| (y.to_string(), x.to_string()))
+                .map(|(x, y)| (x, Some(y)))
+                .unwrap_or((x.to_string(), None))
+        })
+        .collect();
+    let mut client = state.get_db_client().await?;
+    //TODO: create missing tags automatically
+    //TODO: rewrite image from scratch to discard metadata
+    let tags = tiberius_models::Tag::get_many_by_name(&mut client, tags, true).await?;
+    let tags = tags.into_iter().map(|x| x.id).collect();
+    let canon_path = new_path.clone();
+    let canon_path = canon_path.strip_prefix(&config.data_root)?;
+    let canon_path = canon_path.strip_prefix("images")?;
+    //image.image.persist_to(new_path);
+    let image = Image {
+        image: Some(canon_path.to_string_lossy().to_string()),
+        image_name: image.image.name().map(|x| format!("{}{}", x, ext)),
+        image_mime_type: image.image.content_type().map(|x| x.to_string()),
+        //TODO: store IP of user
+        //TODO: store fingerprint of user
+        anonymous: Some(image.anonymous),
+        source_url: image.scraper_url.clone().or(image.source_url.clone()),
+        tag_ids: tags,
+        description: image.description.clone().unwrap_or_else(String::new),
+        ..Default::default()
+    };
+    let image = image.insert_new(&mut client).await?;
+    debug!("Scheduling processing of image");
+    tiberius_jobs::process_image::process_image(
+        &mut client,
+        ImageProcessConfig {
+            image_id: image.id as u64,
+        },
+    )
+    .await?;
+    return Ok(RedirectResponse::new(
+        uri!(show_image(image = image.id as u64)),
+        Some(Flash::Info(
+            "We are processing your image, it might take a few minutes".to_string(),
+        )),
+    ));
 }
 
 #[get("/search")]

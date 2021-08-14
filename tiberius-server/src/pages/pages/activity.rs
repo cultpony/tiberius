@@ -1,13 +1,21 @@
-use crate::{pages::common::{image::{HeaderSize, ImageBlockHeader, ImageSize, image_block, image_block_default_sort, image_box}, streambox::stream_box}};
-use maud::{Markup, PreEscaped, html};
+use crate::pages::common::{
+    image::{
+        image_block, image_block_default_sort, image_box, HeaderSize, ImageBlockHeader, ImageSize,
+    },
+    streambox::stream_box,
+};
+use maud::{html, Markup, PreEscaped};
+use rocket::{Request, State};
 use tiberius_core::error::TiberiusResult;
 use tiberius_core::request_helper::{HtmlResponse, TiberiusResponse};
 use tiberius_core::state::{TiberiusRequestState, TiberiusState};
 use tiberius_models::{Client, Image};
-use rocket::{Request, State};
 
 #[get("/")]
-pub async fn index(state: &State<TiberiusState>, rstate: TiberiusRequestState<'_>) -> TiberiusResult<TiberiusResponse<()>> {
+pub async fn index(
+    state: &State<TiberiusState>,
+    rstate: TiberiusRequestState<'_>,
+) -> TiberiusResult<TiberiusResponse<()>> {
     let state = state.inner().clone();
     let mut client: Client = state.get_db_client().await?;
     let show_sidebar = true; //TODO: check setting
@@ -33,11 +41,11 @@ pub async fn index(state: &State<TiberiusState>, rstate: TiberiusRequestState<'_
                         a href=(uri!(crate::pages::blog::show(page = "contact"))) { "Contact us!" }
                     }
                     .block.hide-mobile {
-                        a.block__header--single-item.center href=(uri!(crate::pages::pages::images::search(_search="created_at.gte:3 days ago", _order=Some("wilson_score"), _direction=Some("desc")))) {
+                        a.block__header--single-item.center href=(uri!(crate::pages::pages::images::search(_search="created_at.gte:10 minutes ago", _order=Some("wilson_score"), _direction=Some("desc")))) {
                             "Trending Images"
                         }
                         .block__content.flex.flex--centered.flex--wrap.image-flex-grid {
-                            @for image in Image::search(&mut client, "created_at.gte:3 days ago", vec!["processed.eq:true"], vec!["deleted.eq:true"], Some("wilson_score"), Some("desc"), 0, 4).await?.1 {
+                            @for image in Image::search(&mut client, "created_at.gte:10 minutes ago", vec!["processed.eq:true"], vec!["deleted.eq:true"], Some("wilson_score"), Some("desc"), 0, 4).await?.1 {
                                 (image_box(&state, &rstate, &mut client, image, ImageSize::Medium, HeaderSize::ThumbSmall).await?)
                             }
                         }
@@ -54,13 +62,13 @@ pub async fn index(state: &State<TiberiusState>, rstate: TiberiusRequestState<'_
                     .block.hide-mobile {
                         a.block__header--single-item.center href="/comments" { "Recent Comments" }
                         //TODO: show recent comments
-                        a.block__header--single-item.center href=(uri!(crate::pages::pages::images::search(_search="created_at.lte:3 days ago", _order=Some("comment_count"), _direction=Some("desc")))) {
+                        a.block__header--single-item.center href=(uri!(crate::pages::pages::images::search(_search="created_at.lte:10 minutes ago", _order=Some("comment_count"), _direction=Some("desc")))) {
                             "Most Commented-on Images"
                         }
                     }
                 }
                 .column-layout__main {
-                    (image_block_default_sort(&state, &rstate, &mut client, ImageBlockHeader::Default, "created_at.lte:3 days ago", vec!["processed.eq:true"], vec!["deleted.eq:true"], 0, 25, "recently uploaded").await?)
+                    (image_block_default_sort(&state, &rstate, &mut client, ImageBlockHeader::Default, "created_at.lte:10 minutes ago", vec!["processed.eq:true"], vec!["deleted.eq:true"], 0, 25, "recently uploaded").await?)
                 }
             }
         }
@@ -68,7 +76,7 @@ pub async fn index(state: &State<TiberiusState>, rstate: TiberiusRequestState<'_
     let page: PreEscaped<String> = html! {
         (crate::pages::common::frontmatter::app(&state, &rstate, None, &mut client, body, None).await?);
     };
-    Ok(TiberiusResponse::Html(HtmlResponse{
-        content: page.into_string()
+    Ok(TiberiusResponse::Html(HtmlResponse {
+        content: page.into_string(),
     }))
 }

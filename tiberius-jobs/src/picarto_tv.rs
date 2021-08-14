@@ -1,11 +1,13 @@
-use log::{info, trace};
+use rocket::Request;
+use sqlxmq::{job, Checkpoint, CurrentJob};
 use tiberius_core::config::Configuration;
 use tiberius_core::error::TiberiusResult;
 use tiberius_core::http_client;
 use tiberius_core::state::TiberiusState;
 use tiberius_models::{Channel, Client};
-use rocket::Request;
-use sqlxmq::{job, Checkpoint, CurrentJob};
+use tracing::{debug, info, trace};
+
+use crate::SharedCtx;
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct PicartoConfig {
@@ -26,14 +28,15 @@ impl Default for PicartoConfig {
     }
 }
 
+#[instrument]
 #[sqlxmq::job]
-pub async fn run_job(mut current_job: CurrentJob) -> TiberiusResult<()> {
+pub async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
     let pool = current_job.pool();
     let progress: PicartoConfig = current_job
         .json()?
         .expect("job requires configuration copy");
     info!("Job {}: Refreshing picarto channels", current_job.id());
-    let mut client = TiberiusState::get_db_client_standalone(pool.clone(), &progress.config).await?;
+    let mut client = sctx.client;
     let mut progress = {
         if progress.started {
             progress
@@ -73,7 +76,11 @@ pub struct Progress {
     done_channels: Vec<i32>,
 }
 
-async fn refresh_channel(config: &Configuration, client: &mut Client, chan: &mut Channel) -> TiberiusResult<()> {
+async fn refresh_channel(
+    config: &Configuration,
+    client: &mut Client,
+    chan: &mut Channel,
+) -> TiberiusResult<()> {
     let http_client = http_client(config)?;
     let url = format!(
         "https://api.picarto.tv/api/v1/channel/name/{}",
@@ -87,7 +94,10 @@ async fn refresh_channel(config: &Configuration, client: &mut Client, chan: &mut
     chan.is_live = pic_chan.online;
     chan.last_fetched_at = Some(chrono::Utc::now().naive_utc());
     if chan.is_live {
+        debug!("Channel {} is online: {}", chan.short_name, pic_chan.title);
         chan.last_live_at = chan.last_fetched_at;
+    } else {
+        debug!("Channel {} is offline: {}", chan.short_name, pic_chan.title);
     }
     chan.viewers = pic_chan.viewers as i32;
     chan.title = pic_chan.title;

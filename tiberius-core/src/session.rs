@@ -1,8 +1,6 @@
-use std::{collections::BTreeMap};
+use std::collections::BTreeMap;
 
 use chrono::{Duration, NaiveDateTime, Utc};
-use log::{info, trace, warn};
-use tiberius_models::{Client, User};
 use rocket::{
     fairing::{Fairing, Info, Kind},
     http::Cookie,
@@ -10,6 +8,8 @@ use rocket::{
     Build, Request, Response, Rocket, State,
 };
 use sqlx::{pool::PoolConnection, PgPool, Postgres};
+use tiberius_models::{Client, User};
+use tracing::{info, trace, warn};
 use uuid::Uuid;
 
 use crate::state::TiberiusState;
@@ -76,9 +76,7 @@ impl Session {
     pub async fn get_user(&self, client: &mut Client) -> TiberiusResult<Option<User>> {
         match self.user_id {
             None => Ok(None),
-            Some(user_id) => {
-                Ok(User::get_id(client, user_id).await?)
-            }
+            Some(user_id) => Ok(User::get_id(client, user_id).await?),
         }
     }
 }
@@ -246,7 +244,6 @@ impl<'r> FromRequest<'r> for Session {
             request.guard().await.expect("no session store");
         let session_id = request.cookies().get(&session_store.cookie_name);
         if let Some(session_id) = session_id {
-            trace!("Got session {} from cookie, loading...", session_id);
             let session_data = session_store
                 .load_session(session_id.value().to_string())
                 .await;

@@ -6,4 +6,7 @@
 **/keys
 **/local-data
 **/index
+**/search
 **/Rocket.toml
+/*.pem
+**/tmp

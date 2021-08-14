@@ -1,7 +1,7 @@
 use chrono::NaiveDateTime;
-use log::{error, warn};
 use tiberius_core::config::Configuration;
 use tiberius_core::state::TiberiusState;
+use tracing::{error, warn};
 
 pub mod channels;
 pub mod flash;
@@ -56,5 +56,8 @@ pub fn pluralize<S: Into<String>>(singular: S, plural: S, count: i32) -> String 
 }
 
 pub fn human_date(d: NaiveDateTime) -> String {
-    format!("{}", chrono_humanize::HumanTime::from(chrono::DateTime::<chrono::Utc>::from_utc(d, chrono::Utc)))
+    format!(
+        "{}",
+        chrono_humanize::HumanTime::from(chrono::DateTime::<chrono::Utc>::from_utc(d, chrono::Utc))
+    )
 }

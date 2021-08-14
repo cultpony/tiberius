@@ -1,7 +1,12 @@
+use std::convert::TryInto;
+
+use either::Either;
+use rocket::http::uri::Reference;
 use tiberius_models::{ApiKey, Client, Image};
 use rocket::{Request, State, form::FromForm, http::ContentType};
 use sqlx::{pool::PoolConnection, Pool, Postgres};
 
+use crate::state::Flash;
 use crate::{app::DBPool, config::Configuration, error::{TiberiusError, TiberiusResult}, http_client};
 
 pub type DbRef = PoolConnection<Postgres>;
@@ -118,7 +123,7 @@ pub enum TiberiusResponse<T> {
     Json(JsonResponse),
     File(FileResponse),
     Redirect(RedirectResponse),
-    NoFlashRedirect(RedirectResponse),
+    NoFlashRedirect(NonFlashRedirectResponse),
     Custom(CustomResponse<T>),
     Error(TiberiusError),
 }
@@ -133,6 +138,19 @@ pub struct HtmlResponse {
 #[response()]
 pub struct RedirectResponse {
     pub redirect: rocket::response::Flash<rocket::response::Redirect>,
+}
+
+impl RedirectResponse {
+    pub fn new<T, S: TryInto<Reference<'static>>>(uri: S, flash: Option<Flash>) -> TiberiusResponse<T> {
+        match flash {
+            Some(flash) => TiberiusResponse::Redirect(Self {
+                redirect: flash.into_resp(rocket::response::Redirect::to(uri)),
+            }),
+            None => TiberiusResponse::NoFlashRedirect(NonFlashRedirectResponse {
+                redirect: rocket::response::Redirect::to(uri)
+            }),
+        }
+    }
 }
 
 #[derive(rocket::Responder)]

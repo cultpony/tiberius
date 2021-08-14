@@ -27,10 +27,12 @@ flexi_logger = "0.17"
 hex = "0.4.3"
 human_bytes = "0.3.0"
 itertools = "0.10.1"
+image = "0.23.14"
 josekit = "0.7.1"
 kankyo = "0.3"
 lazy_static = "1.4"
-log = "0.4"
+tracing = { version = "0.1", features = ["log", "log-always"] }
+tracing-log = { version = "0.1.2" }
 maud = { git = "https://github.com/mbr/maud", branch = "mbr/rocket-0.5", features = ["rocket"] }
 new_mime_guess = "2.1.0"
 paseto = "2.0.0"
@@ -39,13 +41,15 @@ rand = "0.8.3"
 regex = "1.5.3"
 reqwest = { version = "0.11", features = ["json", "socks", "cookies"] }
 ring = "0.16.20"
-rocket = { version = "0.5.0-rc.1", features = ["secrets", "uuid", "json", "msgpack"] }
+rocket = { version = "0.5.0-rc.1", features = ["secrets", "uuid", "json", "msgpack", "tls"] }
 rust-embed = { version = "5.8.0", features = ["compression"] }
 securefmt = "0.1.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_cbor = "0.11.1"
 serde_derive = "1.0"
 serde_json = "1.0"
+sha2 = "0.9.5"
+sha3 = "0.9.1"
 sqlx = { version = "0.5.2", features = ["postgres", "chrono", "time", "macros", "json", "runtime-tokio-rustls", "offline", "migrate"] }
 sqlxmq = { version = "0.2.1", default-features = false, features = ["runtime-tokio-rustls"] }
 thiserror = "1.0.24"

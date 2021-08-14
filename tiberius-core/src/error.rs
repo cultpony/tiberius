@@ -53,6 +53,12 @@ pub enum TiberiusError {
     Rocket(#[from] rocket::Error),
     #[error("BCrypt Error: {0}")]
     Bcrypt(#[from] bcrypt::BcryptError),
+    #[error("Error in Time: {0}")]
+    DoctorWho(#[from] std::time::SystemTimeError),
+    #[error("Couldn't strip path prefix: {0}")]
+    StripPathPrefix(#[from] std::path::StripPrefixError),
+    #[error("Could not process image: {0}")]
+    ImageError(#[from] image::ImageError),
 }
 
 pub type TiberiusResult<T> = std::result::Result<T, TiberiusError>;

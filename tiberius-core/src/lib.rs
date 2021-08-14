@@ -1,21 +1,31 @@
+//TODO: fix all these warnings once things settle
+#![allow(unused_variables)]
+#![allow(unused_imports)]
+#![allow(dead_code)]
+#![allow(unreachable_code)]
+#![allow(deprecated)]
+
+#[macro_use]
+extern crate tracing;
+
 #[macro_use]
 extern crate rocket;
 
-use log::trace;
-use reqwest::Proxy;
 use reqwest::header::HeaderMap;
+use reqwest::Proxy;
+use tracing::trace;
 
 use crate::config::Configuration;
 use crate::error::TiberiusResult;
 
-pub mod footer;
 pub mod app;
-pub mod error;
-pub mod config;
-pub mod session;
-pub mod request_helper;
-pub mod state;
 pub mod assets;
+pub mod config;
+pub mod error;
+pub mod footer;
+pub mod request_helper;
+pub mod session;
+pub mod state;
 
 pub fn http_client(config: &Configuration) -> TiberiusResult<reqwest::Client> {
     let client = reqwest::Client::builder()
@@ -122,9 +132,13 @@ pub fn get_user_agent(rstate: &TiberiusRequestState<'_>) -> TiberiusResult<Optio
         .map(|x| x.to_string()))
 }
 
-use crate::{error::{TiberiusError}, state::TiberiusRequestState};
+use crate::{error::TiberiusError, state::TiberiusRequestState};
 use either::Either;
-use rocket::{Request, Response, State, fairing::{Fairing, Info, Kind}, http::Header};
+use rocket::{
+    fairing::{Fairing, Info, Kind},
+    http::Header,
+    Request, Response, State,
+};
 use std::str::FromStr;
 
 pub struct Query {

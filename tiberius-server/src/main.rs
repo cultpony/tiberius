@@ -1,30 +1,37 @@
+//TODO: fix all these warnings once things settle
+#![allow(unused_variables)]
+#![allow(unused_imports)]
+#![allow(dead_code)]
+#![allow(unreachable_code)]
+#![allow(deprecated)]
+
 #[macro_use]
 extern crate rocket;
 
-use std::{io::ErrorKind, path::Path, str::FromStr, time::Duration};
+#[macro_use]
+extern crate tracing;
 
-use log::{debug, info, trace};
-use reqwest::{header::HeaderMap, Proxy};
+use std::{path::Path, str::FromStr};
+
+use tracing::{debug, info};
+
 use rocket::yansi::Paint;
 use sqlx::Postgres;
 use tiberius_core::app::DBPool;
 use tiberius_core::config::Configuration;
 use tiberius_core::error::TiberiusResult;
-use tiberius_core::{CSPHeader, package_full, package_name, package_version};
 use tiberius_core::session::PostgresSessionStore;
 use tiberius_core::state::TiberiusState;
+use tiberius_core::{package_full, package_name, package_version, CSPHeader};
 
 mod api;
 mod init;
 mod pages;
 
-
-use crate::{
-    pages::{todo_page, todo_page_fn},
-};
+const MAX_IMAGE_DIMENSION: u32 = 2_000_000u32;
 
 async fn run_migrations(
-    config: &Configuration,
+    _config: &Configuration,
     db_conn: sqlx::Pool<Postgres>,
 ) -> TiberiusResult<()> {
     info!("Migrating database");
@@ -40,7 +47,7 @@ async fn server_start(start_job_scheduler: bool) -> TiberiusResult<()> {
     run_migrations(&config, db_conn.clone()).await?;
     let job_runner = if start_job_scheduler {
         debug!("Starting job runner");
-        Some(tiberius_jobs::runner(db_conn.clone()))
+        Some(tiberius_jobs::runner(db_conn.clone(), config.clone()))
     } else {
         None
     };
@@ -113,7 +120,7 @@ async fn server_start(start_job_scheduler: bool) -> TiberiusResult<()> {
             r = server => {
                 match r {
                     Ok(()) => error!("server exited cleanly but unexpectedly"),
-                    Err(e) => error!("server error exit: {}", e),
+                    Err(e) => error!("server error exit: {:?}", e),
                 }
             }
             r = scheduler => {
@@ -145,7 +152,7 @@ async fn server_start(start_job_scheduler: bool) -> TiberiusResult<()> {
                     }
                     v => error!("{:?}", v),
                 }
-            },
+            }
         }
     }
     println!("Tiberius exited.");
@@ -156,8 +163,8 @@ fn main() -> TiberiusResult<()> {
     crate::init::LOGGER.flush();
     use tokio::runtime::Builder;
     let runtime = Builder::new_multi_thread()
-        .worker_threads(64)
-        .max_blocking_threads(64)
+        .worker_threads(16)
+        .max_blocking_threads(16)
         .thread_name_fn(|| {
             use std::sync::atomic::{AtomicUsize, Ordering};
             static ATOMIC_ID: AtomicUsize = AtomicUsize::new(0);
@@ -237,7 +244,7 @@ fn main() -> TiberiusResult<()> {
             let table = matches.value_of("table");
             let table = match table {
                 None => {
-                    log::error!("require to know which table to verify");
+                    error!("require to know which table to verify");
                     return Ok(());
                 }
                 Some(t) => t,
@@ -245,7 +252,7 @@ fn main() -> TiberiusResult<()> {
             let start_id = matches.value_of("start-id");
             let start_id: u64 = match start_id {
                 None => {
-                    log::error!("require to know where to start verify");
+                    error!("require to know where to start verify");
                     return Ok(());
                 }
                 Some(t) => t.parse().expect("can't parse start id"),
@@ -253,7 +260,7 @@ fn main() -> TiberiusResult<()> {
             let stop_id = matches.value_of("stop-id");
             let stop_id: u64 = match stop_id {
                 None => {
-                    log::error!("require to know where to stop verify");
+                    error!("require to know where to stop verify");
                     return Ok(());
                 }
                 Some(t) => t.parse().expect("can't parse stop id"),
@@ -269,7 +276,7 @@ fn main() -> TiberiusResult<()> {
             let mut table: Box<dyn tiberius_models::VerifiableTable> = match table {
                 "images" => Image::verifier(client, db_conn, start_id, stop_id, 10240),
                 v => {
-                    log::error!("table {} is invalid", v);
+                    error!("table {} is invalid", v);
                     return Ok(());
                 }
             };
@@ -282,36 +289,36 @@ fn main() -> TiberiusResult<()> {
             .expect("must have key directory");
         let base_path = std::path::PathBuf::from_str(base_path)?;
         if !base_path.exists() {
-            log::info!("Creating keys directory...");
+            info!("Creating keys directory...");
             std::fs::create_dir_all(&base_path)?;
         }
         let rng = ring::rand::SystemRandom::new();
-        log::info!("Generting keys...");
+        info!("Generting keys...");
         let ed25519path = base_path.join(Path::new("ed25519.pkcs8"));
         let mainkeypath = base_path.join(Path::new("main.key"));
 
         let sessionkeypath = base_path.join(Path::new("session.key"));
         if !ed25519path.exists() {
-            log::info!("Generating signing key");
+            info!("Generating signing key");
             let signing_key = ring::signature::Ed25519KeyPair::generate_pkcs8(&rng)?;
             std::fs::write(ed25519path, signing_key.as_ref())?;
         }
         if !mainkeypath.exists() {
-            log::info!("Generating main key");
+            info!("Generating main key");
             let random_key: [u8; 64] = ring::rand::generate(&rng)?.expose();
             //TODO: generate other needed keys
             std::fs::write(mainkeypath, random_key.as_ref())?;
         }
         if !sessionkeypath.exists() {
-            log::info!("Generating session key");
+            info!("Generating session key");
             let random_key: [u8; 64] = ring::rand::generate(&rng)?.expose();
             std::fs::write(sessionkeypath, random_key.as_ref())?;
         }
-        log::warn!("Keys generated, you are ready to roll.");
-        log::error!("MAKE BACKUPS OF THE {} DIRECTORY", base_path.display());
+        warn!("Keys generated, you are ready to roll.");
+        error!("MAKE BACKUPS OF THE {} DIRECTORY", base_path.display());
         Ok(())
     } else {
-        log::error!("No subcommand specified, please tell me what to do or use --help");
+        error!("No subcommand specified, please tell me what to do or use --help");
         Ok(())
     }
 }

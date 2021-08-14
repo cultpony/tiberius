@@ -1,13 +1,13 @@
-use maud::{Markup, PreEscaped, html};
+use maud::{html, Markup, PreEscaped};
 use tiberius_core::error::{TiberiusError, TiberiusResult};
 
 pub mod activity;
+pub mod blog;
 pub mod channels;
+pub mod errors;
 pub mod images;
 pub mod session;
 pub mod tags;
-pub mod blog;
-pub mod errors;
 
 use rocket::Request;
 
@@ -18,7 +18,7 @@ pub async fn todo_page<S: Into<String>>(name: S) -> TiberiusResult<Markup> {
 }
 
 pub async fn todo_page_fn(req: Request<'_>) -> TiberiusResult<Markup> {
-    log::error!("ROUTE {:?} WAS NOT IMPLEMENTED!", req.uri().path());
+    tracing::error!("ROUTE {:?} WAS NOT IMPLEMENTED!", req.uri().path());
     todo_page(req.uri().path().to_string()).await
 }
 
