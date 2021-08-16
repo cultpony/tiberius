@@ -113,6 +113,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e0612772f30c7c0f946a4248bcff6e71a2512c725f30f8c1e2ad8e796aa54d14"
 
 [[package]]
+name = "ambient-authority"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec8ad6edb4840b78c5c3d88de606b22252d552b55f3a4699fbb10fc070ec3049"
+
+[[package]]
 name = "ansi_term"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -628,11 +634,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "20c6ea80a5f9975c04c002415a9cadc6e21c460ba503b13609d16087277bdd83"
 dependencies = [
  "async-std",
- "cap-primitives",
- "io-lifetimes",
+ "cap-primitives 0.14.1",
+ "io-lifetimes 0.1.1",
  "ipnet",
  "posish 0.8.4",
- "unsafe-io",
+ "unsafe-io 0.6.12",
 ]
 
 [[package]]
@@ -641,33 +647,54 @@ version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "773365f4dcfcf5c9ceceb571dbc7a383f3b129d9d88293c685c31c62d249e8f4"
 dependencies = [
- "ambient-authority",
+ "ambient-authority 0.0.0",
  "errno",
- "fs-set-times",
- "io-lifetimes",
+ "fs-set-times 0.3.1",
+ "io-lifetimes 0.1.1",
  "ipnet",
  "maybe-owned",
  "once_cell",
  "posish 0.8.4",
  "rustc_version 0.4.0",
- "unsafe-io",
+ "unsafe-io 0.6.12",
  "winapi",
  "winapi-util",
- "winx",
+ "winx 0.26.0",
+]
+
+[[package]]
+name = "cap-primitives"
+version = "0.16.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b125e71bcf1e3fa14cddaff42ac9f5c279783146588c83831604ac5f9ad54ad"
+dependencies = [
+ "ambient-authority 0.0.1",
+ "errno",
+ "fs-set-times 0.6.0",
+ "io-lifetimes 0.2.3",
+ "ipnet",
+ "maybe-owned",
+ "once_cell",
+ "posish 0.16.0",
+ "rustc_version 0.4.0",
+ "unsafe-io 0.7.1",
+ "winapi",
+ "winapi-util",
+ "winx 0.27.0",
 ]
 
 [[package]]
 name = "cap-std"
-version = "0.14.1"
+version = "0.16.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "735bae65fe2aa0f204ae029b54987754cfca8532f3d0c274aad5cc4b2ff3e1a1"
+checksum = "e52811b9a742bf0430321fb193d6d37005609f770ed7b303f90604a19dc64f4c"
 dependencies = [
- "cap-primitives",
- "io-lifetimes",
+ "cap-primitives 0.16.3",
+ "io-lifetimes 0.2.3",
  "ipnet",
- "posish 0.8.4",
+ "posish 0.16.0",
  "rustc_version 0.4.0",
- "unsafe-io",
+ "unsafe-io 0.7.1",
 ]
 
 [[package]]
@@ -1124,6 +1151,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0645bc554da23ec9c99dcc8aeb0645834594cb2b4c778189936fae5bdcbc1db6"
 
 [[package]]
+name = "cstr"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c11a39d776a3b35896711da8a04dc1835169dcd36f710878187637314e47941b"
+dependencies = [
+ "proc-macro2 1.0.28",
+ "quote 1.0.9",
+]
+
+[[package]]
 name = "csv"
 version = "1.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1496,7 +1533,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28f1ca01f517bba5770c067dc6c466d290b962e08214c8f2598db98d66087e55"
 dependencies = [
  "posish 0.6.3",
- "unsafe-io",
+ "unsafe-io 0.6.12",
+ "winapi",
+]
+
+[[package]]
+name = "fs-set-times"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56af20dae05f9fae64574ead745ced5f08ae7dc6f42b9facd93a43d4b7adf982"
+dependencies = [
+ "io-lifetimes 0.2.3",
+ "posish 0.16.0",
  "winapi",
 ]
 
@@ -2071,6 +2119,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "io-lifetimes"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "11409ea45cce1f5ddc21b3c69e8167f7c65d2bc4c828ac2deaca9dc96d5c0d83"
+dependencies = [
+ "libc",
+ "rustc_version 0.4.0",
+ "winapi",
+]
+
+[[package]]
 name = "ipnet"
 version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2236,6 +2295,12 @@ name = "linux-raw-sys"
 version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "478d1ac0417e986251b569a79013e3402cdb74560c452afa5197dbdb5cb57799"
+
+[[package]]
+name = "linux-raw-sys"
+version = "0.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42a0e0375b6446268ee5299c8e92f90030c719b8bb6fcc303a704080da790654"
 
 [[package]]
 name = "lock_api"
@@ -2900,7 +2965,7 @@ dependencies = [
  "errno",
  "itoa",
  "libc",
- "unsafe-io",
+ "unsafe-io 0.6.12",
 ]
 
 [[package]]
@@ -2912,11 +2977,29 @@ dependencies = [
  "bitflags",
  "cfg-if 1.0.0",
  "errno",
- "io-lifetimes",
+ "io-lifetimes 0.1.1",
  "itoa",
  "libc",
- "linux-raw-sys",
- "unsafe-io",
+ "linux-raw-sys 0.0.5",
+ "unsafe-io 0.6.12",
+]
+
+[[package]]
+name = "posish"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2de73ab12ea55715a4217377e614fc2900f84e9366d1f5c0601fe2aa5e25fe86"
+dependencies = [
+ "bitflags",
+ "cc",
+ "cstr",
+ "errno",
+ "io-lifetimes 0.2.3",
+ "itoa",
+ "libc",
+ "linux-raw-sys 0.0.12",
+ "once_cell",
+ "rustc_version 0.4.0",
 ]
 
 [[package]]
@@ -4919,8 +5002,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1598c579f79cdd11e677b3942b7bed5cb3369464cfd240f4c4a308ffaed6f5e4"
 dependencies = [
  "async-std",
- "io-lifetimes",
+ "io-lifetimes 0.1.1",
  "rustc_version 0.3.3",
+ "winapi",
+]
+
+[[package]]
+name = "unsafe-io"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f56d1d7067d6e88dfdede7f668ea51800785fc8fcaf82d8fecdeaa678491e629"
+dependencies = [
+ "io-lifetimes 0.2.3",
+ "rustc_version 0.4.0",
  "winapi",
 ]
 
@@ -5236,7 +5330,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ef6ba57c59c6d8129a98c868e4ffd4848d114bdaf0fbbedd8ae985dce9c9a7fd"
 dependencies = [
  "bitflags",
- "io-lifetimes",
+ "io-lifetimes 0.1.1",
+ "winapi",
+]
+
+[[package]]
+name = "winx"
+version = "0.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cc8ca6af61cfeed1e071b19f44cf4a7683addd863f28fef69cdf251bc034050e"
+dependencies = [
+ "bitflags",
+ "io-lifetimes 0.2.3",
  "winapi",
 ]
 
