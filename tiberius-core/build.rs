@@ -31,7 +31,7 @@ fn main() {
     {
         let out = Command::new("yarn")
             .arg("install")
-            .current_dir(builddir)
+            .current_dir(builddir.clone())
             .output()
             .expect("failed to run build command");
         if !out.status.success() {
