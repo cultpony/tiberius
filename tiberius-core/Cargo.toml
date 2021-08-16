@@ -31,7 +31,7 @@ rocket = { version = "0.5.0-rc.1", features = ["secrets", "uuid", "json", "msgpa
 rust-embed = { version = "5.8.0", features = ["compression"] }
 securefmt = "0.1.1"
 serde = { version = "1.0", features = ["derive"] }
-serde_cbor = "0.11.1"
+serde_cbor = "0.11.2"
 serde_derive = "1.0"
 serde_json = "1.0"
 sqlx = { version = "0.5.2", features = ["postgres", "chrono", "time", "macros", "json", "runtime-tokio-rustls", "offline", "migrate", "uuid"] }
