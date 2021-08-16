@@ -4,11 +4,14 @@ use std::path::Path;
 use std::process::Command;
 
 fn main() {
-    let debug = std::env::var("PROFILE").unwrap() != "release";
+    let debug = std::env::var("PROFILE").expect("need rust compile profile") != "release";
     if !debug {
         let assetdir = "../res/assets-build";
-        let assetdir = std::path::PathBuf::try_from(assetdir).unwrap();
-        let assetdir = assetdir.canonicalize().unwrap();
+        let assetdir =
+            std::path::PathBuf::try_from(assetdir).expect("release asset path not readable");
+        let assetdir = assetdir
+            .canonicalize()
+            .expect("release could not canonicalize asset path");
         println!(
             "cargo:warning=Deleting old asset build dir first: {}",
             assetdir.display()
@@ -16,8 +19,10 @@ fn main() {
         std::fs::remove_dir_all(assetdir).unwrap();
     }
     let builddir = "../res/assets";
-    let builddir = std::path::PathBuf::try_from(builddir).unwrap();
-    let builddir = builddir.canonicalize().unwrap();
+    let builddir = std::path::PathBuf::try_from(builddir).expect("asset path not readable");
+    let builddir = builddir
+        .canonicalize()
+        .expect("could not canonicalize asset path");
     ChangeDetection::path_exclude("../res/assets", |x: &Path| {
         x.starts_with("../res/assets/node_modules")
     })
@@ -34,7 +39,7 @@ fn main() {
     }
     .current_dir(builddir)
     .output()
-    .unwrap();
+    .expect("failed to run build command");
     if !out.status.success() {
         panic!(
             " --- Asset Build Failed: --- \nStdout:\n{}\n---\nStderr:\n{}",
