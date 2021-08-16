@@ -28,24 +28,40 @@ fn main() {
     })
     .generate();
     println!("cargo:warning=Building in {}", builddir.display());
-    let mut cmd = Command::new("yarn");
-    let out = {
-        if debug {
-            cmd.arg("devbuild").env("NODE_ENV", "development")
-        } else {
-            println!("cargo:warning=Production Asset Build");
-            cmd.arg("deploy").env("NODE_ENV", "production")
+    {
+        let out = Command::new("yarn")
+            .arg("install")
+            .current_dir(builddir)
+            .output()
+            .expect("failed to run build command");
+        if !out.status.success() {
+            panic!(
+                " --- Asset Build Failed: --- \nStdout:\n{}\n---\nStderr:\n{}",
+                String::from_utf8_lossy(&out.stdout),
+                String::from_utf8_lossy(&out.stderr)
+            );
         }
     }
-    .current_dir(builddir)
-    .output()
-    .expect("failed to run build command");
-    if !out.status.success() {
-        panic!(
-            " --- Asset Build Failed: --- \nStdout:\n{}\n---\nStderr:\n{}",
-            String::from_utf8_lossy(&out.stdout),
-            String::from_utf8_lossy(&out.stderr)
-        );
+    {
+        let mut cmd = Command::new("yarn");
+        let out = {
+            if debug {
+                cmd.arg("devbuild").env("NODE_ENV", "development")
+            } else {
+                println!("cargo:warning=Production Asset Build");
+                cmd.arg("deploy").env("NODE_ENV", "production")
+            }
+        }
+        .current_dir(builddir)
+        .output()
+        .expect("failed to run build command");
+        if !out.status.success() {
+            panic!(
+                " --- Asset Build Failed: --- \nStdout:\n{}\n---\nStderr:\n{}",
+                String::from_utf8_lossy(&out.stdout),
+                String::from_utf8_lossy(&out.stderr)
+            );
+        }
     }
     println!("cargo:warning=Building Tiberius Core Assets complete");
 }
