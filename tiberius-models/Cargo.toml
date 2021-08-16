@@ -13,7 +13,7 @@ async-trait = "0.1.50"
 chrono = { version = "0.4.19", features = [ "serde" ] }
 futures = "0.3.5"
 hex = "0.4.3"
-ipnetwork = "0.17"
+ipnetwork = "0.18"
 itertools = "0.10.0"
 tracing = "0.1.26"
 progressing = "3.0.2"
