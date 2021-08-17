@@ -34,7 +34,7 @@ lazy_static = "1.4"
 tracing = { version = "0.1", features = ["log", "log-always"] }
 tracing-log = { version = "0.1.2" }
 maud = { git = "https://github.com/mbr/maud", branch = "mbr/rocket-0.5", features = ["rocket"] }
-new_mime_guess = "2.1.0"
+new_mime_guess = "3.0.0"
 paseto = "2.0.0"
 r2d2 = "0.8.9"
 rand = "0.8.3"

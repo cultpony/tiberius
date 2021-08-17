@@ -28,7 +28,7 @@ josekit = "0.7.1"
 kankyo = "0.3"
 lazy_static = "1.4"
 maud = { git = "https://github.com/mbr/maud", branch = "mbr/rocket-0.5", features = ["rocket"] }
-new_mime_guess = "2.1.0"
+new_mime_guess = "3.0.0"
 paseto = "2.0.0"
 r2d2 = "0.8.9"
 rand = "0.8.3"

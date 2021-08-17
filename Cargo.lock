@@ -2515,9 +2515,9 @@ dependencies = [
 
 [[package]]
 name = "new_mime_guess"
-version = "2.1.1"
+version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "991337b97f81dff759c3edabb0bc01ceac92bff6f54852853824bbe1acd969f7"
+checksum = "c8c8e990db7ba41ce2b4b3a38380a0f3385d61c55b3d4999d6e00389562a79a2"
 dependencies = [
  "mime",
  "unicase",
