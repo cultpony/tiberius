@@ -9,7 +9,7 @@ change-detection = "1.2.0"
 [dependencies]
 async-std = { version = "1.9", features = ["attributes", "tokio1"] }
 async-trait = "0.1.50"
-base64 = "0.12"
+base64 = "0.13"
 bcrypt = "0.10.0"
 chrono = "0.4.19"
 csp = "0.1.0"
