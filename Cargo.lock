@@ -628,11 +628,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85edf97d2439a77bee65814e446bec3acfce0661fd4839a61268ca31dd978b72"
 dependencies = [
  "async-std",
- "cap-primitives",
+ "cap-primitives 0.16.3",
  "io-lifetimes",
  "ipnet",
  "posish",
- "unsafe-io",
+ "unsafe-io 0.7.1",
 ]
 
 [[package]]
@@ -643,31 +643,52 @@ checksum = "9b125e71bcf1e3fa14cddaff42ac9f5c279783146588c83831604ac5f9ad54ad"
 dependencies = [
  "ambient-authority",
  "errno",
- "fs-set-times",
+ "fs-set-times 0.6.0",
  "io-lifetimes",
  "ipnet",
  "maybe-owned",
  "once_cell",
  "posish",
  "rustc_version 0.4.0",
- "unsafe-io",
+ "unsafe-io 0.7.1",
  "winapi",
  "winapi-util",
- "winx",
+ "winx 0.27.0",
+]
+
+[[package]]
+name = "cap-primitives"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a6f8dc570bc41f9750f726f39f27a73673fee6658835f413c973264b5d9d60f"
+dependencies = [
+ "ambient-authority",
+ "errno",
+ "fs-set-times 0.7.1",
+ "io-lifetimes",
+ "ipnet",
+ "maybe-owned",
+ "once_cell",
+ "rsix",
+ "rustc_version 0.4.0",
+ "unsafe-io 0.8.2",
+ "winapi",
+ "winapi-util",
+ "winx 0.28.0",
 ]
 
 [[package]]
 name = "cap-std"
-version = "0.16.3"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e52811b9a742bf0430321fb193d6d37005609f770ed7b303f90604a19dc64f4c"
+checksum = "021833fb391c63aee948efc616db343f24280d56195576c4a2ca35237553a840"
 dependencies = [
- "cap-primitives",
+ "cap-primitives 0.17.0",
  "io-lifetimes",
  "ipnet",
- "posish",
+ "rsix",
  "rustc_version 0.4.0",
- "unsafe-io",
+ "unsafe-io 0.8.2",
 ]
 
 [[package]]
@@ -1511,6 +1532,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "fs-set-times"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ef88dceefe321e9c9dc3e7ed98b77dfc56015855b88c326382daac2fe5035e7"
+dependencies = [
+ "io-lifetimes",
+ "rsix",
+ "winapi",
+]
+
+[[package]]
 name = "fs2"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2254,6 +2286,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42a0e0375b6446268ee5299c8e92f90030c719b8bb6fcc303a704080da790654"
 
 [[package]]
+name = "linux-raw-sys"
+version = "0.0.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59032f8fc703723b4e913546a9b59facd8b8d783ca22f2af672cf1bf08113a62"
+
+[[package]]
 name = "lock_api"
 version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2918,7 +2956,7 @@ dependencies = [
  "io-lifetimes",
  "itoa",
  "libc",
- "linux-raw-sys",
+ "linux-raw-sys 0.0.12",
  "once_cell",
  "rustc_version 0.4.0",
 ]
@@ -3486,6 +3524,23 @@ dependencies = [
  "tokio-rustls",
  "uncased",
  "uuid",
+]
+
+[[package]]
+name = "rsix"
+version = "0.18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "67bc6e554e7708e70db95c9b4e09095b1b84a821c6fe66541150f87f19825850"
+dependencies = [
+ "bitflags",
+ "cc",
+ "errno",
+ "io-lifetimes",
+ "itoa",
+ "libc",
+ "linux-raw-sys 0.0.19",
+ "once_cell",
+ "rustc_version 0.4.0",
 ]
 
 [[package]]
@@ -4902,6 +4957,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "unsafe-io"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7e204e8d8b19d00d5bded5563d6ffc55e3e1a223c794e9007134431101d08301"
+dependencies = [
+ "io-lifetimes",
+ "rustc_version 0.4.0",
+ "winapi",
+]
+
+[[package]]
 name = "untrusted"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5211,6 +5277,17 @@ name = "winx"
 version = "0.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cc8ca6af61cfeed1e071b19f44cf4a7683addd863f28fef69cdf251bc034050e"
+dependencies = [
+ "bitflags",
+ "io-lifetimes",
+ "winapi",
+]
+
+[[package]]
+name = "winx"
+version = "0.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "875be8fe56d24544e337a607c3d62be8af72175a76c8cc96378a7def89763899"
 dependencies = [
  "bitflags",
  "io-lifetimes",

@@ -16,7 +16,7 @@ bcrypt = "0.10.0"
 better-panic = "0.2"
 camo-url = "0.1.2"
 cap-async-std = "0.16.3"
-cap-std = "0.16.3"
+cap-std = "0.17.0"
 chrono = "0.4.19"
 chrono-humanize = "0.2.1"
 clap = { version = "2.33.3", features = ["wrap_help"] }
