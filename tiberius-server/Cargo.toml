@@ -11,12 +11,13 @@ publish = false
 [dependencies]
 async-std = { version = "1.9", features = ["attributes", "tokio1"] }
 async-trait = "0.1.50"
-base64 = "0.12"
+base64 = "0.13"
 bcrypt = "0.10.0"
 better-panic = "0.2"
 camo-url = "0.1.2"
-cap-async-std = "0.16.3"
-cap-std = "0.16.3"
+cap-async-std = "0.17"
+cap-std = "0.17"
+casbin = "2.0.7" # needs tobe 2.0.8 until sqlxmq is replaced or updated
 chrono = "0.4.19"
 chrono-humanize = "0.2.1"
 clap = { version = "2.33.3", features = ["wrap_help"] }
@@ -26,15 +27,13 @@ envy = "0.4"
 flexi_logger = "0.18"
 hex = "0.4.3"
 human_bytes = "0.3.0"
-itertools = "0.10.1"
 image = "0.23.14"
+itertools = "0.10.1"
 josekit = "0.7.1"
 kankyo = "0.3"
 lazy_static = "1.4"
-tracing = { version = "0.1", features = ["log", "log-always"] }
-tracing-log = { version = "0.1.2" }
 maud = { git = "https://github.com/mbr/maud", branch = "mbr/rocket-0.5", features = ["rocket"] }
-new_mime_guess = "2.1.0"
+new_mime_guess = "3.0"
 paseto = "2.0.0"
 r2d2 = "0.8.9"
 rand = "0.8.3"
@@ -42,7 +41,7 @@ regex = "1.5.3"
 reqwest = { version = "0.11", features = ["json", "socks", "cookies"] }
 ring = "0.16.20"
 rocket = { version = "0.5.0-rc.1", features = ["secrets", "uuid", "json", "msgpack", "tls"] }
-rust-embed = { version = "5.8.0", features = ["compression"] }
+rust-embed = { version = "6.1", features = ["compression"] }
 securefmt = "0.1.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_cbor = "0.11.1"
@@ -50,14 +49,17 @@ serde_derive = "1.0"
 serde_json = "1.0"
 sha2 = "0.9.5"
 sha3 = "0.9.1"
-sqlx = { version = "0.5.2", features = ["postgres", "chrono", "time", "macros", "json", "runtime-tokio-rustls", "offline", "migrate"] }
-sqlxmq = { version = "0.2.1", default-features = false, features = ["runtime-tokio-rustls"] }
-thiserror = "1.0.24"
-tiberius-models = { path = "../tiberius-models" }
+sqlx = { version = "0.5.7", features = ["postgres", "chrono", "time", "macros", "json", "runtime-tokio-rustls", "offline", "migrate"] }
+sqlxmq = { git = "https://github.com/cultpony/sqlxmq.git", default-features = false, features = ["runtime-tokio-rustls"] }
+sqlx-adapter = { version = "0.4.2", default-features = false, features = ["runtime-tokio-rustls", "postgres"] }
+thiserror = "1.0.28"
 tiberius-core = { path = "../tiberius-core" }
 tiberius-jobs = { path = "../tiberius-jobs" }
-tokio = { version = "1.3", features = ["full"] }
+tiberius-models = { path = "../tiberius-models" }
+tokio = { version = "1.10", features = ["full"] }
 tokio-cron-scheduler = "0.2.1"
+tracing = { version = "0.1", features = ["log", "log-always"] }
+tracing-log = { version = "0.1.2" }
 uri-builder = "0.1.0"
 url = { version = "2.2", features = ["serde"] }
 url_serde = "0.2"
