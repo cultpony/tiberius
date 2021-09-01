@@ -86,7 +86,7 @@ pub async fn scheduler(db: DBPool, config: Configuration) -> ! {
         let db = db.clone();
         sched
             .add(
-                Job::new("0 1/20 * * * * *", move |uuid, l| {
+                Job::new("0 1/10 * * * * *", move |uuid, l| {
                     info!("Starting cleanup_sessions job on scheduler UUID {}", uuid);
                     let db = db.clone();
                     tokio::spawn(async move {
@@ -103,7 +103,7 @@ pub async fn scheduler(db: DBPool, config: Configuration) -> ! {
         let db = db.clone();
         sched
             .add(
-                Job::new("0 0 * * * * *", move |uuid, l| {
+                Job::new("0 2/10 * * * * *", move |uuid, l| {
                     info!("Starting reindex_images job on scheduler UUID {}", uuid);
                     let db = db.clone();
                     let config = reindex_images::ImageReindexConfig::default();
@@ -129,7 +129,7 @@ pub async fn scheduler(db: DBPool, config: Configuration) -> ! {
         let db = db.clone();
         sched
             .add(
-                Job::new("0 0 * * * * *", move |uuid, l| {
+                Job::new("0 3/10 * * * * *", move |uuid, l| {
                     info!("Starting reindex_tags job on scheduler UUID {}", uuid);
                     let db = db.clone();
                     let config = reindex_tags::TagReindexConfig::default();

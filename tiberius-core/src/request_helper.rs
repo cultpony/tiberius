@@ -1,13 +1,19 @@
+use std::borrow::Cow;
 use std::convert::TryInto;
 
 use either::Either;
 use rocket::http::uri::Reference;
-use tiberius_models::{ApiKey, Client, Image};
-use rocket::{Request, State, form::FromForm, http::ContentType};
+use rocket::{form::FromForm, http::ContentType, Request, State};
 use sqlx::{pool::PoolConnection, Pool, Postgres};
+use tiberius_models::{ApiKey, Client, Image};
 
 use crate::state::Flash;
-use crate::{app::DBPool, config::Configuration, error::{TiberiusError, TiberiusResult}, http_client};
+use crate::{
+    app::DBPool,
+    config::Configuration,
+    error::{TiberiusError, TiberiusResult},
+    http_client,
+};
 
 pub type DbRef = PoolConnection<Postgres>;
 
@@ -93,7 +99,7 @@ impl<T> ApiFormData<T> {
     pub fn verify_csrf(&self, method: Option<FormMethod>) -> bool {
         // verify method expected == method gotten
         if method != self.method {
-            return false
+            return false;
         }
         //TODO: verify CSRF valid!
         true
@@ -141,13 +147,16 @@ pub struct RedirectResponse {
 }
 
 impl RedirectResponse {
-    pub fn new<T, S: TryInto<Reference<'static>>>(uri: S, flash: Option<Flash>) -> TiberiusResponse<T> {
+    pub fn new<T, S: TryInto<Reference<'static>>>(
+        uri: S,
+        flash: Option<Flash>,
+    ) -> TiberiusResponse<T> {
         match flash {
             Some(flash) => TiberiusResponse::Redirect(Self {
                 redirect: flash.into_resp(rocket::response::Redirect::to(uri)),
             }),
             None => TiberiusResponse::NoFlashRedirect(NonFlashRedirectResponse {
-                redirect: rocket::response::Redirect::to(uri)
+                redirect: rocket::response::Redirect::to(uri),
             }),
         }
     }
@@ -169,14 +178,14 @@ pub struct JsonResponse {
 #[derive(rocket::Responder)]
 #[response(status = 200)]
 pub struct FileResponse {
-    pub content: Vec<u8>,
+    pub content: Cow<'static, [u8]>,
     pub content_type: ContentType,
 }
 
 #[derive(rocket::Responder)]
 #[response(status = 200)]
 pub struct CustomResponse<T> {
-    #[response(bound="T: rocket::response::Responder")]
+    #[response(bound = "T: rocket::response::Responder")]
     pub content: T,
     pub content_type: ContentType,
 }

@@ -1,6 +1,6 @@
-use std::io::Cursor;
 use rocket::http::ContentType;
 use rocket::{http::Status, response::Responder, Response};
+use std::io::Cursor;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -59,6 +59,12 @@ pub enum TiberiusError {
     StripPathPrefix(#[from] std::path::StripPrefixError),
     #[error("Could not process image: {0}")]
     ImageError(#[from] image::ImageError),
+    #[error("Database Error in ACL Engine: {0}")]
+    CasbinSqlError(#[from] sqlx_adapter::Error),
+    #[error("Error in ACL Engine: {0}")]
+    CasbinError(#[from] sqlx_adapter::casbin::Error),
+    #[error("Access has been denied")]
+    AccessDenied,
 }
 
 pub type TiberiusResult<T> = std::result::Result<T, TiberiusError>;

@@ -1,16 +1,14 @@
 use std::{borrow::Cow, path::PathBuf};
 
 use maud::{html, Markup, Render};
+use rocket::Request;
 use tiberius_core::error::TiberiusResult;
 use tiberius_core::state::{TiberiusRequestState, TiberiusState};
 use tiberius_models::{Client, Image, ImageThumbType, ImageThumbUrl, User};
-use rocket::Request;
 
-use crate::{
-    pages::common::{
-        pagination::PaginationCtl,
-        routes::{image_url, thumb_url},
-    },
+use crate::pages::common::{
+    pagination::PaginationCtl,
+    routes::{image_url, thumb_url},
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -152,6 +150,12 @@ pub async fn image_block<
         "image",
         filter_title,
     )?;
+    assert!(
+        total as usize == images.len(),
+        "image index out of step with database, index had {} images, got {}",
+        total,
+        images.len()
+    );
     Ok(html! {
         .block#imagelist-container {
             section.block__header.page__header.flex {
@@ -276,7 +280,11 @@ pub async fn show_vote_counts(state: &TiberiusState, rstate: &TiberiusRequestSta
     true
 }
 
-pub async fn uploader(state: &TiberiusState, rstate: &TiberiusRequestState<'_>, image: &Image) -> TiberiusResult<Markup> {
+pub async fn uploader(
+    state: &TiberiusState,
+    rstate: &TiberiusRequestState<'_>,
+    image: &Image,
+) -> TiberiusResult<Markup> {
     Ok(html! {
         span.image_uploader {
             " by "
@@ -285,7 +293,11 @@ pub async fn uploader(state: &TiberiusState, rstate: &TiberiusRequestState<'_>, 
     })
 }
 
-pub async fn user_attribution(state: &TiberiusState, rstate: &TiberiusRequestState<'_>, user: Option<&User>) -> TiberiusResult<Markup> {
+pub async fn user_attribution(
+    state: &TiberiusState,
+    rstate: &TiberiusRequestState<'_>,
+    user: Option<&User>,
+) -> TiberiusResult<Markup> {
     Ok(html! {
         @if let Some(user) = user {
             strong {
@@ -335,6 +347,7 @@ pub async fn image_box<'a>(
             i.fa.fa-eye-slash title="Hide" {}
         }
     };
+    debug!("showing image {} to page", image.id);
     Ok(html! {
         .media-box data-image-id=(image.id) {
             .media-box__header.media-box__header--link-row.(header_class) data-image-id=(image.id) {

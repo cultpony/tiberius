@@ -3,7 +3,6 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
 #![allow(unreachable_code)]
-#![allow(deprecated)]
 
 #[macro_use]
 extern crate rocket;
@@ -35,7 +34,7 @@ async fn run_migrations(
     db_conn: sqlx::Pool<Postgres>,
 ) -> TiberiusResult<()> {
     info!("Migrating database");
-    sqlx::migrate!("./migrations").run(&db_conn).await?;
+    sqlx::migrate!("../migrations").run(&db_conn).await?;
     info!("Database migrated!");
     Ok(())
 }
@@ -64,6 +63,7 @@ async fn server_start(start_job_scheduler: bool) -> TiberiusResult<()> {
             crate::api::int::image::favorite,
             crate::api::int::oembed::fetch,
             crate::api::int::tag::fetch,
+            crate::api::v3::images::change_image_uploader,
             crate::api::well_known::imageboard_type::imageboardapiflavor_philomena_int,
             crate::api::well_known::imageboard_type::imageboardapiflavor_philomena_v1,
             crate::api::well_known::imageboard_type::imageboardapiflavor,

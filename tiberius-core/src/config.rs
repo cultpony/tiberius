@@ -3,7 +3,7 @@ use std::{path::PathBuf, str::FromStr};
 use reqwest::header::HOST;
 
 use crate::state::TiberiusRequestState;
-use crate::{app::{DBPool}, error::TiberiusResult};
+use crate::{app::DBPool, error::TiberiusResult};
 
 fn default_data_root() -> String {
     "./res".to_string()
@@ -92,7 +92,11 @@ pub struct Configuration {
     /// Default Value: "./keys"
     #[serde(default = "default_key_directory")]
     pub key_directory: std::path::PathBuf,
-    #[serde(alias = "TANTIVY_INDEX", alias = "INDEX_PATH", default = "default_search_dir")]
+    #[serde(
+        alias = "TANTIVY_INDEX",
+        alias = "INDEX_PATH",
+        default = "default_search_dir"
+    )]
     pub search_dir: std::path::PathBuf,
     #[serde(skip_serializing, alias = "PASSWORD_PEPPER")]
     #[sensitive]
@@ -117,10 +121,13 @@ impl Configuration {
         }
     }
     pub fn static_host(&self, rstate: &TiberiusRequestState<'_>) -> String {
-        self.static_host
-            .as_ref()
-            .cloned()
-            .unwrap_or(rstate.headers.get_one("host").unwrap_or("localhost").to_string())
+        self.static_host.as_ref().cloned().unwrap_or(
+            rstate
+                .headers
+                .get_one("host")
+                .unwrap_or("localhost")
+                .to_string(),
+        )
     }
 }
 

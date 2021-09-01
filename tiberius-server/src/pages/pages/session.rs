@@ -1,17 +1,20 @@
-use maud::{Markup, PreEscaped, html};
+use maud::{html, Markup, PreEscaped};
+use rocket::{form::Form, response::Redirect, State};
 use tiberius_core::error::TiberiusResult;
 use tiberius_core::request_helper::{HtmlResponse, RedirectResponse, TiberiusResponse};
 use tiberius_core::state::{Flash, TiberiusRequestState, TiberiusState};
 use tiberius_models::{Client, User};
-use rocket::{State, form::Form, response::{Redirect}};
 
-use crate::{pages::common::flash::{put_flash}};
+use crate::pages::common::flash::put_flash;
 
 #[get("/sessions/login")]
-pub async fn new_session(state: &State<TiberiusState>, rstate: TiberiusRequestState<'_>) -> TiberiusResult<TiberiusResponse<()>> {
+pub async fn new_session(
+    state: &State<TiberiusState>,
+    rstate: TiberiusRequestState<'_>,
+) -> TiberiusResult<TiberiusResponse<()>> {
     let state = state.inner().clone();
     let mut client: Client = state.get_db_client().await?;
-    let body = html!{
+    let body = html! {
         h1 { "Sign in" }
 
         form action=(uri!(new_session_post)) method="POST" {
@@ -50,8 +53,8 @@ pub async fn new_session(state: &State<TiberiusState>, rstate: TiberiusRequestSt
     let page: PreEscaped<String> = html! {
         (crate::pages::common::frontmatter::app(&state, &rstate, None, &mut client, body, None).await?);
     };
-    Ok(TiberiusResponse::Html(HtmlResponse{
-        content: page.into_string()
+    Ok(TiberiusResponse::Html(HtmlResponse {
+        content: page.into_string(),
     }))
 }
 
@@ -67,13 +70,24 @@ pub struct NewSession<'r> {
 }
 
 #[post("/sessions/login", data = "<login_data>")]
-pub async fn new_session_post(state: &State<TiberiusState>, rstate: TiberiusRequestState<'_>, login_data: Form<NewSession<'_>>) -> TiberiusResult<RedirectResponse> {
+pub async fn new_session_post(
+    state: &State<TiberiusState>,
+    rstate: TiberiusRequestState<'_>,
+    login_data: Form<NewSession<'_>>,
+) -> TiberiusResult<RedirectResponse> {
     trace!("requesting new session, verifying user");
     let mut client = state.get_db_client().await?;
 
-    let user: Option<User> = User::get_mail_or_name(&mut client, login_data.email.to_string()).await?;
+    let user: Option<User> =
+        User::get_mail_or_name(&mut client, login_data.email.to_string()).await?;
     if let Some(user) = user {
-        let password = login_data.password.to_string() + state.config.password_pepper.as_ref().unwrap_or(&"".to_string());
+        let password = login_data.password.to_string()
+            + state
+                .config
+                .password_pepper
+                .as_ref()
+                .unwrap_or(&"".to_string())
+                .as_str();
         let hash = &user.encrypted_password;
         trace!("password: {}, hash: {}", password, hash);
         let valid = bcrypt::verify(password, &hash)?;

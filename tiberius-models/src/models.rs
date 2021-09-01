@@ -26,3 +26,5 @@ mod badge;
 pub use badge::*;
 mod badge_award;
 pub use badge_award::*;
+mod audit;
+pub use audit::*;
