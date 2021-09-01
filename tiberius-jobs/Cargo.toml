@@ -36,7 +36,7 @@ regex = "1.5.3"
 reqwest = { version = "0.11", features = ["json", "socks", "cookies"] }
 ring = "0.16.20"
 rocket = { version = "0.5.0-rc.1", features = ["secrets", "uuid", "json", "msgpack"] }
-rust-embed = { version = "5.8.0", features = ["compression"] }
+rust-embed = { version = "6.2.0", features = ["compression"] }
 securefmt = "0.1.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_cbor = "0.11.1"
