@@ -620,6 +620,12 @@ pub async fn new_image(
                 assert!(nfile.is_file(), "inkscape must have created new file");
                 todo!("downconvert svg to svg1.1");
             }
+            "image/png" => {
+                debug!("png needs no downconvert");
+            }
+            "image/jpeg" => {
+                debug!("jpeg needs no downconvert");
+            }
             v => {
                 todo!("downconvert {}", v)
             }

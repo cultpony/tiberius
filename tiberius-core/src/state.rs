@@ -1,7 +1,9 @@
+use std::rc::Rc;
 use std::time::Instant;
 use std::{convert::Infallible, sync::Arc};
 
 use async_std::{fs::File, path::Path};
+use casbin::CoreApi;
 use chrono::{NaiveDate, NaiveDateTime, Utc};
 use rocket::{
     fairing::Fairing,
@@ -29,12 +31,16 @@ pub struct TiberiusState {
     pub db_pool: DBPool,
     pub asset_loader: AssetLoader,
     pub client: Client,
+    pub casbin: Arc<casbin::Enforcer>,
 }
 
 impl TiberiusState {
     pub async fn get_db(&self) -> std::result::Result<DbRef, sqlx::Error> {
         let pool = self.get_db_pool().await;
         pool.acquire().await
+    }
+    pub fn get_casbin(&self) -> &casbin::Enforcer {
+        &self.casbin
     }
     pub async fn get_db_pool(&self) -> DBPool {
         self.db_pool.clone()
@@ -122,12 +128,16 @@ impl TiberiusState {
         };
         tracing::debug!("Grabbing Database Pool for HTTP Stateful Requests");
         let db_pool = config.db_conn().await?;
+        let casbin_adapter = sqlx_adapter::SqlxAdapter::new_with_pool(db_pool.clone()).await?;
+        let casbin_model = casbin::DefaultModel::from_str(include_str!("../casbin.ini")).await?;
+        let casbin = Arc::new(casbin::Enforcer::new(casbin_model, casbin_adapter).await?);
         Ok(Self {
             config: config.clone(),
             client: Client::new(db_pool.clone(), &config.search_dir),
             cryptokeys,
-            db_pool,
             asset_loader: AssetLoader::new(&config)?,
+            casbin,
+            db_pool,
         })
     }
     pub fn config(&self) -> &Configuration {

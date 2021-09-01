@@ -9,7 +9,8 @@ lazy_static! {
             info!("couldn't load .env file: {}, this is probably fine", e);
         }
         flexi_logger::Logger::with(
-            flexi_logger::LogSpecification::default(LevelFilter::Warn)
+            flexi_logger::LogSpecification::builder()
+                .default(LevelFilter::Warn)
                 .module("sqlx", LevelFilter::Warn)
                 .module("sqlx::query", LevelFilter::Warn)
                 .module("sqlxmq", LevelFilter::Warn)

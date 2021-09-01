@@ -7,7 +7,7 @@ use tracing::trace;
 
 use crate::{Badge, BadgeAward, Client, Filter, PhilomenaModelError, UserToken};
 
-#[derive(sqlx::FromRow, Debug, Clone)]
+#[derive(sqlx::FromRow, Debug, Clone, PartialEq)]
 pub struct User {
     pub id: i32,
     pub email: String,

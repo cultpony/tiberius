@@ -86,6 +86,7 @@ impl Client {
             writers: Arc::new(RwLock::new(BTreeMap::new())),
         }
     }
+    #[deprecated(note = "Use Client directly since it implements the necessary interface")]
     pub(crate) async fn db(&self) -> Result<PoolConnection<Postgres>, PhilomenaModelError> {
         Ok(self.db.acquire().await?)
     }

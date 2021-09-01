@@ -68,7 +68,7 @@ pub async fn serve_static_file(file: PathBuf) -> TiberiusResult<FileResponse> {
                 content_type
             );
             FileResponse {
-                content: file.to_vec(),
+                content: file.data,
                 content_type: ContentType::from_str(&content_type)
                     .map_err(|x| TiberiusError::Other(x))?,
             }
