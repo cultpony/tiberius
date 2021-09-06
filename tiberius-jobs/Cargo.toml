@@ -46,7 +46,7 @@ sha2 = "0.9.5"
 sha3 = "0.9.1"
 sqlx = { version = "0.5.7", features = ["postgres", "chrono", "time", "macros", "json", "runtime-tokio-rustls", "offline", "migrate"] }
 sqlxmq = { git = "https://github.com/cultpony/sqlxmq.git", default-features = false, features = ["runtime-tokio-rustls"] }
-thiserror = "1.0.24"
+thiserror = "1.0.29"
 tiberius-core = { path = "../tiberius-core" }
 tiberius-models = { path = "../tiberius-models" }
 tokio = { version = "1.10", features = ["full"] }
