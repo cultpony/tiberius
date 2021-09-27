@@ -9,8 +9,8 @@ use crate::pages::common::{verify_acl, ACLActionImage, ACLObject, ACLSubject};
 
 #[derive(FromForm, serde::Serialize)]
 pub struct ChangeUploader {
-    new_uploader: u64,
-    old_uploader: u64,
+    new_uploader: String,
+    old_uploader: String,
 }
 
 #[get("/api/v3/images/change_uploader/<image>", data = "<change_uploader>")]
@@ -21,7 +21,6 @@ pub async fn change_image_uploader(
     change_uploader: Form<ChangeUploader>,
 ) -> TiberiusResult<JsonResponse> {
     let mut client = state.get_db_client().await?;
-    let image = Image::get_id(&mut client, image as i64).await?;
     let verify_acl = verify_acl(
         state,
         &rstate,
@@ -32,5 +31,36 @@ pub async fn change_image_uploader(
     if !verify_acl {
         return Err(TiberiusError::AccessDenied);
     }
-    todo!()
+    let new_uploader = User::get_by_name(&mut client, change_uploader.new_uploader.clone()).await?;
+    let new_uploader = match new_uploader {
+        Some(v) => v,
+        None => {
+            return Err(TiberiusError::ObjectNotFound(
+                "User".to_string(),
+                change_uploader.new_uploader.clone(),
+            ))
+        }
+    };
+    let old_uploader = User::get_by_name(&mut client, change_uploader.old_uploader.clone()).await?;
+    let old_uploader = match old_uploader {
+        Some(v) => v,
+        None => {
+            return Err(TiberiusError::ObjectNotFound(
+                "User".to_string(),
+                change_uploader.old_uploader.clone(),
+            ))
+        }
+    };
+    let image = Image::get_id(&mut client, image as i64).await?;
+    let mut image = match image {
+        Some(v) => v,
+        None => return Err(TiberiusError::AccessDenied),
+    };
+    if image.user_id != Some(old_uploader.id) {
+        return Err(TiberiusError::AccessDenied);
+    }
+    image.user_id = Some(new_uploader.id);
+    todo!("issue reindex to philomena if necessary");
+    todo!("save to database");
+    todo!("return OK json");
 }

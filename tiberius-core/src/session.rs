@@ -18,6 +18,8 @@ use crate::{
     error::{TiberiusError, TiberiusResult},
 };
 
+mod philomena_plug;
+
 #[derive(Clone, Debug)]
 pub struct PostgresSessionStore {
     client: PgPool,
