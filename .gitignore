@@ -8,3 +8,4 @@
 **/.env
 /proxy*.sh
 /Rocket.toml
+*/target
