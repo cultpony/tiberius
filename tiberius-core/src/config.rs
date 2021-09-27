@@ -64,21 +64,11 @@ pub struct Configuration {
     #[serde(default = "default_philomena_signing_salt", skip_serializing)]
     #[sensitive]
     pub philomena_signing_salt: String,
-    /*#[serde(default = "default_postgres_host")]
-    pub postgres_host: String,
-    #[serde(default = "default_postgres_port")]
-    pub postgres_port: u16,
-    #[serde(default = "default_postgres_user")]
-    pub postgres_user: String,
-    #[sensitive]
-    #[serde(skip_serializing, default = "default_postgres_password")]
-    pub postgres_password: String,
-    pub postgres_db: String,*/
     #[sensitive]
     #[serde(skip_serializing)]
-    camo_key: Option<String>,
-    camo_host: Option<String>,
-    static_host: Option<String>,
+    pub(crate) camo_key: Option<String>,
+    pub(crate) camo_host: Option<String>,
+    pub(crate) static_host: Option<String>,
     #[serde(default = "default_data_root")]
     pub static_root: String,
     pub cdn_host: Option<String>,
@@ -101,6 +91,9 @@ pub struct Configuration {
     #[serde(skip_serializing, alias = "PASSWORD_PEPPER")]
     #[sensitive]
     pub password_pepper: Option<String>,
+    #[serde(skip_serializing, alias = "PASSWORD_PEPPER")]
+    #[sensitive]
+    pub(crate) philomena_secret: Option<String>,
 }
 
 impl Configuration {
@@ -128,6 +121,9 @@ impl Configuration {
                 .unwrap_or("localhost")
                 .to_string(),
         )
+    }
+    pub fn philomena_secret(&self) -> Option<&String> {
+        self.philomena_secret.as_ref()
     }
 }
 
@@ -159,6 +155,7 @@ impl Default for Configuration {
             key_directory: PathBuf::from_str("./keys").expect("invalid key dir path"),
             search_dir: PathBuf::from_str("./search").expect("invalid search path"),
             password_pepper: None,
+            philomena_secret: None,
         }
     }
 }

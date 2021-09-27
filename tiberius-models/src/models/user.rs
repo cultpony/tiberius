@@ -170,4 +170,19 @@ impl User {
             Ok(None)
         }
     }
+
+    pub async fn get_by_name(
+        client: &mut Client,
+        name: String,
+    ) -> Result<Option<User>, PhilomenaModelError> {
+        let user = query!("SELECT id FROM users WHERE name = $1", name)
+            .fetch_optional(client.db().await?.deref_mut())
+            .await?;
+        if let Some(user) = user {
+            let user: i32 = user.id;
+            Ok(Self::get_id(client, user as i64).await?)
+        } else {
+            Ok(None)
+        }
+    }
 }

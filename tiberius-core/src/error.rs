@@ -65,6 +65,20 @@ pub enum TiberiusError {
     CasbinError(#[from] sqlx_adapter::casbin::Error),
     #[error("Access has been denied")]
     AccessDenied,
+    #[error("Configuration Variable Unset: {0}")]
+    ConfigurationUnset(String),
+    #[error("OpenSSL Failure: {0}")]
+    OpenSSL(#[from] openssl::error::Error),
+    #[error("OpenSSL Multiple Failures: {0:?}")]
+    OpenSSLComplex(#[from] openssl::error::ErrorStack),
+    #[error("Invalid Philomena Cookie")]
+    InvalidPhilomenaCookie,
+    #[error("Could not decode base64 string: {0}")]
+    Base64Decode(#[from] base64::DecodeError),
+    #[error("Erlang Error: {0}")]
+    ErlangTermDecode(String),
+    #[error("{0} {0} not found")]
+    ObjectNotFound(String, String),
 }
 
 pub type TiberiusResult<T> = std::result::Result<T, TiberiusError>;
