@@ -67,8 +67,10 @@ pub enum TiberiusError {
     AccessDenied,
     #[error("Configuration Variable Unset: {0}")]
     ConfigurationUnset(String),
+    #[cfg(test)]
     #[error("OpenSSL Failure: {0}")]
     OpenSSL(#[from] openssl::error::Error),
+    #[cfg(test)]
     #[error("OpenSSL Multiple Failures: {0:?}")]
     OpenSSLComplex(#[from] openssl::error::ErrorStack),
     #[error("Invalid Philomena Cookie")]

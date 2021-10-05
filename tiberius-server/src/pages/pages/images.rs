@@ -269,7 +269,7 @@ pub async fn upload_image(
     rstate: TiberiusRequestState<'_>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let mut client = state.get_db_client().await?;
-    let user = rstate.session.get_user(&mut client).await?;
+    let user = rstate.session.read().await.get_user(&mut client).await?;
     let image_form_image = html! {
         .image-other {
             #js-image-upload-previews {

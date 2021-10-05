@@ -7,7 +7,7 @@ use std::{
 use tiberius_core::app::PageTitle;
 use tiberius_core::assets::{QuickTagTableContent, SiteConfig};
 use tiberius_core::error::TiberiusResult;
-use tiberius_core::session::Session;
+use tiberius_core::session::{Session, SessionPtr};
 use tiberius_core::state::{SiteNotices, TiberiusRequestState, TiberiusState};
 
 use crate::pages::common::image::image_thumb_urls;
@@ -41,8 +41,8 @@ pub fn viewport_meta_tags(rstate: &TiberiusRequestState<'_>) -> Markup {
 }
 
 pub async fn csrf_meta_tag(rstate: &TiberiusRequestState<'_>) -> Markup {
-    let session: &Session = &rstate.session;
-    let csrf = session.csrf_token();
+    let session: &SessionPtr = &rstate.session;
+    let csrf = session.read().await.csrf_token();
     html! {
         meta content=(csrf) csrf-param="_csrf_token" method-param="_method" name="csrf-token";
     }

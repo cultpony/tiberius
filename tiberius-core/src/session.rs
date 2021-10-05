@@ -1,5 +1,8 @@
 use std::collections::BTreeMap;
+use std::ops::{Deref, DerefMut};
+use std::sync::Arc;
 
+use async_std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use chrono::{Duration, NaiveDateTime, Utc};
 use rocket::{
     fairing::{Fairing, Info, Kind},
@@ -27,7 +30,7 @@ pub struct PostgresSessionStore {
     cookie_name: String,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct Session {
     id: Uuid,
     created: NaiveDateTime,
@@ -35,6 +38,10 @@ pub struct Session {
     csrf_token: String,
     user_id: Option<i64>,
     data: BTreeMap<String, serde_json::Value>,
+    // Indicates if the session structure has been altered, meaning it must be saved to the database
+    // Is set automatically if the session is borrowed from SessionPtr as writeable
+    #[serde(skip)]
+    dirty: bool,
 }
 
 impl Session {
@@ -56,7 +63,15 @@ impl Session {
                     .unwrap()
                     .expose(),
             ),
+            dirty: false,
         }
+    }
+    pub fn dirty(&self) -> bool {
+        self.dirty
+    }
+    pub fn mark_dirty(&mut self) {
+        trace!("Session marked dirty");
+        self.dirty = true
     }
     pub fn expiry(&self) -> i64 {
         self.expires.timestamp_millis()
@@ -113,6 +128,7 @@ impl PostgresSessionStore {
         Ok(count)
     }
 
+    #[instrument(level = "trace", skip(self, cookie_value))]
     async fn load_session(&self, cookie_value: String) -> TiberiusResult<Option<Session>> {
         if cookie_value == "" {
             return Ok(None);
@@ -120,16 +136,18 @@ impl PostgresSessionStore {
         let id: Uuid = cookie_value.parse()?;
         let mut conn = self.connection().await?;
         let result: Option<(String,)> = sqlx::query_as(&format!(
-            "SELECT session FROM {} WHERE id = $1 AND (expires IS NULL OR expires > $2)",
+            "SELECT session FROM {} WHERE id = $1 AND (expires IS NOT NULL OR expires > $2)",
             self.table_name
         ))
         .bind(&id)
         .bind(Utc::now())
         .fetch_optional(&mut conn)
         .await?;
-        Ok(result
+        let result = result
             .map(|(session,)| serde_json::from_str(&session))
-            .transpose()?)
+            .transpose()?;
+        trace!("Session: {:?}", result);
+        Ok(result)
     }
 
     async fn store_session(&self, session: &Session) -> TiberiusResult<()> {
@@ -202,18 +220,24 @@ impl Fairing for PostgresSessionStore {
     }
 
     async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut Response<'r>) {
-        let session: Option<Session> = req.guard().await.succeeded();
+        if req.uri().path().starts_with("/static/") || req.uri().path().starts_with("/favicon") {
+            trace!("Skipping Session Handler on Static Asset");
+            return;
+        }
+        trace!("Post Request Session Handler on {}", req.uri().path());
+        let session: Option<SessionPtr> = req.guard().await.succeeded();
 
         if let Some(session) = session {
+            let session = session.read().await;
             let session_id = session.id().to_string();
-            //trace!("Storing session {}", session_id);
-            // active sessions are manually saved on change
-            /*match self.store_session(&session).await.map_err(|x| {
-                warn!("Could not store session: {}", x);
-            }) {
-                Ok(_) => (),
-                Err(e) => warn!("Error in session store (cur) : {}", e),
-            };*/
+            if session.dirty() {
+                trace!("Storing session {}, dirty={}", session_id, session.dirty());
+                // active sessions are manually saved on change
+                match self.store_session(&session).await {
+                    Ok(_) => (),
+                    Err(e) => warn!("Error in session store (cur) : {}", e),
+                };
+            }
             res.adjoin_header(
                 Cookie::build(self.cookie_name.clone(), session_id)
                     .path("/")
@@ -239,8 +263,29 @@ impl Fairing for PostgresSessionStore {
     }
 }
 
+type SessionPtrInt = Arc<RwLock<Session>>;
+
+#[derive(Clone)]
+pub struct SessionPtr(SessionPtrInt);
+
+impl SessionPtr {
+    pub async fn read<'a>(&'a self) -> RwLockReadGuard<'a, Session> {
+        self.0.read().await
+    }
+    pub async fn write<'a>(&'a self) -> RwLockWriteGuard<'a, Session> {
+        let mut session = self.0.write().await;
+        info!(
+            "Session {} marked dirty due to possible write",
+            session.id()
+        );
+        session.mark_dirty();
+        session
+    }
+}
+
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for Session {
+impl<'r> FromRequest<'r> for SessionPtr {
+    #[instrument(level = "trace", skip(request))]
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let session_store: &State<PostgresSessionStore> =
             request.guard().await.expect("no session store");
@@ -250,17 +295,18 @@ impl<'r> FromRequest<'r> for Session {
                 .load_session(session_id.value().to_string())
                 .await;
             match session_data {
-                Ok(Some(session_data)) => return Outcome::Success(session_data),
+                Ok(Some(session_data)) => {
+                    return Outcome::Success(SessionPtr(Arc::new(RwLock::new(session_data))))
+                }
                 Ok(None) => info!("Got an empty session"),
                 Err(e) => warn!("error trying to get session: {}", e),
             }
         }
         trace!("Couldn't find or load session, generating new session");
-        let new_session = Session::new();
+        let mut new_session = Session::new();
+        new_session.mark_dirty();
         trace!("New session id: {}", new_session.id());
-        let state: &State<TiberiusState> = request.guard().await.expect("no app state");
-        new_session.save(state).await;
-        Outcome::Success(new_session)
+        Outcome::Success(SessionPtr(Arc::new(RwLock::new(new_session))))
     }
 
     type Error = TiberiusError;

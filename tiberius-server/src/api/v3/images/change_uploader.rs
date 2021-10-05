@@ -13,7 +13,7 @@ pub struct ChangeUploader {
     old_uploader: String,
 }
 
-#[get("/api/v3/images/change_uploader/<image>", data = "<change_uploader>")]
+#[get("/api/v3/images/<image>/change_uploader", data = "<change_uploader>")]
 pub async fn change_image_uploader(
     state: &State<TiberiusState>,
     rstate: TiberiusRequestState<'_>,

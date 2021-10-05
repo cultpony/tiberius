@@ -21,7 +21,7 @@ use crate::config::Configuration;
 use crate::error::{TiberiusError, TiberiusResult};
 use crate::footer::FooterData;
 use crate::request_helper::DbRef;
-use crate::session::Session;
+use crate::session::{Session, SessionPtr};
 use crate::LayoutClass;
 
 #[derive(Clone)]
@@ -55,7 +55,7 @@ impl TiberiusState {
             &self.get_config().await.search_dir,
         ))*/
     }
-    #[instrument]
+    #[instrument(level = "trace")]
     pub async fn get_db_client_standalone(
         pool: DBPool,
         config: &Configuration,
@@ -71,7 +71,7 @@ pub struct TiberiusRequestState<'a> {
     pub cookie_jar: &'a CookieJar<'a>,
     pub headers: &'a HeaderMap<'a>,
     pub uri: &'a rocket::http::uri::Origin<'a>,
-    pub session: Session,
+    pub session: SessionPtr,
     pub flash: Option<Flash>,
     pub started_at: Instant,
 }
@@ -84,7 +84,7 @@ impl<'r> FromRequest<'r> for TiberiusRequestState<'r> {
             cookie_jar: request.cookies(),
             headers: request.headers(),
             uri: request.uri(),
-            session: request.guard::<Session>().await.succeeded().unwrap(),
+            session: request.guard::<SessionPtr>().await.succeeded().unwrap(),
             flash: Flash::from_flashm(request.guard::<FlashMessage>().await.succeeded()),
             started_at: Instant::now(),
         })
@@ -215,6 +215,7 @@ impl<'a> TiberiusRequestState<'a> {
     pub async fn user(&self, state: &TiberiusState) -> TiberiusResult<Option<User>> {
         Ok(self
             .session
+            .read().await
             .get_user(&mut state.get_db_client().await?)
             .await?)
     }
