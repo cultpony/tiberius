@@ -4552,6 +4552,7 @@ version = "0.1.0"
 dependencies = [
  "async-std",
  "async-trait",
+ "base64",
  "chrono",
  "futures",
  "hex",

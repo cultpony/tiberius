@@ -87,6 +87,9 @@ pub struct User {
 }
 
 impl User {
+    pub fn id(&self) -> i64 {
+        self.id as i64
+    }
     pub async fn badge_awards(
         &self,
         _client: &mut Client,
@@ -115,6 +118,23 @@ impl User {
             Some(v) => trace!("found user {} for id {}", v.name, user_token.user_id),
         }
         Ok(user)
+    }
+    pub async fn get_user_for_philomena_token(
+        client: &mut Client,
+        session_id: &[u8],
+    ) -> Result<Option<User>, PhilomenaModelError> {
+        let user = query!(
+            "SELECT id FROM users WHERE authentication_token = $1",
+            base64::encode(session_id),
+        )
+        .fetch_optional(&mut client.clone())
+        .await?;
+        if let Some(user) = user {
+            let user: i32 = user.id;
+            Ok(Self::get_id(client, user as i64).await?)
+        } else {
+            Ok(None)
+        }
     }
     pub async fn get_filter(
         &self,

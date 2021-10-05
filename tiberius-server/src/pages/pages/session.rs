@@ -92,10 +92,11 @@ pub async fn new_session_post(
         trace!("password: {}, hash: {}", password, hash);
         let valid = bcrypt::verify(password, &hash)?;
         if valid {
-            let mut session = rstate.session;
-            session.set_user(&user);
-            trace!("Creating new session, persisting {} to DB", session.id());
-            session.save(state).await;
+            let session = rstate.session;
+            session.write().await.set_user(&user);
+            let id = session.read().await.id();
+            trace!("Creating new session, persisting {} to DB", id);
+            session.write().await.save(state).await;
             Ok(RedirectResponse {
                 redirect: Flash::alert("Login successfull!")
                     .into_resp(Redirect::to(uri!(crate::pages::activity::index))),
