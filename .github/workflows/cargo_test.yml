@@ -23,6 +23,23 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
 
+      - uses: harmon758/postgresql-action@v1
+        with:
+          postgresql version: '11'
+          postgresql db: philomena_db
+          postgresql user: github_actions
+          postgresql password: github_actions
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - run: |
+          cd res/assets
+          npm install -g yarn
+          yarn install
+          NODE_ENV=production yarn deploy
+
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -30,10 +47,27 @@ jobs:
           toolchain: stable
           override: true
 
+      - name: Install cargo sqlx cli
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: sqlx-cli
+      
+      - name: Run cargo sqlx migrate
+        uses: actions-rs/cargo@v1
+        with:
+          command: sqlx
+          args: migrate run
+        env:
+          TIBERIUS_PREBUILT_ASSETS: YES
+
       - name: Run cargo check
         uses: actions-rs/cargo@v1
         with:
           command: check
+        env:
+          TIBERIUS_PREBUILT_ASSETS: YES
+          DATABASE_URL: postgres://github_actions:github_actions@localhost:5432/philomena_db
 
   test:
     name: Test Suite
@@ -42,6 +76,23 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
 
+      - uses: harmon758/postgresql-action@v1
+        with:
+          postgresql version: '11'
+          postgresql db: philomena_db
+          postgresql user: github_actions
+          postgresql password: github_actions
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - run: |
+          cd res/assets
+          npm install -g yarn
+          yarn install
+          NODE_ENV=production yarn deploy
+
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -49,11 +100,29 @@ jobs:
           toolchain: stable
           override: true
 
+      - name: Install cargo sqlx cli
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: sqlx-cli
+      
+      - name: Run cargo sqlx migrate
+        uses: actions-rs/cargo@v1
+        with:
+          command: sqlx
+          args: migrate run
+        env:
+          TIBERIUS_PREBUILT_ASSETS: YES
+          DATABASE_URL: postgres://github_actions:github_actions@localhost:5432/philomena_db
+
       - name: Run cargo test
         uses: actions-rs/cargo@v1
         with:
           command: test
           args: --workspace --no-fail-fast
+        env:
+          TIBERIUS_PREBUILT_ASSETS: YES
+          DATABASE_URL: postgres://github_actions:github_actions@localhost:5432/philomena_db
 
   lints:
     name: Lints
@@ -61,6 +130,23 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
+
+      - uses: harmon758/postgresql-action@v1
+        with:
+          postgresql version: '11'
+          postgresql db: philomena_db
+          postgresql user: github_actions
+          postgresql password: github_actions
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - run: |
+          cd res/assets
+          npm install -g yarn
+          yarn install
+          NODE_ENV=production yarn deploy
 
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
@@ -70,19 +156,43 @@ jobs:
           override: true
           components: rustfmt, clippy
 
+      - name: Install cargo sqlx cli
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: sqlx-cli
+      
+      - name: Run cargo sqlx migrate
+        uses: actions-rs/cargo@v1
+        with:
+          command: sqlx
+          args: migrate run
+        env:
+          TIBERIUS_PREBUILT_ASSETS: YES
+          DATABASE_URL: postgres://github_actions:github_actions@localhost:5432/philomena_db
+
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: --all -- --check
+        env:
+          TIBERIUS_PREBUILT_ASSETS: YES
+          DATABASE_URL: postgres://github_actions:github_actions@localhost:5432/philomena_db
 
       - name: Run cargo clippy
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: -- -D warnings
+        env:
+          TIBERIUS_PREBUILT_ASSETS: YES
+          DATABASE_URL: postgres://github_actions:github_actions@localhost:5432/philomena_db
 
       - name: Audit used Crates
         uses: actions-rs/audit-check@v1.2.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          TIBERIUS_PREBUILT_ASSETS: YES
+          DATABASE_URL: postgres://github_actions:github_actions@localhost:5432/philomena_db

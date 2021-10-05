@@ -4,6 +4,9 @@ use std::path::Path;
 use std::process::Command;
 
 fn main() {
+    if std::env::var("TIBERIUS_PREBUILT_ASSETS") == Ok("YES".to_string()) {
+        return;
+    }
     let debug = std::env::var("PROFILE").expect("need rust compile profile") != "release";
     if !debug {
         let assetdir = "../res/assets-build";
@@ -29,6 +32,7 @@ fn main() {
     .generate();
     println!("cargo:warning=Building in {}", builddir.display());
     {
+        println!("cargo:warning: yarn install");
         let out = Command::new("yarn")
             .arg("install")
             .current_dir(builddir.clone())
@@ -43,6 +47,7 @@ fn main() {
         }
     }
     {
+        println!("cargo:warning: yarn build");
         let mut cmd = Command::new("yarn");
         let out = {
             if debug {
