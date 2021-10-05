@@ -60,6 +60,7 @@ jobs:
           args: migrate run
         env:
           TIBERIUS_PREBUILT_ASSETS: YES
+          DATABASE_URL: postgres://github_actions:github_actions@localhost:5432/philomena_db
 
       - name: Run cargo check
         uses: actions-rs/cargo@v1
