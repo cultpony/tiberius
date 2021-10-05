@@ -297,6 +297,28 @@
         ]
     },
     {
+        "title": "G5",
+        "mode": "Default",
+        "tables": [
+            {
+                "title": "Characters",
+                "tags": [
+                    "character:sunny starscout",
+                    "character:izzy moonbow",
+                    "character:zipp storm",
+                    "character:pipp petals",
+                    "character:hitch trailblazer",
+                    "character:sprout",
+                    "character:queen haven",
+                    "character:argyle starshine",
+                    "character:alphabittle",
+                    "character:phyllis cloverleaf",
+                    "character:sugar moonglow"
+                ]
+            }
+        ]
+    },
+    {
         "title": "Season 9",
         "mode": "Season",
         "episodes": [
