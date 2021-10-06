@@ -44,22 +44,19 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     pub fn test_philo_specifics_spoiler() {
-        assert_eq!("<p> </p>", render_textile("[spoiler]spoiler[/spoiler]"));
+        assert_eq!(r#"<p><span class="spoiler">spoilerino</span></p>"#, render_textile("[spoiler]spoilerino[/spoiler]"));
     }
 
     #[test]
-    #[ignore]
     pub fn test_philo_specifics_image_embed() {
-        assert_eq!("<p> </p>", render_textile(">>1"));
+        assert_eq!(r#"<p><img src="/img/embed/1/"></img></p>"#, render_textile(">>1"));
     }
 
     #[test]
-    #[ignore]
     pub fn test_philo_specifics_image_embed_thumbnails() {
-        assert_eq!("<p> </p>", render_textile(">>1t"));
-        assert_eq!("<p> </p>", render_textile(">>1p"));
-        assert_eq!("<p> </p>", render_textile(">>1s"));
+        assert_eq!(r#"<p><img src="/img/embed/1/t"></img></p>"#, render_textile(">>1t"));
+        assert_eq!(r#"<p><img src="/img/embed/1/p"></img></p>"#, render_textile(">>1p"));
+        assert_eq!(r#"<p><img src="/img/embed/1/s"></img></p>"#, render_textile(">>1s"));
     }
 }

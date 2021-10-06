@@ -5,12 +5,10 @@ pub mod markdown;
 
 pub(crate) fn textile_extensions(inp: &str) -> String {
     lazy_static::lazy_static! {
-        static ref TEXTILE_IMAGE_SYNTAX: Regex = Regex::new(r#"(>>(?P<image>\d+)(?P<flag>\w?))"#).expect("core regex failure");
+        static ref TEXTILE_IMAGE_SYNTAX: Regex = Regex::new(r#">>(?P<image>\d+)(?P<flag>\w?)"#).expect("core regex failure");
+        static ref TEXTILE_SPOILER_SYNTAX: Regex = Regex::new(r#"\[spoiler\](?P<spoilered>[^\[]*)(\[/spoiler\])"#).expect("core regex failure");
     }
-    let caps = TEXTILE_IMAGE_SYNTAX.captures(inp);
-    if let Some(caps) = caps {
-        let image = caps.name("image");
-        let flag = caps.name("flag");
-    }
+    let inp = TEXTILE_IMAGE_SYNTAX.replace_all(inp, r#"<img src="/img/embed/$image/$flag"></img>"#);
+    let inp = TEXTILE_SPOILER_SYNTAX.replace_all(&inp, r#"<span class="spoiler">$spoilered</span>"#);
     inp.to_string()
 }
