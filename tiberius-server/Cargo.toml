@@ -65,6 +65,8 @@ url = { version = "2.2", features = ["serde"] }
 url_serde = "0.2"
 uuid = "0.8.1"
 textile = "0.2.1"
+pulldown-cmark = "0.8.0"
+ammonia = "3.1.2"
 
 [features]
 default = []
