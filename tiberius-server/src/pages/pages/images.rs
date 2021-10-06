@@ -21,6 +21,12 @@ use crate::pages::common::human_date;
 use crate::pages::common::image::{image_thumb_urls, show_vote_counts};
 use crate::MAX_IMAGE_DIMENSION;
 
+
+#[get("/embed/<image>/<flag>")]
+pub async fn embed_image(flag: Option<&str>, image: u64) -> TiberiusResult<()> {
+    todo!()
+}
+
 #[get("/<image>")]
 pub async fn show_image(
     state: &State<TiberiusState>,
