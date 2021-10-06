@@ -13,6 +13,7 @@ pub mod image;
 pub mod pagination;
 pub mod routes;
 pub mod streambox;
+pub mod renderer;
 
 pub enum APIMethod {
     Create,

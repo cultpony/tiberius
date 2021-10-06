@@ -64,6 +64,7 @@ uri-builder = "0.1.0"
 url = { version = "2.2", features = ["serde"] }
 url_serde = "0.2"
 uuid = "0.8.1"
+textile = "0.2.1"
 
 [features]
 default = []
