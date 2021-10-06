@@ -32,7 +32,7 @@ fn main() {
     .generate();
     println!("cargo:warning=Building in {}", builddir.display());
     {
-        println!("cargo:warning: yarn install");
+        println!("cargo:warning=yarn install");
         let out = Command::new("yarn")
             .arg("install")
             .current_dir(builddir.clone())
@@ -47,7 +47,7 @@ fn main() {
         }
     }
     {
-        println!("cargo:warning: yarn build");
+        println!("cargo:warning=yarn build");
         let mut cmd = Command::new("yarn");
         let out = {
             if debug {
