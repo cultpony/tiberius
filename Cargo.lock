@@ -632,12 +632,12 @@ dependencies = [
 
 [[package]]
 name = "cap-async-std"
-version = "0.19.1"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a591b6399bcf76785658df7f2382427499b7345251cc6fd03a94895564d01c5"
+checksum = "f05775e9da7e9ab7f68eed2514e1b4969304d0ebe4c52ddf1535da26cd241276"
 dependencies = [
  "async-std",
- "cap-primitives",
+ "cap-primitives 0.20.0",
  "io-lifetimes",
  "ipnet",
  "rsix",
@@ -666,12 +666,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "cap-primitives"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4b1cd472a0e5149be6fb5cf9fb2aadabbc4f3e1d270ba3e6bdf81d580a8161a8"
+dependencies = [
+ "ambient-authority",
+ "errno",
+ "fs-set-times",
+ "io-lifetimes",
+ "ipnet",
+ "maybe-owned",
+ "once_cell",
+ "rsix",
+ "rustc_version 0.4.0",
+ "unsafe-io",
+ "winapi 0.3.9",
+ "winapi-util",
+ "winx",
+]
+
+[[package]]
 name = "cap-std"
 version = "0.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "037334fe2f30ec71bcc51af1e8cbb8a9f9ac6a6b8cbd657d58dfef2ad5b9f19a"
 dependencies = [
- "cap-primitives",
+ "cap-primitives 0.19.1",
  "io-lifetimes",
  "ipnet",
  "rsix",
