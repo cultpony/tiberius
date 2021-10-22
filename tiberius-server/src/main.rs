@@ -4,6 +4,9 @@
 #![allow(dead_code)]
 #![allow(unreachable_code)]
 
+#[cfg(all(feature = "stable-release", feature = "full-release"))]
+compile_error!("Cannot enable \"stable-release\" and \"full-release\" features at the same time");
+
 #[macro_use]
 extern crate rocket;
 
@@ -57,6 +60,8 @@ async fn server_start(start_job_scheduler: bool) -> TiberiusResult<()> {
     let rkt = rkt.attach(CSPHeader);
     let rkt = rkt.manage(PostgresSessionStore::from_client(db_conn.clone()));
     let rkt = rkt.attach(PostgresSessionStore::from_client(db_conn.clone()));
+
+    #[cfg(feature = "full-release")]
     let rkt = rkt.mount(
         "/",
         routes![
@@ -64,6 +69,9 @@ async fn server_start(start_job_scheduler: bool) -> TiberiusResult<()> {
             crate::api::int::oembed::fetch,
             crate::api::int::tag::fetch,
             crate::api::v3::images::change_image_uploader,
+            crate::api::v3::images::change_image_uploader_user,
+            crate::api::v3::misc::sessho::session_handover,
+            crate::api::v3::misc::sessho::session_handover_user,
             crate::api::well_known::imageboard_type::imageboardapiflavor_philomena_int,
             crate::api::well_known::imageboard_type::imageboardapiflavor_philomena_v1,
             crate::api::well_known::imageboard_type::imageboardapiflavor,
@@ -98,6 +106,21 @@ async fn server_start(start_job_scheduler: bool) -> TiberiusResult<()> {
             crate::pages::tags::tag_changes,
             crate::pages::tags::usage,
             crate::pages::tags::autocomplete,
+        ],
+    );
+
+    #[cfg(feature = "stable-release")]
+    let rkt = rkt.mount(
+        "/",
+        routes![
+            crate::api::v3::images::change_image_uploader,
+            crate::api::v3::images::change_image_uploader_user,
+            crate::api::v3::misc::sessho::session_handover,
+            crate::api::v3::misc::sessho::session_handover_user,
+            tiberius_core::assets::serve_asset,
+            tiberius_core::assets::serve_favicon_ico,
+            tiberius_core::assets::serve_favicon_svg,
+            tiberius_core::assets::serve_robots,
         ],
     );
 

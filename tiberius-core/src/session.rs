@@ -21,7 +21,9 @@ use crate::{
     error::{TiberiusError, TiberiusResult},
 };
 
-mod philomena_plug;
+use crate::session::philomena_plug::handover_session;
+
+pub mod philomena_plug;
 
 #[derive(Clone, Debug)]
 pub struct PostgresSessionStore {
@@ -30,6 +32,8 @@ pub struct PostgresSessionStore {
     cookie_name: String,
 }
 
+/// Session contains and maintains a user session as well as metadata for the session,
+/// such as if the session resulted from a handover or special authorization markers.
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 pub struct Session {
     id: Uuid,
@@ -38,17 +42,21 @@ pub struct Session {
     csrf_token: String,
     user_id: Option<i64>,
     data: BTreeMap<String, serde_json::Value>,
-    // Indicates if the session structure has been altered, meaning it must be saved to the database
-    // Is set automatically if the session is borrowed from SessionPtr as writeable
+    /// Indicates if the session structure has been altered, meaning it must be saved to the database
+    /// Is set automatically if the session is borrowed from SessionPtr as writeable
     #[serde(skip)]
     dirty: bool,
+    /// If set to true, the Session is not persisted into the database or sent out to the client via cookie
+    /// The main purpose is to handle sessions from bots/API clients
+    #[serde(skip)]
+    ephemeral: bool,
 }
 
 impl Session {
     pub fn id(&self) -> Uuid {
         self.id
     }
-    pub fn new() -> Self {
+    pub fn new(ephemeral: bool) -> Self {
         Self {
             id: Uuid::new_v4(),
             created: chrono::Utc::now().naive_utc(),
@@ -64,6 +72,7 @@ impl Session {
                     .expose(),
             ),
             dirty: false,
+            ephemeral,
         }
     }
     pub fn dirty(&self) -> bool {
@@ -90,11 +99,35 @@ impl Session {
     pub fn set_user(&mut self, user: &User) {
         self.user_id = Some(user.id as i64);
     }
+    pub fn get_data(&self, key: &str) -> TiberiusResult<Option<String>> {
+        Ok(self.data.get(key).map(|x| serde_json::from_value(x.clone())).transpose()?)
+    }
+    pub fn set_data(&mut self, key: &str, value: &str) -> TiberiusResult<Option<String>> {
+        Ok(self.set_json_data(key.to_string(), serde_json::to_value(value)?).map(|x| serde_json::from_value(x)).transpose()?)
+    }
+    pub fn set_json_data(&mut self, key: String, value: serde_json::Value) -> Option<serde_json::Value> {
+        self.data.insert(key, value)
+    }
     pub async fn get_user(&self, client: &mut Client) -> TiberiusResult<Option<User>> {
         match self.user_id {
             None => Ok(None),
             Some(user_id) => Ok(User::get_id(client, user_id).await?),
         }
+    }
+    /// Returns true if the session is not persisted into cookies or the database backend
+    /// 
+    /// To set a session as ephemeral, it must be created by passing `true` to the `Session::new()` constructor.
+    /// 
+    /// ```
+    /// use tiberius_core::session::Session;
+    /// let ephemeral_session = Session::new(true);
+    /// let stored_session = Session::new(false);
+    /// 
+    /// assert!(ephemeral_session.ephemeral());
+    /// assert!(!stored_session.ephemeral());
+    /// ```
+    pub fn ephemeral(&self) -> bool {
+        self.ephemeral
     }
 }
 
@@ -151,6 +184,9 @@ impl PostgresSessionStore {
     }
 
     async fn store_session(&self, session: &Session) -> TiberiusResult<()> {
+        if session.ephemeral() {
+            return Ok(())
+        }
         let id = session.id();
         let string = serde_json::to_string(&session)?;
         let mut conn = self.connection().await?;
@@ -245,7 +281,18 @@ impl Fairing for PostgresSessionStore {
             )
         } else {
             trace!("No session in request, making a session");
-            let session = Session::new();
+            let session = if let Some(authorization) = authorization(req) {
+                let mut new_session = Session::new(true);
+                match session_from_api_key(&mut new_session, &authorization, req) {
+                    Ok(_) => new_session,
+                    Err(e) => {
+                        warn!("error on ephemeral session: {}", e);
+                        Session::new(false)
+                    }
+                }
+            } else {
+                Session::new(false)
+            };
             let session_id = session.id().to_string();
             trace!("New session {}", session_id);
             match self.store_session(&session).await.map_err(|x| {
@@ -254,11 +301,13 @@ impl Fairing for PostgresSessionStore {
                 Ok(_) => (),
                 Err(e) => warn!("Error in session store (new) : {:?}", e),
             };
-            res.adjoin_header(
-                Cookie::build(self.cookie_name.clone(), session_id)
-                    .path("/")
-                    .finish(),
-            )
+            if !session.ephemeral() {
+                res.adjoin_header(
+                    Cookie::build(self.cookie_name.clone(), session_id)
+                        .path("/")
+                        .finish(),
+                )
+            }
         }
     }
 }
@@ -283,30 +332,91 @@ impl SessionPtr {
     }
 }
 
+// Returns authorization from HTTP Header
+fn authorization<'r>(req: &'r Request<'_>) -> Option<String> {
+    static HEADER: &str = "Authorization";
+    let headers = req.headers();
+    if headers.contains(HEADER) {
+        let auth_headers: Vec<&str> = headers.get(HEADER).collect();
+        if auth_headers.len() == 1 {
+            Some(auth_headers[0].to_string())
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
+
+fn session_from_api_key(session: &mut Session, key: &str, req: &Request<'_>) -> TiberiusResult<()> {
+    todo!()
+}
+
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for SessionPtr {
     #[instrument(level = "trace", skip(request))]
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        let session_store: &State<PostgresSessionStore> =
-            request.guard().await.expect("no session store");
-        let session_id = request.cookies().get(&session_store.cookie_name);
-        if let Some(session_id) = session_id {
-            let session_data = session_store
-                .load_session(session_id.value().to_string())
-                .await;
-            match session_data {
-                Ok(Some(session_data)) => {
-                    return Outcome::Success(SessionPtr(Arc::new(RwLock::new(session_data))))
+        let new_session = |req: &Request<'_>| {
+            trace!("Couldn't find or load session, generating new session");
+            let mut new_session = if let Some(authorization) = authorization(req) {
+                let mut new_session = Session::new(true);
+                match session_from_api_key(&mut new_session, &authorization, req) {
+                    Ok(_) => new_session,
+                    Err(e) => {
+                        warn!("error on ephemeral session: {}", e);
+                        Session::new(false)
+                    }
                 }
-                Ok(None) => info!("Got an empty session"),
-                Err(e) => warn!("error trying to get session: {}", e),
+            } else {
+                Session::new(false)
+            };
+            new_session.mark_dirty();
+            trace!("New session id: {}", new_session.id());
+            SessionPtr(Arc::new(RwLock::new(new_session)))
+        };
+        let session = {
+            let session_store: &State<PostgresSessionStore> =
+                request.guard().await.expect("no session store");
+            let session_id = request.cookies().get(&session_store.cookie_name);
+            if let Some(session_id) = session_id {
+                let session_data = session_store
+                    .load_session(session_id.value().to_string())
+                    .await;
+                match session_data {
+                    Ok(Some(session_data)) => {
+                        SessionPtr(Arc::new(RwLock::new(session_data)))
+                    }
+                    Ok(None) => {
+                        info!("Got an empty session");
+                        new_session(request)
+                    },
+                    Err(e) => {
+                        warn!("error trying to get session: {}", e);
+                        new_session(request)
+                    },
+                }
+            } else {
+                new_session(request)
             }
+        };
+        if let Some(cookie) = request.cookies().get("_philomena_key") {
+            trace!("Philomena session, trying takeover");
+            let state: &State<TiberiusState> = request.guard().await.expect("no tiberius state");
+            let mut client = match state.get_db_client().await {
+                Ok(v) => v,
+                Err(e) => panic!("error in database connection"),
+            };
+            let config = state.config();
+            match handover_session(&mut client, config, cookie.value(), session.clone()).await {
+                Ok(v) => (),
+                Err(e) => {
+                    warn!("error: could not handover session");
+                }
+            }
+        } else {
+            trace!("No philomena session");
         }
-        trace!("Couldn't find or load session, generating new session");
-        let mut new_session = Session::new();
-        new_session.mark_dirty();
-        trace!("New session id: {}", new_session.id());
-        Outcome::Success(SessionPtr(Arc::new(RwLock::new(new_session))))
+        Outcome::Success(session)
     }
 
     type Error = TiberiusError;

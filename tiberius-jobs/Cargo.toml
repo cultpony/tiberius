@@ -56,3 +56,19 @@ uri-builder = "0.1.0"
 url = { version = "2.2", features = ["serde"] }
 url_serde = "0.2"
 uuid = "0.8.1"
+
+[features]
+default = ["all-jobs"]
+all-jobs = ["cleanup-jobs", "online-jobs", "reindex-jobs", "processing-jobs"]
+stable-jobs = ["cleanup-jobs"]
+
+cleanup-jobs = ["job_cleanup_sessions"]
+online-jobs = ["job_picarto_tv"]
+reindex-jobs = ["job_reindex_images", "job_reindex_tags"]
+processing-jobs = ["job_process_image"]
+
+job_cleanup_sessions = []
+job_picarto_tv = []
+job_process_image = []
+job_reindex_images = []
+job_reindex_tags = []

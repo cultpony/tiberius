@@ -1,7 +1,9 @@
+use maud::html;
 use rocket::form::Form;
 use rocket::State;
+use tiberius_core::app::PageTitle;
 use tiberius_core::error::{TiberiusError, TiberiusResult};
-use tiberius_core::request_helper::JsonResponse;
+use tiberius_core::request_helper::{HtmlResponse, JsonResponse, TiberiusResponse};
 use tiberius_core::state::{TiberiusRequestState, TiberiusState};
 use tiberius_models::{Image, User};
 
@@ -13,7 +15,37 @@ pub struct ChangeUploader {
     old_uploader: String,
 }
 
-#[get("/api/v3/images/<image>/change_uploader", data = "<change_uploader>")]
+#[get("/api/v3/images/<image>/change_uploader")]
+pub async fn change_image_uploader_user(
+    state: &State<TiberiusState>,
+    rstate: TiberiusRequestState<'_>,
+    image: u64,
+) -> TiberiusResult<TiberiusResponse<()>> {
+    let body = html!{
+        form action=(rocket::uri!(change_image_uploader(image = image)).to_string()) method="POST" {
+            label for="old_uploader" { "Old Uploader" }
+            input type="text" name="old_uploader" id="old_uploader" placeholder="old_uploader" {}
+            label for="new_uploader" { "New Uploader" }
+            input type="text" name="new_uploader" id="new_uploader" placeholder="new_uploader" {}
+            input type="submit" value="Submit" { "Submit" }
+        }
+    };
+    let mut client = state.get_db_client().await?;
+    let app = crate::pages::common::frontmatter::app(
+        state,
+        &rstate,
+        Some(PageTitle::from("API - Change Uploader")),
+        &mut client,
+        body,
+        None,
+    )
+    .await?;
+    Ok(TiberiusResponse::Html(HtmlResponse {
+        content: app.into_string(),
+    }))
+}
+
+#[post("/api/v3/images/<image>/change_uploader", data = "<change_uploader>")]
 pub async fn change_image_uploader(
     state: &State<TiberiusState>,
     rstate: TiberiusRequestState<'_>,

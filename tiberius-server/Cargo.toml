@@ -54,7 +54,7 @@ sqlxmq = { git = "https://github.com/cultpony/sqlxmq.git", default-features = fa
 sqlx-adapter = { version = "0.4.2", default-features = false, features = ["runtime-tokio-rustls", "postgres"] }
 thiserror = "1.0.24"
 tiberius-core = { path = "../tiberius-core" }
-tiberius-jobs = { path = "../tiberius-jobs" }
+tiberius-jobs = { path = "../tiberius-jobs", default-features = false }
 tiberius-models = { path = "../tiberius-models" }
 tokio = { version = "1.10", features = ["full"] }
 tokio-cron-scheduler = "0.2.1"
@@ -69,5 +69,11 @@ pulldown-cmark = "0.8.0"
 ammonia = "3.1.2"
 
 [features]
-default = []
+default = ["full-release"]
 channel-images = []
+# Enables all routes and features, even experimental ones
+full-release = ["channel-images", "tiberius-jobs/all-jobs", "process-images", "session-handover-philomena"]
+# Enables only routes and features that are ready to deploy
+stable-release = ["tiberius-jobs/stable-jobs", "session-handover-philomena"]
+process-images = ["tiberius-jobs/processing-jobs"]
+session-handover-philomena = []
