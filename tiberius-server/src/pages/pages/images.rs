@@ -11,7 +11,6 @@ use tiberius_core::app::PageTitle;
 use tiberius_core::error::TiberiusResult;
 use tiberius_core::request_helper::{HtmlResponse, RedirectResponse, TiberiusResponse};
 use tiberius_core::state::{Flash, TiberiusRequestState, TiberiusState};
-use tiberius_jobs::process_image::ImageProcessConfig;
 use tiberius_models::Image;
 use tokio::task::spawn_blocking;
 use tracing::debug;
@@ -269,6 +268,15 @@ pub async fn show_image(
     }))
 }
 
+#[cfg(not(feature = "process-images"))]
+pub async fn upload_image(
+    state: &State<TiberiusState>,
+    rstate: TiberiusRequestState<'_>,
+) -> TiberiusResult<TiberiusResponse<()>> {
+    unimplemented!()
+}
+
+#[cfg(feature = "process-images")]
 #[get("/images/new")]
 pub async fn upload_image(
     state: &State<TiberiusState>,
@@ -423,6 +431,7 @@ pub struct ImageUploadWrapper<'a> {
     pub image: ImageUpload<'a>,
 }
 
+#[cfg(feature = "process-images")]
 #[post("/image", data = "<image>")]
 pub async fn new_image(
     mut image: Form<ImageUploadWrapper<'_>>,
@@ -670,14 +679,18 @@ pub async fn new_image(
         ..Default::default()
     };
     let image = image.insert_new(&mut client).await?;
-    debug!("Scheduling processing of image");
-    tiberius_jobs::process_image::process_image(
-        &mut client,
-        ImageProcessConfig {
-            image_id: image.id as u64,
-        },
-    )
-    .await?;
+    #[cfg(feature = "process-images")]
+    {
+        use tiberius_jobs::process_image::ImageProcessConfig;
+        debug!("Scheduling processing of image");
+        tiberius_jobs::process_image::process_image(
+            &mut client,
+            ImageProcessConfig {
+                image_id: image.id as u64,
+            },
+        )
+        .await?;
+    }
     return Ok(RedirectResponse::new(
         uri!(show_image(image = image.id as u64)),
         Some(Flash::Info(

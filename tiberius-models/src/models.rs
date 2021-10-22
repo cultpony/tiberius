@@ -28,3 +28,5 @@ mod badge_award;
 pub use badge_award::*;
 mod audit;
 pub use audit::*;
+mod api_key;
+pub use api_key::*;

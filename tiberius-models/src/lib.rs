@@ -58,6 +58,8 @@ pub enum PhilomenaModelError {
         table: String,
         id: String,
     },
+    #[error("Could not convert: {}", .0)]
+    TryFromIntError(#[from] std::num::TryFromIntError)
 }
 
 #[derive(Clone)]

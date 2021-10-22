@@ -94,6 +94,9 @@ pub struct Configuration {
     #[serde(skip_serializing, alias = "PASSWORD_PEPPER")]
     #[sensitive]
     pub(crate) philomena_secret: Option<String>,
+    #[serde(skip_serializing, alias = "SESSHO_SECRET")]
+    #[sensitive]
+    pub(crate) session_handover_secret: Option<String>,
 }
 
 impl Configuration {
@@ -156,6 +159,7 @@ impl Default for Configuration {
             search_dir: PathBuf::from_str("./search").expect("invalid search path"),
             password_pepper: None,
             philomena_secret: None,
+            session_handover_secret: None,
         }
     }
 }
