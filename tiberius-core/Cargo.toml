@@ -20,7 +20,7 @@ hex = "0.4.3"
 image = "0.23"
 itertools = "0.10.1"
 lazy_static = "1.4"
-tracing = "0.1.26"
+tracing = "0.1.29"
 maud = { git = "https://github.com/mbr/maud", branch = "mbr/rocket-0.5", features = ["rocket"] }
 new_mime_guess = "3.0"
 paseto = "2.0.0"
