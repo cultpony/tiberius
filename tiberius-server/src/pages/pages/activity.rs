@@ -23,7 +23,7 @@ pub async fn index(
     let body = html! {
         div.column-layout {
             @if show_sidebar {
-                aside.column-layout__left#activity-side {
+                aside.column-layout__left #activity-side {
                     @if let Some(featured_image) = featured_image {
                         @if !featured_image.hidden(&mut client)? {
                             .center {

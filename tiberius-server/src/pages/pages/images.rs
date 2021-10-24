@@ -112,7 +112,7 @@ pub async fn show_image(
                     }
                 }
             }
-            .image-metabar.flex.flex--wrap.block__header--user-credit.center-layout#extrameta {
+            .image-metabar.flex.flex--wrap.block__header--user-credit.center-layout #extrameta {
                 div {
                     "Uploaded "
                     (human_date(image.created_at))
@@ -293,12 +293,12 @@ pub async fn upload_image(
                 }
             }
             .field {
-                input.input.js-scraper#image_image type="file" name="image.image" {}
+                input.input.js-scraper #image_image type="file" name="image.image" {}
                 // TODO: show proc errors here
             }
             .field.field--inline {
-                input.input.input--wide.js-scraper#image_scraper_url type="url" name="image.scraper_url" placeholder="Link a deviantART page, a Tumblr post, or the image directly" {}
-                button.button.button--seperate-left#js-scraper-preview data-disable-with="Fetch" disabled="" title="Fetch image at the specified URL" type="button" {
+                input.input.input--wide.js-scraper #image_scraper_url type="url" name="image.scraper_url" placeholder="Link a deviantART page, a Tumblr post, or the image directly" {}
+                button.button.button--seperate-left #js-scraper-preview data-disable-with="Fetch" disabled="" title="Fetch image at the specified URL" type="button" {
                     "Fetch"
                 }
             }
@@ -308,7 +308,7 @@ pub async fn upload_image(
     let image_form_source = html! {
         .field {
             label for="image_source_url" { "The page you found this image on" }
-            input.input.input--wide.js-image-input#image_source_url name="image.source_url" placeholder="Source URL" type="url" {}
+            input.input.input--wide.js-image-input #image_source_url name="image.source_url" placeholder="Source URL" type="url" {}
         }
     };
     let image_tag_form = html! {

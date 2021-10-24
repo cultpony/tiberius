@@ -157,7 +157,7 @@ pub async fn image_block<
         images.len()
     );
     Ok(html! {
-        .block#imagelist-container {
+        .block #imagelist-container {
             section.block__header.page__header.flex {
                 span.block__header__title.page_title.hide-mobile {
                     (header.to_string())

@@ -138,7 +138,7 @@ pub fn artist_tags(tags: &[Tag]) -> Vec<&Tag> {
 
 pub fn burger() -> Markup {
     html! {
-        nav#burger {
+        nav #burger {
             a href="/" { i.fa-fw.favicon-home {} "Home" }
             a href="/images/new" { i.fa.fa-fw.fa-upload {} "Upload" }
             a href="/forums" { i.fas.fa-fw.fa-pen-square {} "Forums" }
@@ -158,7 +158,7 @@ pub fn tag_editor<S1: Display, S2: Display>(editor_type: S1, name: S2) -> Markup
     let ta_class = format!("js-taginput-{}", name);
     html! {
         .js-tag-block.(format!("fancy-tag-{}", editor_type)) {
-            textarea.input.input--wide.tagsinput.js-image-input.js-taginput.js-taginput-plain.hidden#image_tag_input.(ta_class) autocomplete="off" name="image.tag_input" placeholder="Add tags seperated with commas" {}
+            textarea.input.input--wide.tagsinput.js-image-input.js-taginput.js-taginput-plain.hidden #image_tag_input.(ta_class) autocomplete="off" name="image.tag_input" placeholder="Add tags seperated with commas" {}
             .js-taginput.input.input--wide.tagsinput.js-taginput-fancy data-click-focus=(format!(".js-taginput-input.js-taginput-{}", name)) {
                 input.input.js-taginput-input.(format!("js-taginput-{}", name))#(format!("taginput-fancy-{}", name)) type="text" placeholder="add a tag" autocomplete="off" autocapitalize="none" data-ac="true" data-ac-min-length="3" data-ac-source="/tags/autocomplete?term=" {}
             }
@@ -170,13 +170,13 @@ pub fn tag_editor<S1: Display, S2: Display>(editor_type: S1, name: S2) -> Markup
         button.button.button--state-primary.button--bold.js-taginput-hide data-click-show=".js-taginput-plain,.js-taginput-show" data-click-hide=".js-taginput-fancy,.js-taginput-hide" data-click-focus=(format!(".js-taginput-plain.js-taginput-{}", name)) {
             "Plain Editor"
         }
-        button.button.button--state-success.button--separate-left.button--bold#tagsinput-save title="This button saves the tags listed above to your browser, allowing you to retrieve them again by clicking the Load button" {
+        button.button.button--state-success.button--separate-left.button--bold #tagsinput-save title="This button saves the tags listed above to your browser, allowing you to retrieve them again by clicking the Load button" {
             "Save"
         }
-        button.button.button--state-warning.button--separate-left.button--bold#tagsinput-save title="This button loads any saved tags from your browser" {
+        button.button.button--state-warning.button--separate-left.button--bold #tagsinput-save title="This button loads any saved tags from your browser" {
             "Load"
         }
-        button.button.button--state-danger.button--separate-left.button--bold#tagsinput-clear title="This button will clear the list of tags above" type="button" {
+        button.button.button--state-danger.button--separate-left.button--bold #tagsinput-clear title="This button will clear the list of tags above" type="button" {
             "Clear"
         }
     }
@@ -297,7 +297,7 @@ pub async fn header(
                 }
 
                 form.header__search.flex.flex--nowrap.flex--centered.hform action=(uri!(crate::pages::images::search_empty)) method="GET" {
-                    input.input.header__input.header__input--search#q name="q" title="For terms all required, separate with ',' or 'AND'; also supports 'OR' for optional terms and '-' or 'NOT' for negation. Search with a blank query for more options or click the ? for syntax help."
+                    input.input.header__input.header__input--search #q name="q" title="For terms all required, separate with ',' or 'AND'; also supports 'OR' for optional terms and '-' or 'NOT' for negation. Search with a blank query for more options or click the ? for syntax help."
                         value=(rstate.search_query().await?.to_string()) placeholder="Search" autocapitalize="none";
 
                     //TODO: sf+sd params https://github.com/derpibooru/philomena/blob/355ce491accae4702f273334271813e93a261e0f/lib/philomena_web/templates/layout/_header.html.slime#L17
@@ -342,10 +342,10 @@ pub async fn header(
                         }
 
                         // TODO: user change filter form https://github.com/derpibooru/philomena/blob/355ce491accae4702f273334271813e93a261e0f/lib/philomena_web/templates/layout/_header.html.slime#L52
-                        form#filter-quick-form.header__filter-form action="// TODO: filter form" method="POST" {}
+                        form #filter-quick-form.header__filter-form action="// TODO: filter form" method="POST" {}
 
                         // TODO: user change hide/spoiler form https://github.com/derpibooru/philomena/blob/355ce491accae4702f273334271813e93a261e0f/lib/philomena_web/templates/layout/_header.html.slime#L55
-                        form#spoiler-quick-form.header__filter-form.hide-mobile.hide-limited-desktop action="// TODO: quick spoiler form" method="POST" {}
+                        form #spoiler-quick-form.header__filter-form.hide-mobile.hide-limited-desktop action="// TODO: quick spoiler form" method="POST" {}
 
 
                         .dropdown.header_dropdown {
@@ -525,8 +525,8 @@ pub async fn footer(
     let footer_data = state.footer_data();
     let site_config = state.site_config();
     Ok(html! {
-        footer#footer {
-            div#footer_content {
+        footer #footer {
+            div #footer_content {
                 @for column in &footer_data.cols {
                     .footercol {
                         h5 { (column) }
@@ -541,7 +541,7 @@ pub async fn footer(
                     }
                 }
             }
-            div#serving_info {
+            div #serving_info {
                 "Powered by "
                 a href=(site_config.source_repo()) { (site_config.source_name()) }
                 (format!(" (rendered in {:1.3} ms)", time))

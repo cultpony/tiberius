@@ -25,11 +25,11 @@ pub async fn new_session(
             }
 
             .field {
-                input.input#user_email name="email" type="email" required="true" placeholder="Email" autofocus="true" pattern=".*@.*";
+                input.input #user_email name="email" type="email" required="true" placeholder="Email" autofocus="true" pattern=".*@.*";
             }
 
             .field {
-                input.input#user_password name="password" type="password" required="true" placeholder="Password";
+                input.input #user_password name="password" type="password" required="true" placeholder="Password";
             }
 
             /*.field { We don't implement session remembering, just let the session linger

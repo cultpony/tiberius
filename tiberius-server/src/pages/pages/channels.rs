@@ -91,7 +91,7 @@ pub async fn list_channels(state: &State<TiberiusState>, rstate: TiberiusRequest
         h1 { "Livestreams" }
         form.hform {
             .field {
-                input.input.hform__text#channels_cq type="text" name="cq" value=(cq.cq()) placeholder="Search channels" autocapitalize="none";
+                input.input.hform__text #channels_cq type="text" name="cq" value=(cq.cq()) placeholder="Search channels" autocapitalize="none";
                 button.hform__button.button type="submit" { "Search" }
             }
         }
