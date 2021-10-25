@@ -18,7 +18,8 @@ name: Run Tests on Push/PR
 jobs:
   check:
     name: Check
-    runs-on: ubuntu-latest
+    #runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
@@ -72,7 +73,8 @@ jobs:
 
   test:
     name: Test Suite
-    runs-on: ubuntu-latest
+    #runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
