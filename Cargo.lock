@@ -637,32 +637,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f05775e9da7e9ab7f68eed2514e1b4969304d0ebe4c52ddf1535da26cd241276"
 dependencies = [
  "async-std",
- "cap-primitives 0.20.0",
+ "cap-primitives",
  "io-lifetimes",
  "ipnet",
  "rsix",
  "unsafe-io",
-]
-
-[[package]]
-name = "cap-primitives"
-version = "0.19.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b51bd736eec54ae6552d18b0c958885b01d88c84c5fe6985e28c2b57ff385e94"
-dependencies = [
- "ambient-authority",
- "errno",
- "fs-set-times",
- "io-lifetimes",
- "ipnet",
- "maybe-owned",
- "once_cell",
- "rsix",
- "rustc_version 0.4.0",
- "unsafe-io",
- "winapi 0.3.9",
- "winapi-util",
- "winx",
 ]
 
 [[package]]
@@ -688,11 +667,11 @@ dependencies = [
 
 [[package]]
 name = "cap-std"
-version = "0.19.1"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "037334fe2f30ec71bcc51af1e8cbb8a9f9ac6a6b8cbd657d58dfef2ad5b9f19a"
+checksum = "8884ddd1c80d48f0802e7fb8eb17d3052aa81c62a43665a5b07746b9823a99fe"
 dependencies = [
- "cap-primitives 0.19.1",
+ "cap-primitives",
  "io-lifetimes",
  "ipnet",
  "rsix",
@@ -1518,19 +1497,19 @@ dependencies = [
 
 [[package]]
 name = "flexi_logger"
-version = "0.19.4"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "35627d78fcea84d52181369fe48fcfce56a2a18e29443dba23d4c24b650fb107"
+checksum = "3d7854b643a891cf06daed194725d6ae6c374dd63fe4aad5c202912f853ff2df"
 dependencies = [
  "ansi_term 0.12.1",
  "atty",
- "chrono",
  "glob",
  "lazy_static 1.4.0",
  "log",
  "regex 1.5.4",
  "rustversion",
  "thiserror",
+ "time 0.3.5",
 ]
 
 [[package]]
@@ -4724,18 +4703,18 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.29"
+version = "1.0.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "602eca064b2d83369e2b2f34b09c70b605402801927c65c11071ac911d299b88"
+checksum = "854babe52e4df1653706b98fcfc05843010039b406875930a70e4d9644e5c417"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.29"
+version = "1.0.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bad553cc2c78e8de258400763a647e80e6d1b31ee237275d756f6836d204494c"
+checksum = "aa32fd3f627f367fe16f893e2597ae3c05020f8bba2666a4e6ea73d377e5714b"
 dependencies = [
  "proc-macro2 1.0.29",
  "quote 1.0.9",
@@ -5001,9 +4980,20 @@ dependencies = [
  "libc",
  "standback",
  "stdweb",
- "time-macros",
+ "time-macros 0.1.1",
  "version_check",
  "winapi 0.3.9",
+]
+
+[[package]]
+name = "time"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41effe7cfa8af36f439fac33861b66b049edc6f9a32331e2312660529c1c24ad"
+dependencies = [
+ "itoa",
+ "libc",
+ "time-macros 0.2.3",
 ]
 
 [[package]]
@@ -5015,6 +5005,12 @@ dependencies = [
  "proc-macro-hack",
  "time-macros-impl",
 ]
+
+[[package]]
+name = "time-macros"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25eb0ca3468fc0acc11828786797f6ef9aa1555e4a211a60d64cc8e4d1be47d6"
 
 [[package]]
 name = "time-macros-impl"

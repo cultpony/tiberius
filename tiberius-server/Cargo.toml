@@ -16,7 +16,7 @@ bcrypt = "0.10.0"
 better-panic = "0.2"
 camo-url = "0.1.2"
 cap-async-std = "0.20"
-cap-std = "0.19"
+cap-std = "0.20"
 casbin = "2.0.7" # needs tobe 2.0.8 until sqlxmq is replaced or updated
 chrono = "0.4.19"
 chrono-humanize = "0.2.1"
@@ -24,7 +24,7 @@ clap = { version = "2.33.3", features = ["wrap_help"] }
 csp = "0.1.0"
 either = { version = "1.6.1", features = ["serde"] }
 envy = "0.4"
-flexi_logger = "0.19"
+flexi_logger = "0.20"
 hex = "0.4.3"
 human_bytes = "0.3.0"
 image = "0.23.14"
@@ -52,7 +52,7 @@ sha3 = "0.9.1"
 sqlx = { version = "0.5.9", features = ["postgres", "chrono", "time", "macros", "json", "runtime-tokio-rustls", "offline", "migrate"] }
 sqlxmq = { git = "https://github.com/cultpony/sqlxmq.git", default-features = false, features = ["runtime-tokio-rustls"] }
 sqlx-adapter = { version = "0.4.2", default-features = false, features = ["runtime-tokio-rustls", "postgres"] }
-thiserror = "1.0.24"
+thiserror = "1.0.30"
 tiberius-core = { path = "../tiberius-core" }
 tiberius-jobs = { path = "../tiberius-jobs", default-features = false }
 tiberius-models = { path = "../tiberius-models" }
