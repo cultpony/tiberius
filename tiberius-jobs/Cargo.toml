@@ -24,7 +24,7 @@ hex = "0.4.3"
 human_bytes = "0.3.0"
 image = "0.23"
 itertools = "0.10.1"
-josekit = "0.7.1"
+josekit = "0.7.4"
 kankyo = "0.3"
 lazy_static = "1.4"
 maud = { git = "https://github.com/mbr/maud", branch = "mbr/rocket-0.5", features = ["rocket"] }
