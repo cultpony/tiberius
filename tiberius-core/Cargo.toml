@@ -37,7 +37,7 @@ serde_derive = "1.0"
 serde_json = "1.0"
 sqlx = { version = "0.5.9", features = ["postgres", "chrono", "time", "macros", "json", "runtime-tokio-rustls", "offline", "migrate", "uuid"] }
 sqlx-adapter = { version = "0.4.2", default-features = false, features = ["runtime-tokio-rustls", "postgres"] }
-thiserror = "1.0.24"
+thiserror = "1.0.30"
 tiberius-models = { path = "../tiberius-models" }
 tokio = { version = "1.10", features = ["full"] }
 url = { version = "2.2", features = ["serde"] }
