@@ -3,16 +3,16 @@ use maud::Markup;
 use maud::PreEscaped;
 use rocket::Request;
 use sqlx::{query_as, Acquire};
-use tiberius_core::session::SessionMode;
 use std::str::FromStr;
 use tiberius_core::error::TiberiusResult;
+use tiberius_core::session::SessionMode;
 use tiberius_core::state::TiberiusRequestState;
 use tiberius_models::Channel;
 use tiberius_models::Client;
 use url::Url;
 
 pub async fn stream_box(
-    rstate: &TiberiusRequestState<'_, {SessionMode::Unauthenticated}>,
+    rstate: &TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
     client: &mut Client,
 ) -> TiberiusResult<Markup> {
     let channels: Vec<Channel> = Channel::get_frontpage_channels(client).await?;

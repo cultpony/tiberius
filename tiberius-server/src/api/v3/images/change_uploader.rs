@@ -19,7 +19,7 @@ pub struct ChangeUploader {
 #[get("/api/v3/images/<image>/change_uploader")]
 pub async fn change_image_uploader_user(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, {SessionMode::Authenticated}>,
+    rstate: TiberiusRequestState<'_, { SessionMode::Authenticated }>,
     image: u64,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let body = html! {
@@ -49,7 +49,7 @@ pub async fn change_image_uploader_user(
 #[post("/api/v3/images/<image>/change_uploader", data = "<change_uploader>")]
 pub async fn change_image_uploader(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, {SessionMode::Authenticated}>,
+    rstate: TiberiusRequestState<'_, { SessionMode::Authenticated }>,
     image: u64,
     change_uploader: Form<ChangeUploader>,
 ) -> TiberiusResult<JsonResponse> {

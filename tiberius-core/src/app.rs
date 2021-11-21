@@ -1,9 +1,8 @@
 use std::convert::Infallible;
 
-use rocket::Request;
 use rocket::request::FromRequest;
 use rocket::request::Outcome;
-
+use rocket::Request;
 
 pub type DBPool = sqlx::PgPool;
 pub type DBConnection = sqlx::PgConnection;

@@ -4,7 +4,6 @@ use either::Either;
 
 use crate::error::TiberiusResult;
 
-
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct FooterData {
     pub cols: Vec<String>,

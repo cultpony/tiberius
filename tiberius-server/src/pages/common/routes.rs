@@ -33,7 +33,9 @@ pub async fn stylesheet_path<const T: SessionMode>(
     })
 }
 
-pub fn dark_stylesheet_path<const T: SessionMode>(rstate: &TiberiusRequestState<'_, T>) -> TiberiusResult<String> {
+pub fn dark_stylesheet_path<const T: SessionMode>(
+    rstate: &TiberiusRequestState<'_, T>,
+) -> TiberiusResult<String> {
     Ok(static_path(PathBuf::from_str("css/dark.css")?)
         .to_string_lossy()
         .to_string())
@@ -73,7 +75,7 @@ pub struct ShowHidden(pub bool);
 #[deprecated]
 pub async fn thumb_url<const T: SessionMode>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, {T}>,
+    rstate: &TiberiusRequestState<'_, { T }>,
     client: &mut Client,
     img: Either<i64, &Image>,
     thumb: ImageThumbType,
@@ -124,7 +126,10 @@ pub fn thumb_format<S: Into<String>, R: Into<String>>(
     }
 }
 
-pub async fn cdn_host<const T: SessionMode>(state: &TiberiusState, rstate: &TiberiusRequestState<'_, {T}>) -> String {
+pub async fn cdn_host<const T: SessionMode>(
+    state: &TiberiusState,
+    rstate: &TiberiusRequestState<'_, { T }>,
+) -> String {
     let cdn_host = state.config.cdn_host.clone();
     cdn_host.unwrap_or(
         rstate

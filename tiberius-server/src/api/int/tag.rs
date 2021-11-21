@@ -23,7 +23,7 @@ pub struct ApiResponse {
 #[get("/tags/fetch?<ids>")]
 pub async fn fetch(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, {SessionMode::Unauthenticated}>,
+    rstate: TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
     ids: Vec<i64>,
 ) -> TiberiusResult<Json<ApiResponse>> {
     let mut client = state.get_db_client().await?;

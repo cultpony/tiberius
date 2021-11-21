@@ -153,7 +153,7 @@ impl ACLActionTrait for ACLActionAPIKey {
 
 pub async fn verify_acl(
     state: &State<TiberiusState>,
-    rstate: &TiberiusRequestState<'_, {SessionMode::Authenticated}>,
+    rstate: &TiberiusRequestState<'_, { SessionMode::Authenticated }>,
     object: impl ACLObjectTrait,
     action: impl ACLActionTrait,
 ) -> TiberiusResult<bool> {

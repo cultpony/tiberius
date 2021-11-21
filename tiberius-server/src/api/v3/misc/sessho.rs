@@ -11,7 +11,7 @@ use tiberius_models::{Image, User};
 #[get("/api/v3/misc/session/handover")]
 pub async fn session_handover_user(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, {SessionMode::Unauthenticated}>,
+    rstate: TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let body = html! {
         form action=(rocket::uri!(session_handover).to_string()) method="POST" {
@@ -45,7 +45,7 @@ pub async fn session_handover_user(
 #[post("/api/v3/misc/session/handover")]
 pub async fn session_handover(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, {SessionMode::Unauthenticated}>,
+    rstate: TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
 ) -> TiberiusResult<JsonResponse> {
     todo!()
 }
