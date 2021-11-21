@@ -21,8 +21,8 @@ use crate::config::Configuration;
 use crate::error::{TiberiusError, TiberiusResult};
 use crate::footer::FooterData;
 use crate::request_helper::DbRef;
-use crate::LayoutClass;
 use crate::session::{SessionMode, SessionPtr};
+use crate::LayoutClass;
 
 #[derive(Clone)]
 pub struct TiberiusState {
@@ -77,14 +77,18 @@ pub struct TiberiusRequestState<'a, const T: SessionMode> {
 }
 
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for TiberiusRequestState<'r, {SessionMode::Authenticated}> {
+impl<'r> FromRequest<'r> for TiberiusRequestState<'r, { SessionMode::Authenticated }> {
     type Error = Infallible;
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         Outcome::Success(Self {
             cookie_jar: request.cookies(),
             headers: request.headers(),
             uri: request.uri(),
-            session: request.guard::<SessionPtr<{SessionMode::Authenticated}>>().await.succeeded().unwrap(),
+            session: request
+                .guard::<SessionPtr<{ SessionMode::Authenticated }>>()
+                .await
+                .succeeded()
+                .unwrap(),
             flash: Flash::from_flashm(request.guard::<FlashMessage>().await.succeeded()),
             started_at: Instant::now(),
         })
@@ -93,14 +97,18 @@ impl<'r> FromRequest<'r> for TiberiusRequestState<'r, {SessionMode::Authenticate
 
 //todo: make this an anonymous session if no auth is needed
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for TiberiusRequestState<'r, {SessionMode::Unauthenticated}> {
+impl<'r> FromRequest<'r> for TiberiusRequestState<'r, { SessionMode::Unauthenticated }> {
     type Error = Infallible;
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         Outcome::Success(Self {
             cookie_jar: request.cookies(),
             headers: request.headers(),
             uri: request.uri(),
-            session: request.guard::<SessionPtr<{SessionMode::Unauthenticated}>>().await.succeeded().unwrap(),
+            session: request
+                .guard::<SessionPtr<{ SessionMode::Unauthenticated }>>()
+                .await
+                .succeeded()
+                .unwrap(),
             flash: Flash::from_flashm(request.guard::<FlashMessage>().await.succeeded()),
             started_at: Instant::now(),
         })
@@ -228,7 +236,8 @@ impl<'a, const T: SessionMode> TiberiusRequestState<'a, T> {
     pub async fn user(&self, state: &TiberiusState) -> TiberiusResult<Option<User>> {
         Ok(self
             .session
-            .read().await
+            .read()
+            .await
             .get_user(&mut state.get_db_client().await?)
             .await?)
     }

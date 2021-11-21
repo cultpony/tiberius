@@ -13,7 +13,7 @@ use crate::pages::common::{verify_acl, ACLActionAPIKey, ACLActionImage, ACLObjec
 #[get("/v3/manage/keys")]
 pub async fn manage_keys_page(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, {SessionMode::Authenticated}>,
+    rstate: TiberiusRequestState<'_, { SessionMode::Authenticated }>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let view_all_api_keys: bool =
         verify_acl(state, &rstate, ACLObject::APIKey, ACLActionAPIKey::ViewAll).await?;
@@ -22,7 +22,8 @@ pub async fn manage_keys_page(
         &rstate,
         ACLObject::APIKey,
         ACLActionAPIKey::CreateDelete,
-    ).await?;
+    )
+    .await?;
     let admin_api_key: bool =
         verify_acl(state, &rstate, ACLObject::APIKey, ACLActionAPIKey::Admin).await?;
     let mut client = state.get_db_client().await?;
@@ -76,7 +77,7 @@ pub async fn manage_keys_page(
 #[post("/v3/manage/keys/create")]
 pub async fn create_api_key(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, {SessionMode::Authenticated}>,
+    rstate: TiberiusRequestState<'_, { SessionMode::Authenticated }>,
 ) -> TiberiusResult<()> {
     todo!("implement API page")
 }
@@ -84,7 +85,7 @@ pub async fn create_api_key(
 #[post("/v3/manage/keys/delete")]
 pub async fn delete_api_key(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, {SessionMode::Authenticated}>,
+    rstate: TiberiusRequestState<'_, { SessionMode::Authenticated }>,
 ) -> TiberiusResult<()> {
     todo!("implement API page")
 }

@@ -29,7 +29,7 @@ pub async fn embed_image(flag: Option<&str>, image: u64) -> TiberiusResult<()> {
 #[get("/<image>")]
 pub async fn show_image(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, {SessionMode::Unauthenticated}>,
+    rstate: TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
     image: u64,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let mut client = state.get_db_client().await?;
@@ -271,7 +271,7 @@ pub async fn show_image(
 #[cfg(not(feature = "process-images"))]
 pub async fn upload_image(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_>,
+    rstate: TiberiusRequestState<'_, { SessionMode::Authenticated }>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     unimplemented!()
 }
@@ -280,7 +280,7 @@ pub async fn upload_image(
 #[get("/images/new")]
 pub async fn upload_image(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, {SessionMode::Authenticated}>,
+    rstate: TiberiusRequestState<'_, { SessionMode::Authenticated }>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let mut client = state.get_db_client().await?;
     let user = rstate.session.read().await.get_user(&mut client).await?;

@@ -11,7 +11,7 @@ use crate::pages::common::flash::put_flash;
 #[get("/sessions/login")]
 pub async fn new_session(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, {SessionMode::Unauthenticated}>,
+    rstate: TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let state = state.inner().clone();
     let mut client: Client = state.get_db_client().await?;
@@ -73,7 +73,7 @@ pub struct NewSession<'r> {
 #[post("/sessions/login", data = "<login_data>")]
 pub async fn new_session_post(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, {SessionMode::Unauthenticated}>,
+    rstate: TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
     login_data: Form<NewSession<'_>>,
 ) -> TiberiusResult<RedirectResponse> {
     trace!("requesting new session, verifying user");
@@ -129,7 +129,9 @@ pub async fn registration() -> TiberiusResult<String> {
 }
 
 #[get("/session/logout")]
-pub async fn destroy_session(rstate: TiberiusRequestState<'_, {SessionMode::Authenticated}>) -> TiberiusResult<RedirectResponse> {
+pub async fn destroy_session(
+    rstate: TiberiusRequestState<'_, { SessionMode::Authenticated }>,
+) -> TiberiusResult<RedirectResponse> {
     Ok(RedirectResponse {
         redirect: Flash::info("You have been logged out")
             .into_resp(Redirect::to(uri!(crate::pages::activity::index))),

@@ -60,7 +60,7 @@ pub struct Session<const MODE: SessionMode> {
     ephemeral: bool,
 }
 
-impl Into<Session<{SessionMode::Unauthenticated}>> for Session<{SessionMode::Authenticated}> {
+impl Into<Session<{ SessionMode::Unauthenticated }>> for Session<{ SessionMode::Authenticated }> {
     fn into(self) -> Session<{ SessionMode::Unauthenticated }> {
         Session::<{ SessionMode::Unauthenticated }> {
             id: self.id,
@@ -101,23 +101,34 @@ impl<const T: SessionMode> Session<T> {
         pss.store_session(self).await.unwrap();
     }
     pub fn get_data(&self, key: &str) -> TiberiusResult<Option<String>> {
-        Ok(self.data.get(key).map(|x| serde_json::from_value(x.clone())).transpose()?)
+        Ok(self
+            .data
+            .get(key)
+            .map(|x| serde_json::from_value(x.clone()))
+            .transpose()?)
     }
     pub fn set_data(&mut self, key: &str, value: &str) -> TiberiusResult<Option<String>> {
-        Ok(self.set_json_data(key.to_string(), serde_json::to_value(value)?).map(|x| serde_json::from_value(x)).transpose()?)
+        Ok(self
+            .set_json_data(key.to_string(), serde_json::to_value(value)?)
+            .map(|x| serde_json::from_value(x))
+            .transpose()?)
     }
-    pub fn set_json_data(&mut self, key: String, value: serde_json::Value) -> Option<serde_json::Value> {
+    pub fn set_json_data(
+        &mut self,
+        key: String,
+        value: serde_json::Value,
+    ) -> Option<serde_json::Value> {
         self.data.insert(key, value)
     }
     /// Returns true if the session is not persisted into cookies or the database backend
-    /// 
+    ///
     /// To set a session as ephemeral, it must be created by passing `true` to the `Session::new()` constructor.
-    /// 
+    ///
     /// ```
-    /// use tiberius_core::session::Session;
-    /// let ephemeral_session = Session::new(true);
-    /// let stored_session = Session::new(false);
-    /// 
+    /// use tiberius_core::session::{Session, SessionMode};
+    /// let ephemeral_session = Session::<{SessionMode::Unauthenticated}>::new(true);
+    /// let stored_session = Session::<{SessionMode::Unauthenticated}>::new(false);
+    ///
     /// assert!(ephemeral_session.ephemeral());
     /// assert!(!stored_session.ephemeral());
     /// ```
@@ -131,14 +142,13 @@ impl<const T: SessionMode> Session<T> {
             Some(user_id) => Ok(User::get_id(client, user_id).await?),
         }
     }
-    
+
     pub fn set_user(&mut self, user: &User) {
         self.user_id = Some(user.id as i64);
     }
 }
 
-impl Session<{SessionMode::Authenticated}> {
-
+impl Session<{ SessionMode::Authenticated }> {
     pub fn new(ephemeral: bool, user_id: i64) -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -160,7 +170,7 @@ impl Session<{SessionMode::Authenticated}> {
     }
 }
 
-impl Session<{SessionMode::Unauthenticated}> {
+impl Session<{ SessionMode::Unauthenticated }> {
     pub fn new(ephemeral: bool) -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -181,7 +191,7 @@ impl Session<{SessionMode::Unauthenticated}> {
         }
     }
     pub fn into_authenticated(self, user_id: i64) -> Session<{ SessionMode::Authenticated }> {
-        Session::<{SessionMode::Authenticated}> {
+        Session::<{ SessionMode::Authenticated }> {
             id: self.id,
             created: self.created,
             expires: self.expires,
@@ -225,7 +235,10 @@ impl PostgresSessionStore {
     }
 
     #[instrument(level = "trace", skip(self, cookie_value))]
-    async fn load_session<const T: SessionMode>(&self, cookie_value: String) -> TiberiusResult<Option<Session<T>>> {
+    async fn load_session<const T: SessionMode>(
+        &self,
+        cookie_value: String,
+    ) -> TiberiusResult<Option<Session<T>>> {
         if cookie_value == "" {
             return Ok(None);
         }
@@ -246,9 +259,12 @@ impl PostgresSessionStore {
         Ok(result)
     }
 
-    async fn store_session<const T: SessionMode>(&self, session: &Session<T>) -> TiberiusResult<()> {
+    async fn store_session<const T: SessionMode>(
+        &self,
+        session: &Session<T>,
+    ) -> TiberiusResult<()> {
         if session.ephemeral() {
-            return Ok(())
+            return Ok(());
         }
         let id = session.id();
         let string = serde_json::to_string(&session)?;
@@ -270,7 +286,10 @@ impl PostgresSessionStore {
         Ok(())
     }
 
-    async fn destroy_session<const T: SessionMode>(&self, session: &Session<T>) -> TiberiusResult<()> {
+    async fn destroy_session<const T: SessionMode>(
+        &self,
+        session: &Session<T>,
+    ) -> TiberiusResult<()> {
         let id = session.id();
         let mut conn = self.connection().await?;
         sqlx::query(&format!("DELETE FROM {} WHERE id = $1", self.table_name))
@@ -324,7 +343,8 @@ impl Fairing for PostgresSessionStore {
             return;
         }
         trace!("Post Request Session Handler on {}", req.uri().path());
-        let session: Option<SessionPtr<{SessionMode::Unauthenticated}>> = req.guard().await.succeeded();
+        let session: Option<SessionPtr<{ SessionMode::Unauthenticated }>> =
+            req.guard().await.succeeded();
         // todo: handle auth'd sessions
 
         if let Some(session) = session {
@@ -346,16 +366,16 @@ impl Fairing for PostgresSessionStore {
         } else {
             trace!("No session in request, making a session");
             let session = if let Some(authorization) = authorization(req) {
-                let mut new_session = Session::<{SessionMode::Unauthenticated}>::new(true);
+                let mut new_session = Session::<{ SessionMode::Unauthenticated }>::new(true);
                 match session_from_api_key(&mut new_session, &authorization, req) {
                     Ok(_) => new_session,
                     Err(e) => {
                         warn!("error on ephemeral session: {}", e);
-                        Session::<{SessionMode::Unauthenticated}>::new(false)
+                        Session::<{ SessionMode::Unauthenticated }>::new(false)
                     }
                 }
             } else {
-                Session::<{SessionMode::Unauthenticated}>::new(false)
+                Session::<{ SessionMode::Unauthenticated }>::new(false)
             };
             let session_id = session.id().to_string();
             trace!("New session {}", session_id);
@@ -413,10 +433,13 @@ fn authorization<'r>(req: &'r Request<'_>) -> Option<String> {
 }
 
 // Turns an unauthorized session into an authorized session
-fn session_from_api_key(session: &mut Session<{ SessionMode::Unauthenticated }>, key: &str, req: &Request<'_>) -> TiberiusResult<Session<{ SessionMode::Authenticated }>> {
+fn session_from_api_key(
+    session: &mut Session<{ SessionMode::Unauthenticated }>,
+    key: &str,
+    req: &Request<'_>,
+) -> TiberiusResult<Session<{ SessionMode::Authenticated }>> {
     todo!()
 }
-
 
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for SessionPtr<{ SessionMode::Unauthenticated }> {
@@ -427,16 +450,16 @@ impl<'r> FromRequest<'r> for SessionPtr<{ SessionMode::Unauthenticated }> {
         let new_session = |req: &Request<'_>| {
             trace!("Couldn't find or load session, generating new session");
             let mut new_session = if let Some(authorization) = authorization(req) {
-                let mut new_session = Session::<{SessionMode::Unauthenticated}>::new(true);
+                let mut new_session = Session::<{ SessionMode::Unauthenticated }>::new(true);
                 match session_from_api_key(&mut new_session, &authorization, req) {
                     Ok(_) => new_session,
                     Err(e) => {
                         warn!("error on ephemeral session: {}", e);
-                        Session::<{SessionMode::Unauthenticated}>::new(false)
+                        Session::<{ SessionMode::Unauthenticated }>::new(false)
                     }
                 }
             } else {
-                Session::<{SessionMode::Unauthenticated}>::new(false)
+                Session::<{ SessionMode::Unauthenticated }>::new(false)
             };
             new_session.mark_dirty();
             trace!("New session id: {}", new_session.id());
@@ -463,24 +486,22 @@ impl<'r> FromRequest<'r> for SessionPtr<{ SessionMode::Authenticated }> {
                     .load_session(session_id.value().to_string())
                     .await;
                 match session_data {
-                    Ok(Some(session_data)) => {
-                        SessionPtr(Arc::new(RwLock::new(session_data)))
-                    }
+                    Ok(Some(session_data)) => SessionPtr(Arc::new(RwLock::new(session_data))),
                     Ok(None) => {
                         info!("Got an empty session");
-                        return Outcome::Failure((Status::Forbidden,TiberiusError::AccessDenied));
+                        return Outcome::Failure((Status::Forbidden, TiberiusError::AccessDenied));
                         //return Outcome::Forward(Redirect::temporary("/"));
                         //new_session(request)
-                    },
+                    }
                     Err(e) => {
                         warn!("error trying to get session: {}", e);
-                        return Outcome::Failure((Status::Forbidden,TiberiusError::AccessDenied));
+                        return Outcome::Failure((Status::Forbidden, TiberiusError::AccessDenied));
                         //return Outcome::Forward(Redirect::temporary("/"));
                         //new_session(request)
-                    },
+                    }
                 }
             } else {
-                return Outcome::Failure((Status::Forbidden,TiberiusError::AccessDenied));
+                return Outcome::Failure((Status::Forbidden, TiberiusError::AccessDenied));
             }
         };
         if let Some(cookie) = request.cookies().get("_philomena_key") {

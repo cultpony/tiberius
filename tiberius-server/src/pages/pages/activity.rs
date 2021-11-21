@@ -15,7 +15,7 @@ use tiberius_models::{Client, Image};
 #[get("/")]
 pub async fn index(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, {SessionMode::Unauthenticated}>,
+    rstate: TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let state = state.inner().clone();
     let mut client: Client = state.get_db_client().await?;

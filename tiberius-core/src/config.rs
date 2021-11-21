@@ -117,7 +117,10 @@ impl Configuration {
             None => None,
         }
     }
-    pub fn static_host<const T: SessionMode>(&self, rstate: &TiberiusRequestState<'_, T>) -> String {
+    pub fn static_host<const T: SessionMode>(
+        &self,
+        rstate: &TiberiusRequestState<'_, T>,
+    ) -> String {
         self.static_host.as_ref().cloned().unwrap_or(
             rstate
                 .headers

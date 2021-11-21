@@ -1,22 +1,21 @@
 /// This module exists as verification of the non-C module
 /// For testing, openssl is linked and the modules does a self-test
 /// This code is based on https://github.com/liamwhite/cookie_check and licensed under MIT
-
 /*
  * MIT License
- * 
+ *
  * Copyright (c) 2017 Liam P. White
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,8 +24,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
-
 extern crate base64;
 extern crate openssl;
 
@@ -93,7 +90,11 @@ pub fn determine<'a>(key: &KeyData<'a>, cookie: &[u8]) -> Result<bool, Box<dyn E
     Ok(determined)
 }
 
-pub fn determine_ip<'a>(key: &KeyData<'a>, cookie: &[u8], ip: &[u8]) -> Result<bool, Box<dyn Error>> {
+pub fn determine_ip<'a>(
+    key: &KeyData<'a>,
+    cookie: &[u8],
+    ip: &[u8],
+) -> Result<bool, Box<dyn Error>> {
     let decoded = decode_cookie(&cookie)?;
     let cek = unwrap_cek(&key, &decoded.1)?;
     let decrypted = decrypt_session(&cek, &decoded.0, &decoded.2, &decoded.3, &decoded.4)?;
