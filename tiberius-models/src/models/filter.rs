@@ -1,7 +1,7 @@
 use std::ops::DerefMut;
 
 use chrono::NaiveDateTime;
-use sqlx::{query_as, };
+use sqlx::query_as;
 
 use crate::{Client, PhilomenaModelError};
 

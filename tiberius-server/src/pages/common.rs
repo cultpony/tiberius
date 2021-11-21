@@ -3,6 +3,7 @@ use chrono::NaiveDateTime;
 use rocket::State;
 use tiberius_core::config::Configuration;
 use tiberius_core::error::TiberiusResult;
+use tiberius_core::session::SessionMode;
 use tiberius_core::state::{TiberiusRequestState, TiberiusState};
 use tracing::{error, warn};
 
@@ -11,9 +12,9 @@ pub mod flash;
 pub mod frontmatter;
 pub mod image;
 pub mod pagination;
+pub mod renderer;
 pub mod routes;
 pub mod streambox;
-pub mod renderer;
 
 pub enum APIMethod {
     Create,
@@ -75,11 +76,18 @@ pub enum ACLSubject {
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum ACLObject {
     Image,
+    APIKey,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum ACLActionImage {
     ChangeUploader,
+}
+
+pub enum ACLActionAPIKey {
+    ViewAll,
+    CreateDelete,
+    Admin,
 }
 
 pub trait ACLSubjectTrait {
@@ -88,17 +96,23 @@ pub trait ACLSubjectTrait {
 
 pub trait ACLObjectTrait {
     fn object(&self) -> String;
+    fn inner(&self) -> &ACLObject;
 }
 
 pub trait ACLActionTrait {
     fn action(&self) -> String;
+    fn action_of(&self, _: &ACLObject) -> bool;
 }
 
 impl ACLObjectTrait for ACLObject {
     fn object(&self) -> String {
         match self {
             ACLObject::Image => "image".to_string(),
+            ACLObject::APIKey => "api_key".to_string(),
         }
+    }
+    fn inner(&self) -> &ACLObject {
+        self
     }
 }
 
@@ -119,14 +133,31 @@ impl ACLActionTrait for ACLActionImage {
             ACLActionImage::ChangeUploader => "change_uploader".to_string(),
         }
     }
+    fn action_of(&self, a: &ACLObject) -> bool {
+        *a == ACLObject::Image
+    }
+}
+
+impl ACLActionTrait for ACLActionAPIKey {
+    fn action(&self) -> String {
+        match self {
+            ACLActionAPIKey::ViewAll => "view".to_string(),
+            ACLActionAPIKey::CreateDelete => "create_delete".to_string(),
+            ACLActionAPIKey::Admin => "admin".to_string(),
+        }
+    }
+    fn action_of(&self, a: &ACLObject) -> bool {
+        *a == ACLObject::APIKey
+    }
 }
 
 pub async fn verify_acl(
     state: &State<TiberiusState>,
-    rstate: &TiberiusRequestState<'_>,
+    rstate: &TiberiusRequestState<'_, {SessionMode::Authenticated}>,
     object: impl ACLObjectTrait,
     action: impl ACLActionTrait,
 ) -> TiberiusResult<bool> {
+    assert!(action.action_of(object.inner()));
     let casbin = state.get_casbin();
     let subject = rstate.user(state).await?;
     let subject = match subject {

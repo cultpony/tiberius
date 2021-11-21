@@ -1,6 +1,3 @@
-
-
-
 use chrono::NaiveDateTime;
 
 #[derive(sqlx::FromRow, Debug, Clone, serde::Deserialize, serde::Serialize)]

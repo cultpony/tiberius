@@ -1,4 +1,3 @@
-
 #[derive(Clone, Debug)]
 pub struct ImageTag {
     pub image_id: i64,

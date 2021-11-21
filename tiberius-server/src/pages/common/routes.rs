@@ -1,12 +1,16 @@
 use std::{path::PathBuf, str::FromStr};
 
 use either::Either;
+use rocket::{Request, State};
 use tiberius_core::error::TiberiusResult;
+use tiberius_core::session::SessionMode;
 use tiberius_core::state::{TiberiusRequestState, TiberiusState};
 use tiberius_models::{Channel, Client, Forum, Image, ImageThumbType, ImageThumbUrl, Tag, User};
-use rocket::{Request, State};
 
-pub async fn stylesheet_path(state: &TiberiusState, rstate: &TiberiusRequestState<'_>) -> TiberiusResult<String> {
+pub async fn stylesheet_path<const T: SessionMode>(
+    state: &TiberiusState,
+    rstate: &TiberiusRequestState<'_, T>,
+) -> TiberiusResult<String> {
     let user = rstate.user(state).await?;
     Ok(if let Some(user) = user {
         let mut path = PathBuf::from_str("css/")?;
@@ -29,7 +33,7 @@ pub async fn stylesheet_path(state: &TiberiusState, rstate: &TiberiusRequestStat
     })
 }
 
-pub fn dark_stylesheet_path(rstate: &TiberiusRequestState<'_>) -> TiberiusResult<String> {
+pub fn dark_stylesheet_path<const T: SessionMode>(rstate: &TiberiusRequestState<'_, T>) -> TiberiusResult<String> {
     Ok(static_path(PathBuf::from_str("css/dark.css")?)
         .to_string_lossy()
         .to_string())
@@ -67,9 +71,9 @@ pub fn image_url(img_id: Either<i64, &Image>) -> PathBuf {
 pub struct ShowHidden(pub bool);
 
 #[deprecated]
-pub async fn thumb_url(
+pub async fn thumb_url<const T: SessionMode>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_>,
+    rstate: &TiberiusRequestState<'_, {T}>,
     client: &mut Client,
     img: Either<i64, &Image>,
     thumb: ImageThumbType,
@@ -85,11 +89,15 @@ pub async fn thumb_url(
     let format = thumb_format_unnamed(image.image_format.map(|x| x.to_lowercase()), false);
     let name = thumb.to_string();
     //TODO: replace this!!!
-    Ok(PathBuf::from_str(&uri!(crate::pages::files::image_thumb_get_simple(
-        id = image.id as u64,
-        thumbtype = &name,
-        _filename = format!("{}.{}", &name, format)
-    )).to_string()).unwrap())
+    Ok(PathBuf::from_str(
+        &uri!(crate::pages::files::image_thumb_get_simple(
+            id = image.id as u64,
+            thumbtype = &name,
+            _filename = format!("{}.{}", &name, format)
+        ))
+        .to_string(),
+    )
+    .unwrap())
 }
 
 pub fn thumb_format_unnamed<S: Into<String>>(format: Option<S>, download: bool) -> String {
@@ -116,7 +124,13 @@ pub fn thumb_format<S: Into<String>, R: Into<String>>(
     }
 }
 
-pub async fn cdn_host(state: &TiberiusState, rstate: &TiberiusRequestState<'_>) -> String {
+pub async fn cdn_host<const T: SessionMode>(state: &TiberiusState, rstate: &TiberiusRequestState<'_, {T}>) -> String {
     let cdn_host = state.config.cdn_host.clone();
-    cdn_host.unwrap_or(rstate.headers.get_one("Host").unwrap_or("this site's domain").to_string())
+    cdn_host.unwrap_or(
+        rstate
+            .headers
+            .get_one("Host")
+            .unwrap_or("this site's domain")
+            .to_string(),
+    )
 }

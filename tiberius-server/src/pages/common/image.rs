@@ -2,7 +2,9 @@ use std::{borrow::Cow, path::PathBuf};
 
 use maud::{html, Markup, Render};
 use rocket::Request;
+use rocket::http::uri::Origin;
 use tiberius_core::error::TiberiusResult;
+use tiberius_core::session::SessionMode;
 use tiberius_core::state::{TiberiusRequestState, TiberiusState};
 use tiberius_models::{Client, Image, ImageThumbType, ImageThumbUrl, User};
 
@@ -89,7 +91,7 @@ pub async fn image_block_default_sort<
     S6: Into<String>,
 >(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_>,
+    rstate: &TiberiusRequestState<'_, {SessionMode::Unauthenticated}>,
     client: &mut Client,
     header: ImageBlockHeader,
     query: S,
@@ -125,7 +127,7 @@ pub async fn image_block<
     S6: Into<String>,
 >(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_>,
+    rstate: &TiberiusRequestState<'_, {SessionMode::Unauthenticated}>,
     client: &mut Client,
     header: ImageBlockHeader,
     query: S1,
@@ -275,14 +277,14 @@ pub async fn image_thumb_urls(image: &Image) -> TiberiusResult<ImageThumbUrl> {
     })
 }
 
-pub async fn show_vote_counts(state: &TiberiusState, rstate: &TiberiusRequestState<'_>) -> bool {
+pub async fn show_vote_counts(state: &TiberiusState, rstate: &TiberiusRequestState<'_, {SessionMode::Unauthenticated}>) -> bool {
     //TODO: read setting from site + user
     true
 }
 
 pub async fn uploader(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_>,
+    rstate: &TiberiusRequestState<'_, {SessionMode::Unauthenticated}>,
     image: &Image,
 ) -> TiberiusResult<Markup> {
     Ok(html! {
@@ -295,7 +297,7 @@ pub async fn uploader(
 
 pub async fn user_attribution(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_>,
+    rstate: &TiberiusRequestState<'_, {SessionMode::Unauthenticated}>,
     user: Option<&User>,
 ) -> TiberiusResult<Markup> {
     Ok(html! {
@@ -310,7 +312,7 @@ pub async fn user_attribution(
 
 pub async fn image_box<'a>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_>,
+    rstate: &TiberiusRequestState<'_, {SessionMode::Unauthenticated}>,
     client: &mut Client,
     image: Image,
     image_size: ImageSize,
@@ -362,7 +364,7 @@ pub async fn image_box<'a>(
 
 pub async fn image_container<'a>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_>,
+    rstate: &TiberiusRequestState<'_, {SessionMode::Unauthenticated}>,
     client: &mut Client,
     image: Image,
     image_size: ImageThumbType,
@@ -389,7 +391,7 @@ pub async fn image_container<'a>(
 impl RenderIntent {
     pub async fn from_image(
         state: &TiberiusState,
-        rstate: &TiberiusRequestState<'_>,
+        rstate: &TiberiusRequestState<'_, {SessionMode::Unauthenticated}>,
         client: &mut Client,
         image: Image,
         size: ImageThumbType,
@@ -471,11 +473,10 @@ impl RenderIntent {
                 webm,
             }
         } else {
-            let path: PathBuf =
-                thumb_url(state, rstate, client, either::Right(&image), size).await?;
+            let path: Origin = uri!(crate::pages::files::image_thumb_get_simple(image.id as u64, size.to_string(), format!("{}.webm", image.id)));
             RenderIntent::Video {
-                webm: path.to_string_lossy().to_string(),
-                mp4: path.to_string_lossy().replace(".webm", ".mp4"),
+                webm: path.to_string(),
+                mp4: path.map_path(|x| x.as_str().replace(".webm", ".mp4")).expect("invalid path in webm/mp4-pathgen").to_string(),
                 hover_text: alt,
             }
         })

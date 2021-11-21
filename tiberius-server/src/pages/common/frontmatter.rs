@@ -7,7 +7,7 @@ use std::{
 use tiberius_core::app::PageTitle;
 use tiberius_core::assets::{QuickTagTableContent, SiteConfig};
 use tiberius_core::error::TiberiusResult;
-use tiberius_core::session::{Session, SessionPtr};
+use tiberius_core::session::{Session, SessionMode, SessionPtr};
 use tiberius_core::state::{SiteNotices, TiberiusRequestState, TiberiusState};
 
 use crate::pages::common::image::image_thumb_urls;
@@ -25,7 +25,7 @@ use tiberius_models::{
 };
 use tracing::trace;
 
-pub fn viewport_meta_tags(rstate: &TiberiusRequestState<'_>) -> Markup {
+pub fn viewport_meta_tags<const T: SessionMode>(rstate: &TiberiusRequestState<'_, T>) -> Markup {
     let mobile_uas = ["Mobile", "webOS"];
     if let Some(value) = rstate
         .headers
@@ -40,8 +40,8 @@ pub fn viewport_meta_tags(rstate: &TiberiusRequestState<'_>) -> Markup {
     return html! { meta name="viewport" content="width=1024, initial-scale=1"; };
 }
 
-pub async fn csrf_meta_tag(rstate: &TiberiusRequestState<'_>) -> Markup {
-    let session: &SessionPtr = &rstate.session;
+pub async fn csrf_meta_tag<const T: SessionMode>(rstate: &TiberiusRequestState<'_, T>) -> Markup {
+    let session: &SessionPtr<T> = &rstate.session;
     let csrf = session.read().await.csrf_token();
     html! {
         meta content=(csrf) csrf-param="_csrf_token" method-param="_method" name="csrf-token";
@@ -266,10 +266,10 @@ pub fn quick_tag_table(state: &TiberiusState) -> Markup {
     }
 }
 
-pub async fn header(
+pub async fn header<const T: SessionMode>(
     site_config: &SiteConfig,
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_>,
+    rstate: &TiberiusRequestState<'_, T>,
 ) -> TiberiusResult<Markup> {
     let notifications = rstate.notifications().await?;
     let mut client = state.get_db_client().await?;
@@ -460,9 +460,9 @@ pub fn header_staff_links() -> Markup {
     }
 }
 
-pub async fn flash_warnings(
+pub async fn flash_warnings<const T: SessionMode>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_>,
+    rstate: &TiberiusRequestState<'_, { T }>,
 ) -> TiberiusResult<Markup> {
     let site_notices: Option<SiteNotices> = state.site_notices();
     let site_notices = site_notices.unwrap_or_default();
@@ -511,13 +511,13 @@ pub async fn flash_warnings(
     })
 }
 
-pub async fn layout_class(req: &TiberiusRequestState<'_>) -> String {
+pub async fn layout_class<const T: SessionMode>(req: &TiberiusRequestState<'_, { T }>) -> String {
     req.layout_class().await.to_string()
 }
 
-pub async fn footer(
+pub async fn footer<const T: SessionMode>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_>,
+    rstate: &TiberiusRequestState<'_, { T }>,
 ) -> TiberiusResult<Markup> {
     let end_time = rstate.started_at;
     let time = end_time.elapsed();
@@ -550,9 +550,9 @@ pub async fn footer(
     })
 }
 
-pub async fn ignored_tag_list<'a>(
+pub async fn ignored_tag_list<'a, const T: SessionMode>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_>,
+    rstate: &TiberiusRequestState<'_, T>,
 ) -> TiberiusResult<Vec<i32>> {
     let filter = rstate.filter(state).await?;
     return Ok(filter.hidden_tag_ids);
@@ -566,9 +566,9 @@ macro_rules! insert_csd {
     };
 }
 
-pub async fn image_clientside_data<'a>(
+pub async fn image_clientside_data<'a, const T: SessionMode>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_>,
+    rstate: &TiberiusRequestState<'_, T>,
     image: &Image,
     inner: Markup,
 ) -> TiberiusResult<Markup> {
@@ -600,9 +600,9 @@ pub async fn image_clientside_data<'a>(
     Ok(csd_to_markup("image-show-container", data, inner).await?)
 }
 
-pub async fn clientside_data<'a>(
+pub async fn clientside_data<'a, const T: SessionMode>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_>,
+    rstate: &TiberiusRequestState<'_, T>,
 ) -> TiberiusResult<Markup> {
     let extra = rstate.csd_extra().await?;
     let interactions = rstate.interactions().await?;
@@ -704,9 +704,9 @@ async fn csd_to_markup<S: std::fmt::Display>(
     Ok(PreEscaped(data))
 }
 
-pub async fn container_class(
+pub async fn container_class<const T: SessionMode>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_>,
+    rstate: &TiberiusRequestState<'_, T>,
 ) -> TiberiusResult<String> {
     if let Some(user) = rstate.user(state).await? {
         if user.use_centered_layout {
@@ -716,9 +716,9 @@ pub async fn container_class(
     Ok("".to_string())
 }
 
-pub async fn app(
+pub async fn app<const T: SessionMode>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_>,
+    rstate: &TiberiusRequestState<'_, T>,
     page_title: Option<PageTitle>,
     client: &mut Client,
     body: Markup,

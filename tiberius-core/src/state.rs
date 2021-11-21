@@ -21,8 +21,8 @@ use crate::config::Configuration;
 use crate::error::{TiberiusError, TiberiusResult};
 use crate::footer::FooterData;
 use crate::request_helper::DbRef;
-use crate::session::{Session, SessionPtr};
 use crate::LayoutClass;
+use crate::session::{SessionMode, SessionPtr};
 
 #[derive(Clone)]
 pub struct TiberiusState {
@@ -67,24 +67,40 @@ impl TiberiusState {
     }
 }
 
-pub struct TiberiusRequestState<'a> {
+pub struct TiberiusRequestState<'a, const T: SessionMode> {
     pub cookie_jar: &'a CookieJar<'a>,
     pub headers: &'a HeaderMap<'a>,
     pub uri: &'a rocket::http::uri::Origin<'a>,
-    pub session: SessionPtr,
+    pub session: SessionPtr<T>,
     pub flash: Option<Flash>,
     pub started_at: Instant,
 }
 
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for TiberiusRequestState<'r> {
+impl<'r> FromRequest<'r> for TiberiusRequestState<'r, {SessionMode::Authenticated}> {
     type Error = Infallible;
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         Outcome::Success(Self {
             cookie_jar: request.cookies(),
             headers: request.headers(),
             uri: request.uri(),
-            session: request.guard::<SessionPtr>().await.succeeded().unwrap(),
+            session: request.guard::<SessionPtr<{SessionMode::Authenticated}>>().await.succeeded().unwrap(),
+            flash: Flash::from_flashm(request.guard::<FlashMessage>().await.succeeded()),
+            started_at: Instant::now(),
+        })
+    }
+}
+
+//todo: make this an anonymous session if no auth is needed
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for TiberiusRequestState<'r, {SessionMode::Unauthenticated}> {
+    type Error = Infallible;
+    async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+        Outcome::Success(Self {
+            cookie_jar: request.cookies(),
+            headers: request.headers(),
+            uri: request.uri(),
+            session: request.guard::<SessionPtr<{SessionMode::Unauthenticated}>>().await.succeeded().unwrap(),
             flash: Flash::from_flashm(request.guard::<FlashMessage>().await.succeeded()),
             started_at: Instant::now(),
         })
@@ -197,7 +213,10 @@ impl<'a> StateRequestExt for Request<'a> {
     }
 }
 
-impl<'a> TiberiusRequestState<'a> {
+impl<'a, const T: SessionMode> TiberiusRequestState<'a, T> {
+    pub async fn flash(&self) -> Option<Flash> {
+        self.flash.clone()
+    }
     pub async fn theme_name(&self, state: &TiberiusState) -> TiberiusResult<String> {
         let user = self.user(state).await?;
         Ok(if let Some(user) = user {
@@ -206,12 +225,6 @@ impl<'a> TiberiusRequestState<'a> {
             "default".to_string()
         })
     }
-    pub async fn flash(&self) -> Option<Flash> {
-        self.flash.clone()
-    }
-}
-
-impl<'a> TiberiusRequestState<'a> {
     pub async fn user(&self, state: &TiberiusState) -> TiberiusResult<Option<User>> {
         Ok(self
             .session
@@ -230,6 +243,9 @@ impl<'a> TiberiusRequestState<'a> {
         }
         Ok(Filter::default_filter(&mut client).await?)
     }
+}
+
+impl<'a, const T: SessionMode> TiberiusRequestState<'a, T> {
     pub async fn search_query(&self) -> TiberiusResult<String> {
         Ok("".to_string()) // TODO: recover search query
     }

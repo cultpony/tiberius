@@ -1,6 +1,5 @@
-
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use tiberius_search::parse;
-use criterion::{criterion_group, criterion_main, Criterion, Throughput,BenchmarkId};
 
 criterion_group!(benches, bench_query_sampler);
 criterion_main!(benches);
@@ -29,9 +28,7 @@ fn bench_query_sampler(b: &mut Criterion) {
     for (id, query) in input.into_iter().enumerate() {
         group.throughput(Throughput::Elements(query.len() as u64));
         group.bench_with_input(BenchmarkId::from_parameter(id), query, |b, query| {
-            b.iter(|| {
-                parse(query.to_string())
-            })
+            b.iter(|| parse(query.to_string()))
         });
     }
     group.finish();

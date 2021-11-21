@@ -8,13 +8,14 @@ use maud::{html, Markup, PreEscaped};
 use rocket::{Request, State};
 use tiberius_core::error::TiberiusResult;
 use tiberius_core::request_helper::{HtmlResponse, TiberiusResponse};
+use tiberius_core::session::SessionMode;
 use tiberius_core::state::{TiberiusRequestState, TiberiusState};
 use tiberius_models::{Client, Image};
 
 #[get("/")]
 pub async fn index(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_>,
+    rstate: TiberiusRequestState<'_, {SessionMode::Unauthenticated}>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let state = state.inner().clone();
     let mut client: Client = state.get_db_client().await?;

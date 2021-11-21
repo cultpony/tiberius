@@ -90,6 +90,9 @@ impl User {
     pub fn id(&self) -> i64 {
         self.id as i64
     }
+    pub fn displayname(&self) -> &str {
+        &self.name
+    }
     pub async fn badge_awards(
         &self,
         _client: &mut Client,

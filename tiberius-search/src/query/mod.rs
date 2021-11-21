@@ -428,7 +428,10 @@ impl Query {
             Query::Tag { n, v } => {
                 assert!(n.is_none(), "Namespaced tags not supported yet");
                 Box::new(TermQuery::new(
-                    tantivy::Term::from_field_text(schema.get_field("tag").expect("non-existent tag field"), &v),
+                    tantivy::Term::from_field_text(
+                        schema.get_field("tag").expect("non-existent tag field"),
+                        &v,
+                    ),
                     tantivy::schema::IndexRecordOption::Basic,
                 ))
             }
@@ -707,17 +710,38 @@ mod test {
     #[cfg(feature = "search-with-tantivy")]
     #[test]
     fn test_attrcomp_query_tantivy() -> anyhow::Result<()> {
-        use std::time::{SystemTime, UNIX_EPOCH, Duration};
+        use std::time::{Duration, SystemTime, UNIX_EPOCH};
         let query = "width.gte:1024,aspect_ratio.lte:2.0,created.lte:3 days ago";
-        let predate = SystemTime::now().duration_since(UNIX_EPOCH).expect("couldn't compute datetime");
+        let predate = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("couldn't compute datetime");
         let fs = crate::tokenizer::parse(query);
-        let date = SystemTime::now().duration_since(UNIX_EPOCH).expect("couldn't compute datetime");
-        assert_eq!(predate.as_secs(), date.as_secs(), "Must compute within 1 second");
+        let date = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("couldn't compute datetime");
+        assert_eq!(
+            predate.as_secs(),
+            date.as_secs(),
+            "Must compute within 1 second"
+        );
         let date = date - Duration::from_secs(3 * 24 * 60 * 60); // subtract 3 days
         let mut date = date.as_secs().to_be_bytes();
         date[0] = 128;
-        let date_nom = format!("{}, {}, {}, {}, {}, {}, {}, {}", date[0], date[1], date[2], date[3], date[4], date[5], date[6], date[7]);
-        let date_alt = format!("{}, {}, {}, {}, {}, {}, {}, {}", date[0], date[1], date[2], date[3], date[4], date[5], date[6], date[7] + 1);
+        let date_nom = format!(
+            "{}, {}, {}, {}, {}, {}, {}, {}",
+            date[0], date[1], date[2], date[3], date[4], date[5], date[6], date[7]
+        );
+        let date_alt = format!(
+            "{}, {}, {}, {}, {}, {}, {}, {}",
+            date[0],
+            date[1],
+            date[2],
+            date[3],
+            date[4],
+            date[5],
+            date[6],
+            date[7] + 1
+        );
         let date = date_nom;
         let exp1 = r#"BooleanQuery { subqueries: [(Must, BooleanQuery { subqueries: [(Must, RangeQuery { field: Field(0), value_type: I64, left_bound: Unbounded, right_bound: Included([128, 0, 0, 0, 0, 0, 4, 0]) }), (Must, RangeQuery { field: Field(1), value_type: F64, left_bound: Included([192, 0, 0, 0, 0, 0, 0, 0]), right_bound: Unbounded })] }), (Must, RangeQuery { field: Field(2), value_type: Date, left_bound: Unbounded, right_bound: Included(["#;
         let exp2 = r#"]) })] }"#;

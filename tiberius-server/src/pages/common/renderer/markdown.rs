@@ -1,5 +1,5 @@
-use pulldown_cmark::{Parser, Options, html};
 use ammonia::Builder;
+use pulldown_cmark::{html, Options, Parser};
 
 use crate::pages::common::renderer::markdown_extensions;
 
@@ -50,18 +50,33 @@ mod test {
 
     #[test]
     pub fn test_philo_specifics_spoiler() {
-        assert_eq!(r#"<p><span class="spoiler">spoilerino</span></p>"#, render_markdown("[spoiler]spoilerino[/spoiler]"));
+        assert_eq!(
+            r#"<p><span class="spoiler">spoilerino</span></p>"#,
+            render_markdown("[spoiler]spoilerino[/spoiler]")
+        );
     }
 
     #[test]
     pub fn test_philo_specifics_image_embed() {
-        assert_eq!(r#"<p><img src="/img/embed/1/" alt=""></p>"#, render_markdown(">>1"));
+        assert_eq!(
+            r#"<p><img src="/img/embed/1/" alt=""></p>"#,
+            render_markdown(">>1")
+        );
     }
 
     #[test]
     pub fn test_philo_specifics_image_embed_thumbnails() {
-        assert_eq!(r#"<p><img src="/img/embed/1/t" alt=""></p>"#, render_markdown(">>1t"));
-        assert_eq!(r#"<p><img src="/img/embed/1/p" alt=""></p>"#, render_markdown(">>1p"));
-        assert_eq!(r#"<p><img src="/img/embed/1/s" alt=""></p>"#, render_markdown(">>1s"));
+        assert_eq!(
+            r#"<p><img src="/img/embed/1/t" alt=""></p>"#,
+            render_markdown(">>1t")
+        );
+        assert_eq!(
+            r#"<p><img src="/img/embed/1/p" alt=""></p>"#,
+            render_markdown(">>1p")
+        );
+        assert_eq!(
+            r#"<p><img src="/img/embed/1/s" alt=""></p>"#,
+            render_markdown(">>1s")
+        );
     }
 }
