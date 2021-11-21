@@ -59,11 +59,8 @@ pub enum PhilomenaModelError {
         id: String,
     },
     #[error("Could not convert: {}", .0)]
-    TryFromIntError(#[from] std::num::TryFromIntError)
+    TryFromIntError(#[from] std::num::TryFromIntError),
 }
-
-#[derive(Clone)]
-pub struct ApiKey(Option<String>);
 
 #[derive(Clone)]
 pub struct Client {
@@ -230,20 +227,6 @@ impl<'c> sqlx::Executor<'c> for &mut Client {
         'c: 'e,
     {
         self.db.describe(sql)
-    }
-}
-
-impl ApiKey {
-    pub fn new(key: Option<String>) -> Self {
-        Self(key)
-    }
-    pub fn modify_url(&self, url: &mut reqwest::Url) {
-        match &self.0 {
-            Some(v) => {
-                url.query_pairs_mut().append_pair("key", &**v);
-            }
-            None => (),
-        }
     }
 }
 

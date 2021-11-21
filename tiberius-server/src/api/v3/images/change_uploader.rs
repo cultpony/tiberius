@@ -4,6 +4,7 @@ use rocket::State;
 use tiberius_core::app::PageTitle;
 use tiberius_core::error::{TiberiusError, TiberiusResult};
 use tiberius_core::request_helper::{HtmlResponse, JsonResponse, TiberiusResponse};
+use tiberius_core::session::SessionMode;
 use tiberius_core::state::{TiberiusRequestState, TiberiusState};
 use tiberius_models::{Image, User};
 
@@ -18,10 +19,10 @@ pub struct ChangeUploader {
 #[get("/api/v3/images/<image>/change_uploader")]
 pub async fn change_image_uploader_user(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_>,
+    rstate: TiberiusRequestState<'_, {SessionMode::Authenticated}>,
     image: u64,
 ) -> TiberiusResult<TiberiusResponse<()>> {
-    let body = html!{
+    let body = html! {
         form action=(rocket::uri!(change_image_uploader(image = image)).to_string()) method="POST" {
             label for="old_uploader" { "Old Uploader" }
             input type="text" name="old_uploader" id="old_uploader" placeholder="old_uploader" {}
@@ -48,7 +49,7 @@ pub async fn change_image_uploader_user(
 #[post("/api/v3/images/<image>/change_uploader", data = "<change_uploader>")]
 pub async fn change_image_uploader(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_>,
+    rstate: TiberiusRequestState<'_, {SessionMode::Authenticated}>,
     image: u64,
     change_uploader: Form<ChangeUploader>,
 ) -> TiberiusResult<JsonResponse> {

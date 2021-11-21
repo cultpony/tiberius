@@ -8,15 +8,15 @@
 #[macro_use]
 extern crate tracing;
 
-#[cfg(feature="job_cleanup_sessions")]
+#[cfg(feature = "job_cleanup_sessions")]
 pub mod cleanup_sessions;
-#[cfg(feature="job_picarto_tv")]
+#[cfg(feature = "job_picarto_tv")]
 pub mod picarto_tv;
-#[cfg(feature="job_process_image")]
+#[cfg(feature = "job_process_image")]
 pub mod process_image;
-#[cfg(feature="job_reindex_images")]
+#[cfg(feature = "job_reindex_images")]
 pub mod reindex_images;
-#[cfg(feature="job_reindex_tags")]
+#[cfg(feature = "job_reindex_tags")]
 pub mod reindex_tags;
 
 use std::error::Error;
@@ -38,15 +38,15 @@ pub struct SharedCtx {
 
 pub fn registry() -> TiberiusResult<JobRegistry> {
     Ok(JobRegistry::new(&[
-        #[cfg(feature="job_picarto_tv")]
+        #[cfg(feature = "job_picarto_tv")]
         picarto_tv::run_job,
-        #[cfg(feature="job_cleanup_sessions")]
+        #[cfg(feature = "job_cleanup_sessions")]
         cleanup_sessions::run_job,
-        #[cfg(feature="job_reindex_images")]
+        #[cfg(feature = "job_reindex_images")]
         reindex_images::run_job,
-        #[cfg(feature="job_reindex_tags")]
+        #[cfg(feature = "job_reindex_tags")]
         reindex_tags::run_job,
-        #[cfg(feature="job_process_image")]
+        #[cfg(feature = "job_process_image")]
         process_image::run_job,
     ]))
 }
@@ -72,7 +72,7 @@ pub fn job_err_handler(name: &str, err: Box<dyn Error + Send + 'static>) {
 pub async fn scheduler(db: DBPool, config: Configuration) -> ! {
     let mut sched = JobScheduler::new();
 
-    #[cfg(feature="job_picarto_tv")]
+    #[cfg(feature = "job_picarto_tv")]
     {
         let db = db.clone();
         sched
@@ -93,7 +93,7 @@ pub async fn scheduler(db: DBPool, config: Configuration) -> ! {
             )
             .expect("could not add job to scheduler");
     }
-    #[cfg(feature="job_cleanup_sessions")]
+    #[cfg(feature = "job_cleanup_sessions")]
     {
         let db = db.clone();
         sched
@@ -110,7 +110,7 @@ pub async fn scheduler(db: DBPool, config: Configuration) -> ! {
             )
             .expect("could not add job to scheduler");
     }
-    #[cfg(feature="job_reindex_images")]
+    #[cfg(feature = "job_reindex_images")]
     {
         let db = db.clone();
         sched
@@ -136,7 +136,7 @@ pub async fn scheduler(db: DBPool, config: Configuration) -> ! {
             )
             .expect("could not add job to scheduler");
     }
-    #[cfg(feature="job_reindex_tags")]
+    #[cfg(feature = "job_reindex_tags")]
     {
         let db = db.clone();
         sched

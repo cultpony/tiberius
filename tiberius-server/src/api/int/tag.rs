@@ -1,7 +1,8 @@
+use rocket::{serde::json::Json, State};
 use tiberius_core::error::TiberiusResult;
+use tiberius_core::session::SessionMode;
 use tiberius_core::state::{TiberiusRequestState, TiberiusState};
 use tiberius_models::{Client, Tag};
-use rocket::{State, serde::json::Json};
 
 #[derive(serde::Deserialize)]
 pub struct TagFetchQuery {
@@ -20,7 +21,11 @@ pub struct ApiResponse {
 }
 
 #[get("/tags/fetch?<ids>")]
-pub async fn fetch(state: &State<TiberiusState>, rstate: TiberiusRequestState<'_>, ids: Vec<i64>) -> TiberiusResult<Json<ApiResponse>> {
+pub async fn fetch(
+    state: &State<TiberiusState>,
+    rstate: TiberiusRequestState<'_, {SessionMode::Unauthenticated}>,
+    ids: Vec<i64>,
+) -> TiberiusResult<Json<ApiResponse>> {
     let mut client = state.get_db_client().await?;
     let site_config = state.site_config();
     let tags = Tag::get_many(&mut client, ids).await?;

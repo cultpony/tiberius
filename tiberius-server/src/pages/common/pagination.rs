@@ -4,7 +4,6 @@ use maud::{html, Markup};
 use rocket::Request;
 use tiberius_core::error::TiberiusResult;
 
-
 const SURROUNDING_PAGES: u64 = 3;
 
 pub struct PaginationCtl {
@@ -63,7 +62,8 @@ impl PaginationCtl {
         self.current_page.saturating_sub(SURROUNDING_PAGES) > 3
     }
     fn left_page_numbers(&self) -> Range<u64> {
-        self.current_page.saturating_sub(SURROUNDING_PAGES).max(1)..(self.current_page.saturating_sub(1)).max(1)
+        self.current_page.saturating_sub(SURROUNDING_PAGES).max(1)
+            ..(self.current_page.saturating_sub(1)).max(1)
     }
     fn right_gap(&self) -> bool {
         self.current_page.saturating_add(SURROUNDING_PAGES) < self.pages

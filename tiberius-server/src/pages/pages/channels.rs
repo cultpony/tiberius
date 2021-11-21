@@ -1,13 +1,27 @@
 use std::fmt;
 
 use maud::{html, Markup};
+use rocket::uri;
+use rocket::{
+    form::Form,
+    http::{
+        uri::{
+            fmt::FromUriParam,
+            fmt::{Formatter, Query, UriDisplay},
+        },
+        Cookie, CookieJar, Status,
+    },
+    response::Redirect,
+    State,
+};
 use tiberius_core::app::PageTitle;
 use tiberius_core::error::TiberiusResult;
-use tiberius_core::request_helper::{ApiFormDataEmpty, FormMethod, HtmlResponse, RedirectResponse, TiberiusResponse};
+use tiberius_core::request_helper::{
+    ApiFormDataEmpty, FormMethod, HtmlResponse, RedirectResponse, TiberiusResponse,
+};
+use tiberius_core::session::SessionMode;
 use tiberius_core::state::{Flash, TiberiusRequestState, TiberiusState};
 use tiberius_models::{Channel, Client, Image};
-use rocket::{State, form::Form, http::{Cookie, CookieJar, Status, uri::{fmt::FromUriParam, fmt::{Formatter, Query, UriDisplay}}}, response::Redirect};
-use rocket::uri;
 
 use crate::pages::common::channels::channel_box;
 use crate::pages::common::pagination::PaginationCtl;
@@ -34,33 +48,36 @@ impl<'a, 'b> FromUriParam<Query, Option<&'a str>> for ChannelQuery {
 
     fn from_uri_param(cq: Option<&'a str>) -> ChannelQuery {
         ChannelQuery {
-            cq: cq.map(|x| x.to_string())
+            cq: cq.map(|x| x.to_string()),
         }
     }
 }
 
-#[post("/channels/nsfw", data="<fd>")]
-pub async fn set_nsfw(rstate: TiberiusRequestState<'_>, fd: Form<ApiFormDataEmpty>) -> TiberiusResult<TiberiusResponse<()>> {
+#[post("/channels/nsfw", data = "<fd>")]
+pub async fn set_nsfw(
+    rstate: TiberiusRequestState<'_, {SessionMode::Unauthenticated}>,
+    fd: Form<ApiFormDataEmpty>,
+) -> TiberiusResult<TiberiusResponse<()>> {
     let fd = fd.into_afd();
     match fd.method() {
         Some(FormMethod::Create) => {
             rstate.cookie_jar.add(Cookie::new("chan_nsfw", "true"));
-            Ok(TiberiusResponse::Redirect(RedirectResponse{
+            Ok(TiberiusResponse::Redirect(RedirectResponse {
                 redirect: Flash::alert("NSFW Channels are now visible")
-                    .into_resp(Redirect::to(uri!(list_channels(cq = None))))
+                    .into_resp(Redirect::to(uri!(list_channels(cq = None)))),
             }))
-        },
+        }
         Some(FormMethod::Delete) => {
             rstate.cookie_jar.add(Cookie::new("chan_nsfw", "false"));
-            Ok(TiberiusResponse::Redirect(RedirectResponse{
+            Ok(TiberiusResponse::Redirect(RedirectResponse {
                 redirect: Flash::alert("NSFW Channels are now no longer visible")
-                    .into_resp(Redirect::to(uri!(list_channels(cq = None))))
+                    .into_resp(Redirect::to(uri!(list_channels(cq = None)))),
             }))
-        },
-        _ => Ok(TiberiusResponse::Redirect(RedirectResponse{
+        }
+        _ => Ok(TiberiusResponse::Redirect(RedirectResponse {
             redirect: Flash::alert("Bad Request, is your browser up-to-date?")
-                .into_resp(Redirect::to(uri!(list_channels(cq = None))))
-        }))
+                .into_resp(Redirect::to(uri!(list_channels(cq = None)))),
+        })),
     }
 }
 
@@ -70,10 +87,12 @@ pub async fn read() -> rocket::response::Redirect {
 }
 
 #[get("/channels?<cq>")]
-pub async fn list_channels(state: &State<TiberiusState>, rstate: TiberiusRequestState<'_>, cq: Option<ChannelQuery>) -> TiberiusResult<TiberiusResponse<()>> {
-    let cq = cq.unwrap_or(ChannelQuery{
-        cq: None,
-    });
+pub async fn list_channels(
+    state: &State<TiberiusState>,
+    rstate: TiberiusRequestState<'_, {SessionMode::Unauthenticated}>,
+    cq: Option<ChannelQuery>,
+) -> TiberiusResult<TiberiusResponse<()>> {
+    let cq = cq.unwrap_or(ChannelQuery { cq: None });
     let mut client = state.get_db_client().await?;
     let channels = Channel::get_all_channels::<String>(&mut client, None).await?;
     //TODO: honor NSFW channel setting
@@ -138,8 +157,16 @@ pub async fn list_channels(state: &State<TiberiusState>, rstate: TiberiusRequest
             "A: Send a private message to a site administrator with a link to the stream and the artist tag if applicable."
         }
     };
-    let app = crate::pages::common::frontmatter::app(state, &rstate, Some(PageTitle::from("Livestreams")), &mut client, body, None).await?;
-    Ok(TiberiusResponse::Html(HtmlResponse{
+    let app = crate::pages::common::frontmatter::app(
+        state,
+        &rstate,
+        Some(PageTitle::from("Livestreams")),
+        &mut client,
+        body,
+        None,
+    )
+    .await?;
+    Ok(TiberiusResponse::Html(HtmlResponse {
         content: app.into_string(),
     }))
 }

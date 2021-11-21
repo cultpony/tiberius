@@ -469,7 +469,7 @@ impl Image {
     }
     #[cfg(test)]
     pub async fn new_test_image(client: &mut Client) -> Result<Self, PhilomenaModelError> {
-        let image = Image{
+        let image = Image {
             id: 0x5EADBEEFi32,
             image: Some("./res/test-assets/test-image.png".to_string()),
             image_name: Some("test-image.png".to_string()),

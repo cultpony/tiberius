@@ -3,6 +3,8 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
 #![allow(unreachable_code)]
+#![feature(adt_const_params)]
+#![feature(let_chains)]
 
 #[cfg(all(feature = "stable-release", feature = "full-release"))]
 compile_error!("Cannot enable \"stable-release\" and \"full-release\" features at the same time");

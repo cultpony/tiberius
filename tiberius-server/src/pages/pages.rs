@@ -2,6 +2,7 @@ use maud::{html, Markup, PreEscaped};
 use tiberius_core::error::{TiberiusError, TiberiusResult};
 
 pub mod activity;
+pub mod apikeys;
 pub mod blog;
 pub mod channels;
 pub mod errors;

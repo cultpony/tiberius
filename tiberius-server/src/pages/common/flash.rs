@@ -2,12 +2,13 @@ use rocket::response::Responder;
 use rocket::{http::private::cookie::CookieBuilder, State};
 use tiberius_core::config::Configuration;
 use tiberius_core::error::TiberiusResult;
+use tiberius_core::session::SessionMode;
 use tiberius_core::state::{Flash, TiberiusRequestState, TiberiusState};
 use tracing::trace;
 
-pub async fn get_flash(
+pub async fn get_flash<const T: SessionMode>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_>,
+    rstate: &TiberiusRequestState<'_, T>,
 ) -> TiberiusResult<Vec<Flash>> {
     trace!("loading flash notices from session");
     let config: &Configuration = &state.config;
@@ -26,9 +27,9 @@ pub async fn get_flash(
     Ok(flashlist)
 }
 
-pub async fn put_flash(
+pub async fn put_flash<const T: SessionMode>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_>,
+    rstate: &TiberiusRequestState<'_, T>,
     f: Flash,
 ) -> TiberiusResult<()> {
     trace!("putting flash into session");

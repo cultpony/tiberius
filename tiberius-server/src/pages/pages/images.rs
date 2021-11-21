@@ -10,6 +10,7 @@ use sha2::Digest;
 use tiberius_core::app::PageTitle;
 use tiberius_core::error::TiberiusResult;
 use tiberius_core::request_helper::{HtmlResponse, RedirectResponse, TiberiusResponse};
+use tiberius_core::session::SessionMode;
 use tiberius_core::state::{Flash, TiberiusRequestState, TiberiusState};
 use tiberius_models::Image;
 use tokio::task::spawn_blocking;
@@ -20,7 +21,6 @@ use crate::pages::common::human_date;
 use crate::pages::common::image::{image_thumb_urls, show_vote_counts};
 use crate::MAX_IMAGE_DIMENSION;
 
-
 #[get("/embed/<image>/<flag>")]
 pub async fn embed_image(flag: Option<&str>, image: u64) -> TiberiusResult<()> {
     todo!()
@@ -29,7 +29,7 @@ pub async fn embed_image(flag: Option<&str>, image: u64) -> TiberiusResult<()> {
 #[get("/<image>")]
 pub async fn show_image(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_>,
+    rstate: TiberiusRequestState<'_, {SessionMode::Unauthenticated}>,
     image: u64,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let mut client = state.get_db_client().await?;
@@ -280,7 +280,7 @@ pub async fn upload_image(
 #[get("/images/new")]
 pub async fn upload_image(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_>,
+    rstate: TiberiusRequestState<'_, {SessionMode::Authenticated}>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let mut client = state.get_db_client().await?;
     let user = rstate.session.read().await.get_user(&mut client).await?;
@@ -404,7 +404,7 @@ pub async fn upload_image(
     };
     let app = crate::pages::common::frontmatter::app(
         state,
-        &rstate,
+        &rstate.into(),
         Some(PageTitle::from("Image")),
         &mut client,
         body,

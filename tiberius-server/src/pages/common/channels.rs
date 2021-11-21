@@ -1,4 +1,4 @@
-use crate::{pages::common::pluralize};
+use crate::pages::common::pluralize;
 use maud::{html, Markup};
 use tiberius_core::error::TiberiusResult;
 use tiberius_models::{Channel, Client};

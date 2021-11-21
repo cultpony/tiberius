@@ -2,6 +2,7 @@ use std::{path::PathBuf, str::FromStr};
 
 use reqwest::header::HOST;
 
+use crate::session::SessionMode;
 use crate::state::TiberiusRequestState;
 use crate::{app::DBPool, error::TiberiusResult};
 
@@ -116,7 +117,7 @@ impl Configuration {
             None => None,
         }
     }
-    pub fn static_host(&self, rstate: &TiberiusRequestState<'_>) -> String {
+    pub fn static_host<const T: SessionMode>(&self, rstate: &TiberiusRequestState<'_, T>) -> String {
         self.static_host.as_ref().cloned().unwrap_or(
             rstate
                 .headers
