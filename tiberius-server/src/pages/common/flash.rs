@@ -6,7 +6,7 @@ use tiberius_core::session::SessionMode;
 use tiberius_core::state::{Flash, TiberiusRequestState, TiberiusState};
 use tracing::trace;
 
-pub async fn get_flash<const T: SessionMode>(
+pub async fn get_flash<T: SessionMode>(
     state: &TiberiusState,
     rstate: &TiberiusRequestState<'_, T>,
 ) -> TiberiusResult<Vec<Flash>> {
@@ -27,7 +27,7 @@ pub async fn get_flash<const T: SessionMode>(
     Ok(flashlist)
 }
 
-pub async fn put_flash<const T: SessionMode>(
+pub async fn put_flash<T: SessionMode>(
     state: &TiberiusState,
     rstate: &TiberiusRequestState<'_, T>,
     f: Flash,

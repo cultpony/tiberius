@@ -2,7 +2,7 @@ use maud::{html, Markup, PreEscaped};
 use rocket::{form::Form, response::Redirect, State};
 use tiberius_core::error::TiberiusResult;
 use tiberius_core::request_helper::{HtmlResponse, RedirectResponse, TiberiusResponse};
-use tiberius_core::session::SessionMode;
+use tiberius_core::session::{Authenticated, SessionMode, Unauthenticated};
 use tiberius_core::state::{Flash, TiberiusRequestState, TiberiusState};
 use tiberius_models::{Client, User};
 
@@ -11,7 +11,7 @@ use crate::pages::common::flash::put_flash;
 #[get("/sessions/login")]
 pub async fn new_session(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
+    rstate: TiberiusRequestState<'_, Unauthenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let state = state.inner().clone();
     let mut client: Client = state.get_db_client().await?;
@@ -59,6 +59,48 @@ pub async fn new_session(
     }))
 }
 
+#[get("/v3/sessions/login")]
+pub async fn alt_url_new_session(
+    state: &State<TiberiusState>,
+    rstate: TiberiusRequestState<'_, Unauthenticated>,
+) -> TiberiusResult<TiberiusResponse<()>> {
+    let state = state.inner().clone();
+    let mut client: Client = state.get_db_client().await?;
+    let body = html! {
+        h1 { "Sign in" }
+        h3 { b { "Alternative login page: Ensure you have the v3-Deployment Key setup in your browser"} }
+
+        form action=(uri!(alt_url_new_session_post)) method="POST" {
+
+            .field {
+                input.input #user_email name="email" type="email" required="true" placeholder="Email" autofocus="true" pattern=".*@.*";
+            }
+
+            .field {
+                input.input #user_password name="password" type="password" required="true" placeholder="Password";
+            }
+
+            .actions {
+                button.button type="submit" { "Sign in" }
+            }
+        }
+
+        p {
+            strong {
+                "Haven't read the "
+                a href="/pages/rules" { "site rules" }
+                " lately? Make sure you read them before posting or editing metadata!"
+            }
+        }
+    };
+    let page: PreEscaped<String> = html! {
+        (crate::pages::common::frontmatter::app(&state, &rstate, None, &mut client, body, None).await?);
+    };
+    Ok(TiberiusResponse::Html(HtmlResponse {
+        content: page.into_string(),
+    }))
+}
+
 #[get("/session/forgot_pw")]
 pub async fn forgot_password() -> TiberiusResult<String> {
     todo!()
@@ -70,10 +112,19 @@ pub struct NewSession<'r> {
     password: &'r str,
 }
 
+#[post("/v3/sessions/login", data = "<login_data>")]
+pub async fn alt_url_new_session_post(
+    state: &State<TiberiusState>,
+    rstate: TiberiusRequestState<'_, Unauthenticated>,
+    login_data: Form<NewSession<'_>>,
+) -> TiberiusResult<RedirectResponse> {
+    Ok(new_session_post(state, rstate, login_data).await?)
+}
+
 #[post("/sessions/login", data = "<login_data>")]
 pub async fn new_session_post(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
+    rstate: TiberiusRequestState<'_, Unauthenticated>,
     login_data: Form<NewSession<'_>>,
 ) -> TiberiusResult<RedirectResponse> {
     trace!("requesting new session, verifying user");
@@ -130,7 +181,7 @@ pub async fn registration() -> TiberiusResult<String> {
 
 #[get("/session/logout")]
 pub async fn destroy_session(
-    rstate: TiberiusRequestState<'_, { SessionMode::Authenticated }>,
+    rstate: TiberiusRequestState<'_, Authenticated>,
 ) -> TiberiusResult<RedirectResponse> {
     Ok(RedirectResponse {
         redirect: Flash::info("You have been logged out")

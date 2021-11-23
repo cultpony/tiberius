@@ -13,7 +13,7 @@ use tiberius_core::state::{SiteNotices, TiberiusRequestState, TiberiusState};
 use crate::pages::common::image::image_thumb_urls;
 use crate::pages::common::{
     flash::get_flash,
-    routes::{cdn_host, dark_stylesheet_path, static_path, stylesheet_path, thumb_url},
+    routes::{cdn_host, dark_stylesheet_path, static_path, stylesheet_path},
 };
 use either::Either;
 use maud::{html, Markup, PreEscaped};
@@ -25,7 +25,7 @@ use tiberius_models::{
 };
 use tracing::trace;
 
-pub fn viewport_meta_tags<const T: SessionMode>(rstate: &TiberiusRequestState<'_, T>) -> Markup {
+pub fn viewport_meta_tags<T: SessionMode>(rstate: &TiberiusRequestState<'_, T>) -> Markup {
     let mobile_uas = ["Mobile", "webOS"];
     if let Some(value) = rstate
         .headers
@@ -40,7 +40,7 @@ pub fn viewport_meta_tags<const T: SessionMode>(rstate: &TiberiusRequestState<'_
     return html! { meta name="viewport" content="width=1024, initial-scale=1"; };
 }
 
-pub async fn csrf_meta_tag<const T: SessionMode>(rstate: &TiberiusRequestState<'_, T>) -> Markup {
+pub async fn csrf_meta_tag<T: SessionMode>(rstate: &TiberiusRequestState<'_, T>) -> Markup {
     let session: &SessionPtr<T> = &rstate.session;
     let csrf = session.read().await.csrf_token();
     html! {
@@ -266,7 +266,7 @@ pub fn quick_tag_table(state: &TiberiusState) -> Markup {
     }
 }
 
-pub async fn header<const T: SessionMode>(
+pub async fn header<T: SessionMode>(
     site_config: &SiteConfig,
     state: &TiberiusState,
     rstate: &TiberiusRequestState<'_, T>,
@@ -460,9 +460,9 @@ pub fn header_staff_links() -> Markup {
     }
 }
 
-pub async fn flash_warnings<const T: SessionMode>(
+pub async fn flash_warnings<T: SessionMode>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, { T }>,
+    rstate: &TiberiusRequestState<'_, T>,
 ) -> TiberiusResult<Markup> {
     let site_notices: Option<SiteNotices> = state.site_notices();
     let site_notices = site_notices.unwrap_or_default();
@@ -511,13 +511,13 @@ pub async fn flash_warnings<const T: SessionMode>(
     })
 }
 
-pub async fn layout_class<const T: SessionMode>(req: &TiberiusRequestState<'_, { T }>) -> String {
+pub async fn layout_class<T: SessionMode>(req: &TiberiusRequestState<'_, T>) -> String {
     req.layout_class().await.to_string()
 }
 
-pub async fn footer<const T: SessionMode>(
+pub async fn footer<T: SessionMode>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, { T }>,
+    rstate: &TiberiusRequestState<'_, T>,
 ) -> TiberiusResult<Markup> {
     let end_time = rstate.started_at;
     let time = end_time.elapsed();
@@ -550,7 +550,7 @@ pub async fn footer<const T: SessionMode>(
     })
 }
 
-pub async fn ignored_tag_list<'a, const T: SessionMode>(
+pub async fn ignored_tag_list<'a, T: SessionMode>(
     state: &TiberiusState,
     rstate: &TiberiusRequestState<'_, T>,
 ) -> TiberiusResult<Vec<i32>> {
@@ -566,7 +566,7 @@ macro_rules! insert_csd {
     };
 }
 
-pub async fn image_clientside_data<'a, const T: SessionMode>(
+pub async fn image_clientside_data<'a, T: SessionMode>(
     state: &TiberiusState,
     rstate: &TiberiusRequestState<'_, T>,
     image: &Image,
@@ -600,7 +600,7 @@ pub async fn image_clientside_data<'a, const T: SessionMode>(
     Ok(csd_to_markup("image-show-container", data, inner).await?)
 }
 
-pub async fn clientside_data<'a, const T: SessionMode>(
+pub async fn clientside_data<'a, T: SessionMode>(
     state: &TiberiusState,
     rstate: &TiberiusRequestState<'_, T>,
 ) -> TiberiusResult<Markup> {
@@ -704,7 +704,7 @@ async fn csd_to_markup<S: std::fmt::Display>(
     Ok(PreEscaped(data))
 }
 
-pub async fn container_class<const T: SessionMode>(
+pub async fn container_class<T: SessionMode>(
     state: &TiberiusState,
     rstate: &TiberiusRequestState<'_, T>,
 ) -> TiberiusResult<String> {
@@ -716,7 +716,7 @@ pub async fn container_class<const T: SessionMode>(
     Ok("".to_string())
 }
 
-pub async fn app<const T: SessionMode>(
+pub async fn app<T: SessionMode>(
     state: &TiberiusState,
     rstate: &TiberiusRequestState<'_, T>,
     page_title: Option<PageTitle>,

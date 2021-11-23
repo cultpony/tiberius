@@ -117,7 +117,7 @@ impl Configuration {
             None => None,
         }
     }
-    pub fn static_host<const T: SessionMode>(
+    pub fn static_host<T: SessionMode>(
         &self,
         rstate: &TiberiusRequestState<'_, T>,
     ) -> String {

@@ -3,7 +3,7 @@ use chrono::NaiveDateTime;
 use rocket::State;
 use tiberius_core::config::Configuration;
 use tiberius_core::error::TiberiusResult;
-use tiberius_core::session::SessionMode;
+use tiberius_core::session::{Authenticated, SessionMode};
 use tiberius_core::state::{TiberiusRequestState, TiberiusState};
 use tracing::{error, warn};
 
@@ -153,7 +153,7 @@ impl ACLActionTrait for ACLActionAPIKey {
 
 pub async fn verify_acl(
     state: &State<TiberiusState>,
-    rstate: &TiberiusRequestState<'_, { SessionMode::Authenticated }>,
+    rstate: &TiberiusRequestState<'_, Authenticated>,
     object: impl ACLObjectTrait,
     action: impl ACLActionTrait,
 ) -> TiberiusResult<bool> {
@@ -166,6 +166,7 @@ pub async fn verify_acl(
     };
     let v = (subject.subject(), object.object(), action.action());
     debug!("Checking if {:?} is OK in RBAC", v);
-    let enforce_result = casbin.enforce(v)?;
-    todo!();
+    let enforce_result = casbin.enforce(v.clone())?;
+    debug!("Result of {:?} = {:?}", v, enforce_result);
+    Ok(enforce_result)
 }

@@ -3,8 +3,7 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
 #![allow(unreachable_code)]
-#![feature(adt_const_params)]
-#![feature(let_chains)]
+//#![feature(let_chains)]
 
 #[cfg(all(feature = "stable-release", feature = "full-release"))]
 compile_error!("Cannot enable \"stable-release\" and \"full-release\" features at the same time");
@@ -74,6 +73,9 @@ async fn server_start(start_job_scheduler: bool) -> TiberiusResult<()> {
             crate::api::v3::images::change_image_uploader_user,
             crate::api::v3::misc::sessho::session_handover,
             crate::api::v3::misc::sessho::session_handover_user,
+            crate::pages::apikeys::manage_keys_page,
+            crate::pages::apikeys::create_api_key,
+            crate::pages::apikeys::delete_api_key,
             crate::api::well_known::imageboard_type::imageboardapiflavor_philomena_int,
             crate::api::well_known::imageboard_type::imageboardapiflavor_philomena_v1,
             crate::api::well_known::imageboard_type::imageboardapiflavor,
@@ -119,6 +121,11 @@ async fn server_start(start_job_scheduler: bool) -> TiberiusResult<()> {
             crate::api::v3::images::change_image_uploader_user,
             crate::api::v3::misc::sessho::session_handover,
             crate::api::v3::misc::sessho::session_handover_user,
+            crate::pages::apikeys::manage_keys_page,
+            crate::pages::apikeys::create_api_key,
+            crate::pages::apikeys::delete_api_key,
+            crate::pages::session::alt_url_new_session_post,
+            crate::pages::session::alt_url_new_session,
             tiberius_core::assets::serve_asset,
             tiberius_core::assets::serve_favicon_ico,
             tiberius_core::assets::serve_favicon_svg,

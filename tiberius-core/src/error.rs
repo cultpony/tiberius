@@ -90,6 +90,17 @@ impl<'r> Responder<'r, 'static> for TiberiusError {
         match self {
             Self::FlashRedirect(v) => return v.respond_to(r),
             Self::Redirect(v) => return v.respond_to(r),
+            Self::AccessDenied => {
+                let c = maud::html! {
+                    b { (format!("{}", self.to_string())) };
+                };
+                let c: String = c.into_string();
+                return Ok(Response::build()
+                    .status(Status::Forbidden)
+                    .header(ContentType::HTML)
+                    .sized_body(c.bytes().len(), Cursor::new(c))
+                    .finalize());
+            }
             _ => (),
         }
         let c = maud::html! {

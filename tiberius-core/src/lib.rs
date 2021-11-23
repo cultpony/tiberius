@@ -4,7 +4,6 @@
 #![allow(dead_code)]
 #![allow(unreachable_code)]
 #![allow(deprecated)]
-#![feature(adt_const_params)]
 
 #[macro_use]
 extern crate tracing;
@@ -89,7 +88,7 @@ impl Fairing for CSPHeader {
     async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut Response<'r>) {
         use csp::*;
         let state: &State<crate::state::TiberiusState> = req.guard().await.succeeded().unwrap();
-        let rstate: TiberiusRequestState<{ SessionMode::Unauthenticated }> =
+        let rstate: TiberiusRequestState<Unauthenticated> =
             req.guard().await.succeeded().unwrap();
         let config = state.config();
         let static_host = config.static_host(&rstate);
@@ -127,7 +126,7 @@ impl Fairing for CSPHeader {
     }
 }
 
-pub fn get_user_agent<const T: SessionMode>(
+pub fn get_user_agent<T: SessionMode>(
     rstate: &TiberiusRequestState<'_, T>,
 ) -> TiberiusResult<Option<String>> {
     Ok(rstate
@@ -136,7 +135,7 @@ pub fn get_user_agent<const T: SessionMode>(
         .map(|x| x.to_string()))
 }
 
-use crate::session::SessionMode;
+use crate::session::{SessionMode, Unauthenticated};
 use crate::{error::TiberiusError, state::TiberiusRequestState};
 use either::Either;
 use rocket::{

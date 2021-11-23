@@ -19,7 +19,7 @@ use tiberius_core::error::TiberiusResult;
 use tiberius_core::request_helper::{
     ApiFormDataEmpty, FormMethod, HtmlResponse, RedirectResponse, TiberiusResponse,
 };
-use tiberius_core::session::SessionMode;
+use tiberius_core::session::{SessionMode, Unauthenticated};
 use tiberius_core::state::{Flash, TiberiusRequestState, TiberiusState};
 use tiberius_models::{Channel, Client, Image};
 
@@ -55,7 +55,7 @@ impl<'a, 'b> FromUriParam<Query, Option<&'a str>> for ChannelQuery {
 
 #[post("/channels/nsfw", data = "<fd>")]
 pub async fn set_nsfw(
-    rstate: TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
+    rstate: TiberiusRequestState<'_, Unauthenticated>,
     fd: Form<ApiFormDataEmpty>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let fd = fd.into_afd();
@@ -89,7 +89,7 @@ pub async fn read() -> rocket::response::Redirect {
 #[get("/channels?<cq>")]
 pub async fn list_channels(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
+    rstate: TiberiusRequestState<'_, Unauthenticated>,
     cq: Option<ChannelQuery>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let cq = cq.unwrap_or(ChannelQuery { cq: None });
