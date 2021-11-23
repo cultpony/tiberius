@@ -637,7 +637,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f05775e9da7e9ab7f68eed2514e1b4969304d0ebe4c52ddf1535da26cd241276"
 dependencies = [
  "async-std",
- "cap-primitives",
+ "cap-primitives 0.20.0",
  "io-lifetimes",
  "ipnet",
  "rsix 0.23.9",
@@ -652,7 +652,7 @@ checksum = "4b1cd472a0e5149be6fb5cf9fb2aadabbc4f3e1d270ba3e6bdf81d580a8161a8"
 dependencies = [
  "ambient-authority",
  "errno",
- "fs-set-times",
+ "fs-set-times 0.12.2",
  "io-lifetimes",
  "ipnet",
  "maybe-owned",
@@ -666,17 +666,37 @@ dependencies = [
 ]
 
 [[package]]
-name = "cap-std"
-version = "0.20.0"
+name = "cap-primitives"
+version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8884ddd1c80d48f0802e7fb8eb17d3052aa81c62a43665a5b07746b9823a99fe"
+checksum = "c5998b8b3a49736500aec3c123fa3f6f605a125b41a6df725e6b7c924a612ab4"
 dependencies = [
- "cap-primitives",
+ "ambient-authority",
+ "errno",
+ "fs-set-times 0.13.1",
+ "io-extras",
  "io-lifetimes",
  "ipnet",
- "rsix 0.23.9",
+ "maybe-owned",
  "rustc_version 0.4.0",
- "unsafe-io",
+ "rustix",
+ "winapi 0.3.9",
+ "winapi-util",
+ "winx",
+]
+
+[[package]]
+name = "cap-std"
+version = "0.21.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "811de89a7ede4ba32f2b75fe5c668a534da24942d81c081248a9d2843ebd517d"
+dependencies = [
+ "cap-primitives 0.21.1",
+ "io-extras",
+ "io-lifetimes",
+ "ipnet",
+ "rustc_version 0.4.0",
+ "rustix",
 ]
 
 [[package]]
@@ -1556,6 +1576,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "fs-set-times"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa838950e8e36a567ce96a945c303e88d9916ff97df27c315a0d263a72bd816f"
+dependencies = [
+ "io-lifetimes",
+ "rustix",
+ "winapi 0.3.9",
+]
+
+[[package]]
 name = "fs2"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2151,6 +2182,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "io-extras"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a1d9a66d8b0312e3601a04a2dcf8f0ddd873319560ddeabe2110fa1e5af781a"
+dependencies = [
+ "io-lifetimes",
+ "rustc_version 0.4.0",
+ "winapi 0.3.9",
+]
+
+[[package]]
 name = "io-lifetimes"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2363,6 +2405,12 @@ name = "linux-raw-sys"
 version = "0.0.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "373555fbb6dbd7a7a9e6527215899c7715f89f1ffa7921eb4ee983642afb8c65"
+
+[[package]]
+name = "linux-raw-sys"
+version = "0.0.36"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a261afc61b7a5e323933b402ca6a1765183687c614789b1e4db7762ed4230bca"
 
 [[package]]
 name = "lock_api"
@@ -3892,6 +3940,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bfa0f585226d2e68097d4f95d113b15b83a82e819ab25717ec0590d9584ef366"
 dependencies = [
  "semver 1.0.4",
+]
+
+[[package]]
+name = "rustix"
+version = "0.26.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "18c44018277ec7195538f5631b90def7ad975bb46370cb0f4eff4012de9333f8"
+dependencies = [
+ "bitflags",
+ "errno",
+ "io-lifetimes",
+ "itoa",
+ "libc",
+ "linux-raw-sys 0.0.36",
+ "once_cell",
+ "rustc_version 0.4.0",
+ "winapi 0.3.9",
 ]
 
 [[package]]
