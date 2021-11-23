@@ -4,7 +4,7 @@ use rocket::State;
 use tiberius_core::app::PageTitle;
 use tiberius_core::error::{TiberiusError, TiberiusResult};
 use tiberius_core::request_helper::{HtmlResponse, JsonResponse, TiberiusResponse};
-use tiberius_core::session::SessionMode;
+use tiberius_core::session::{Authenticated, SessionMode};
 use tiberius_core::state::{TiberiusRequestState, TiberiusState};
 use tiberius_models::{ApiKey, Image, User};
 
@@ -13,7 +13,7 @@ use crate::pages::common::{verify_acl, ACLActionAPIKey, ACLActionImage, ACLObjec
 #[get("/v3/manage/keys")]
 pub async fn manage_keys_page(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, { SessionMode::Authenticated }>,
+    rstate: TiberiusRequestState<'_, Authenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let view_all_api_keys: bool =
         verify_acl(state, &rstate, ACLObject::APIKey, ACLActionAPIKey::ViewAll).await?;
@@ -77,7 +77,7 @@ pub async fn manage_keys_page(
 #[post("/v3/manage/keys/create")]
 pub async fn create_api_key(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, { SessionMode::Authenticated }>,
+    rstate: TiberiusRequestState<'_, Authenticated>,
 ) -> TiberiusResult<()> {
     todo!("implement API page")
 }
@@ -85,7 +85,7 @@ pub async fn create_api_key(
 #[post("/v3/manage/keys/delete")]
 pub async fn delete_api_key(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, { SessionMode::Authenticated }>,
+    rstate: TiberiusRequestState<'_, Authenticated>,
 ) -> TiberiusResult<()> {
     todo!("implement API page")
 }

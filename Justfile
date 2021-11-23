@@ -10,7 +10,7 @@ build: check
 run-full:
   cargo run -- server -z
 
-check: fmt
+check:
   cargo check --workspace
 
 fmt:
@@ -21,3 +21,6 @@ clippy:
 
 test: build
   cargo test --workspace
+
+devdb:
+  docker-compose up -d postgres

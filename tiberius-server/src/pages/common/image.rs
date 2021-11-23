@@ -4,14 +4,11 @@ use maud::{html, Markup, Render};
 use rocket::http::uri::Origin;
 use rocket::Request;
 use tiberius_core::error::TiberiusResult;
-use tiberius_core::session::SessionMode;
+use tiberius_core::session::{SessionMode, Unauthenticated};
 use tiberius_core::state::{TiberiusRequestState, TiberiusState};
 use tiberius_models::{Client, Image, ImageThumbType, ImageThumbUrl, User};
 
-use crate::pages::common::{
-    pagination::PaginationCtl,
-    routes::{image_url, thumb_url},
-};
+use crate::pages::common::pagination::PaginationCtl;
 
 #[derive(Debug, Clone, Copy)]
 pub enum ImageSize {
@@ -91,7 +88,7 @@ pub async fn image_block_default_sort<
     S6: Into<String>,
 >(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
+    rstate: &TiberiusRequestState<'_, Unauthenticated>,
     client: &mut Client,
     header: ImageBlockHeader,
     query: S,
@@ -127,7 +124,7 @@ pub async fn image_block<
     S6: Into<String>,
 >(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
+    rstate: &TiberiusRequestState<'_, Unauthenticated>,
     client: &mut Client,
     header: ImageBlockHeader,
     query: S1,
@@ -279,7 +276,7 @@ pub async fn image_thumb_urls(image: &Image) -> TiberiusResult<ImageThumbUrl> {
 
 pub async fn show_vote_counts(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
+    rstate: &TiberiusRequestState<'_, Unauthenticated>,
 ) -> bool {
     //TODO: read setting from site + user
     true
@@ -287,7 +284,7 @@ pub async fn show_vote_counts(
 
 pub async fn uploader(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
+    rstate: &TiberiusRequestState<'_, Unauthenticated>,
     image: &Image,
 ) -> TiberiusResult<Markup> {
     Ok(html! {
@@ -300,7 +297,7 @@ pub async fn uploader(
 
 pub async fn user_attribution(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
+    rstate: &TiberiusRequestState<'_, Unauthenticated>,
     user: Option<&User>,
 ) -> TiberiusResult<Markup> {
     Ok(html! {
@@ -315,7 +312,7 @@ pub async fn user_attribution(
 
 pub async fn image_box<'a>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
+    rstate: &TiberiusRequestState<'_, Unauthenticated>,
     client: &mut Client,
     image: Image,
     image_size: ImageSize,
@@ -367,12 +364,12 @@ pub async fn image_box<'a>(
 
 pub async fn image_container<'a>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
+    rstate: &TiberiusRequestState<'_, Unauthenticated>,
     client: &mut Client,
     image: Image,
     image_size: ImageThumbType,
 ) -> TiberiusResult<Markup> {
-    let link = image_url(either::Right(&image));
+    let link = uri!(crate::pages::images::show_image(image.id as u64));
     if image.duplicate_id.is_some() {
         return Ok(html! { .media-box__overlay { strong { "Marked duplicate" } } });
     }
@@ -394,7 +391,7 @@ pub async fn image_container<'a>(
 impl RenderIntent {
     pub async fn from_image(
         state: &TiberiusState,
-        rstate: &TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
+        rstate: &TiberiusRequestState<'_, Unauthenticated>,
         client: &mut Client,
         image: Image,
         size: ImageThumbType,
@@ -426,49 +423,36 @@ impl RenderIntent {
         } else if filtered && !vid {
             RenderIntent::FilteredImage { hover_text: alt }
         } else if hidpi && !(gif || vid) {
-            let small_url: PathBuf = thumb_url(
-                state,
-                rstate,
-                client,
-                either::Right(&image),
-                ImageThumbType::Small,
-            )
-            .await?;
-            let small_url: Cow<str> = small_url.to_string_lossy();
-            let small_url: String = small_url.to_string();
-            let medium_url: PathBuf = thumb_url(
-                state,
-                rstate,
-                client,
-                either::Right(&image),
-                ImageThumbType::Medium,
-            )
-            .await?;
-            let medium_url = medium_url.to_string_lossy().to_string();
+            let small_url = uri!(crate::pages::files::image_thumb_get_simple(
+                image.id as u64,
+                ImageThumbType::Small.to_string(),
+                format!("{}.webm", image.id)
+            ))
+            .to_string();
+            let medium_url = uri!(crate::pages::files::image_thumb_get_simple(
+                image.id as u64,
+                ImageThumbType::Medium.to_string(),
+                format!("{}.webm", image.id)
+            ))
+            .to_string();
             RenderIntent::HiDpi {
                 small_url,
                 medium_url,
                 hover_text: alt,
             }
         } else if !vid || use_gif {
-            let small_url: PathBuf = thumb_url(
-                state,
-                rstate,
-                client,
-                either::Right(&image),
-                ImageThumbType::Small,
-            )
-            .await?;
-            let small_url: String = small_url.to_string_lossy().to_string();
-            let medium_url: PathBuf = thumb_url(
-                state,
-                rstate,
-                client,
-                either::Right(&image),
-                ImageThumbType::Medium,
-            )
-            .await?;
-            let medium_url = medium_url.to_string_lossy().to_string();
+            let small_url = uri!(crate::pages::files::image_thumb_get_simple(
+                image.id as u64,
+                ImageThumbType::Small.to_string(),
+                format!("{}.webm", image.id)
+            ))
+            .to_string();
+            let medium_url = uri!(crate::pages::files::image_thumb_get_simple(
+                image.id as u64,
+                ImageThumbType::Medium.to_string(),
+                format!("{}.webm", image.id)
+            ))
+            .to_string();
             RenderIntent::Image {
                 small_url,
                 medium_url,
@@ -491,13 +475,13 @@ impl RenderIntent {
             }
         })
     }
-    pub fn render(self, link: PathBuf) -> TiberiusResult<Markup> {
+    pub fn render<S: ToString>(self, link: S) -> TiberiusResult<Markup> {
         use RenderIntent::*;
         Ok(match self {
             FilteredImage { hover_text } => {
                 html! {
                     .media-box__overlay.js-spoiler-info-overlay {}
-                    a href=(link.to_string_lossy()) title=(hover_text) {
+                    a href=(link.to_string()) title=(hover_text) {
                         picture {
                             img alt=(hover_text) {}
                         }
@@ -516,7 +500,7 @@ impl RenderIntent {
                             "WebM"
                         }
                     }
-                    a href=(link.to_string_lossy()) title=(hover_text) {
+                    a href=(link.to_string()) title=(hover_text) {
                         picture {
                             img src=(small_url) alt=(hover_text);
                         }

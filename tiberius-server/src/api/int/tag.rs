@@ -1,6 +1,6 @@
 use rocket::{serde::json::Json, State};
 use tiberius_core::error::TiberiusResult;
-use tiberius_core::session::SessionMode;
+use tiberius_core::session::{SessionMode, Unauthenticated};
 use tiberius_core::state::{TiberiusRequestState, TiberiusState};
 use tiberius_models::{Client, Tag};
 
@@ -23,7 +23,7 @@ pub struct ApiResponse {
 #[get("/tags/fetch?<ids>")]
 pub async fn fetch(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
+    rstate: TiberiusRequestState<'_, Unauthenticated>,
     ids: Vec<i64>,
 ) -> TiberiusResult<Json<ApiResponse>> {
     let mut client = state.get_db_client().await?;

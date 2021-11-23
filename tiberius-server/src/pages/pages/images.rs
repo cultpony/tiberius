@@ -10,7 +10,7 @@ use sha2::Digest;
 use tiberius_core::app::PageTitle;
 use tiberius_core::error::TiberiusResult;
 use tiberius_core::request_helper::{HtmlResponse, RedirectResponse, TiberiusResponse};
-use tiberius_core::session::SessionMode;
+use tiberius_core::session::{SessionMode, Unauthenticated, Authenticated};
 use tiberius_core::state::{Flash, TiberiusRequestState, TiberiusState};
 use tiberius_models::Image;
 use tokio::task::spawn_blocking;
@@ -29,7 +29,7 @@ pub async fn embed_image(flag: Option<&str>, image: u64) -> TiberiusResult<()> {
 #[get("/<image>")]
 pub async fn show_image(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
+    rstate: TiberiusRequestState<'_, Unauthenticated>,
     image: u64,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let mut client = state.get_db_client().await?;
@@ -271,7 +271,7 @@ pub async fn show_image(
 #[cfg(not(feature = "process-images"))]
 pub async fn upload_image(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, { SessionMode::Authenticated }>,
+    rstate: TiberiusRequestState<'_, Authenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     unimplemented!()
 }
@@ -280,8 +280,10 @@ pub async fn upload_image(
 #[get("/images/new")]
 pub async fn upload_image(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, { SessionMode::Authenticated }>,
+    rstate: TiberiusRequestState<'_, Authenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
+    use tiberius_core::session::Authenticated;
+
     let mut client = state.get_db_client().await?;
     let user = rstate.session.read().await.get_user(&mut client).await?;
     let image_form_image = html! {

@@ -4,14 +4,14 @@ use rocket::State;
 use tiberius_core::app::PageTitle;
 use tiberius_core::error::{TiberiusError, TiberiusResult};
 use tiberius_core::request_helper::{HtmlResponse, JsonResponse, TiberiusResponse};
-use tiberius_core::session::SessionMode;
+use tiberius_core::session::{SessionMode, Unauthenticated};
 use tiberius_core::state::{TiberiusRequestState, TiberiusState};
 use tiberius_models::{Image, User};
 
 #[get("/api/v3/misc/session/handover")]
 pub async fn session_handover_user(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
+    rstate: TiberiusRequestState<'_, Unauthenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let body = html! {
         form action=(rocket::uri!(session_handover).to_string()) method="POST" {
@@ -45,7 +45,7 @@ pub async fn session_handover_user(
 #[post("/api/v3/misc/session/handover")]
 pub async fn session_handover(
     state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, { SessionMode::Unauthenticated }>,
+    rstate: TiberiusRequestState<'_, Unauthenticated>,
 ) -> TiberiusResult<JsonResponse> {
     todo!()
 }

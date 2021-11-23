@@ -7,7 +7,7 @@ use tiberius_core::session::SessionMode;
 use tiberius_core::state::{TiberiusRequestState, TiberiusState};
 use tiberius_models::{Channel, Client, Forum, Image, ImageThumbType, ImageThumbUrl, Tag, User};
 
-pub async fn stylesheet_path<const T: SessionMode>(
+pub async fn stylesheet_path<T: SessionMode>(
     state: &TiberiusState,
     rstate: &TiberiusRequestState<'_, T>,
 ) -> TiberiusResult<String> {
@@ -33,7 +33,7 @@ pub async fn stylesheet_path<const T: SessionMode>(
     })
 }
 
-pub fn dark_stylesheet_path<const T: SessionMode>(
+pub fn dark_stylesheet_path<T: SessionMode>(
     rstate: &TiberiusRequestState<'_, T>,
 ) -> TiberiusResult<String> {
     Ok(static_path(PathBuf::from_str("css/dark.css")?)
@@ -59,48 +59,7 @@ pub fn static_path<S: Into<PathBuf>>(path: S) -> PathBuf {
     path
 }
 
-pub fn image_url(img_id: Either<i64, &Image>) -> PathBuf {
-    PathBuf::from_str(
-        match img_id {
-            Either::Left(id) => format!("/{}", id),
-            Either::Right(image) => format!("/{}", image.id),
-        }
-        .as_str(),
-    )
-    .expect("must have been able to format this")
-}
-
 pub struct ShowHidden(pub bool);
-
-#[deprecated]
-pub async fn thumb_url<const T: SessionMode>(
-    state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, { T }>,
-    client: &mut Client,
-    img: Either<i64, &Image>,
-    thumb: ImageThumbType,
-) -> TiberiusResult<PathBuf> {
-    let show_hidden = true; // TODO: read show hidden from user settings
-    let image: Image = match img {
-        Either::Right(img) => (img.clone()),
-        Either::Left(id) => match Image::get(client, id).await? {
-            Some(i) => i,
-            None => todo!("implement image 404"),
-        },
-    };
-    let format = thumb_format_unnamed(image.image_format.map(|x| x.to_lowercase()), false);
-    let name = thumb.to_string();
-    //TODO: replace this!!!
-    Ok(PathBuf::from_str(
-        &uri!(crate::pages::files::image_thumb_get_simple(
-            id = image.id as u64,
-            thumbtype = &name,
-            _filename = format!("{}.{}", &name, format)
-        ))
-        .to_string(),
-    )
-    .unwrap())
-}
 
 pub fn thumb_format_unnamed<S: Into<String>>(format: Option<S>, download: bool) -> String {
     thumb_format::<S, String>(format, None, download)
@@ -126,9 +85,9 @@ pub fn thumb_format<S: Into<String>, R: Into<String>>(
     }
 }
 
-pub async fn cdn_host<const T: SessionMode>(
+pub async fn cdn_host<T: SessionMode>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, { T }>,
+    rstate: &TiberiusRequestState<'_, T>,
 ) -> String {
     let cdn_host = state.config.cdn_host.clone();
     cdn_host.unwrap_or(

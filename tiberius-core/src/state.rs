@@ -21,7 +21,7 @@ use crate::config::Configuration;
 use crate::error::{TiberiusError, TiberiusResult};
 use crate::footer::FooterData;
 use crate::request_helper::DbRef;
-use crate::session::{SessionMode, SessionPtr};
+use crate::session::{Authenticated, SessionMode, SessionPtr, Unauthenticated};
 use crate::LayoutClass;
 
 #[derive(Clone)]
@@ -67,7 +67,7 @@ impl TiberiusState {
     }
 }
 
-pub struct TiberiusRequestState<'a, const T: SessionMode> {
+pub struct TiberiusRequestState<'a, T: SessionMode> {
     pub cookie_jar: &'a CookieJar<'a>,
     pub headers: &'a HeaderMap<'a>,
     pub uri: &'a rocket::http::uri::Origin<'a>,
@@ -77,7 +77,7 @@ pub struct TiberiusRequestState<'a, const T: SessionMode> {
 }
 
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for TiberiusRequestState<'r, { SessionMode::Authenticated }> {
+impl<'r> FromRequest<'r> for TiberiusRequestState<'r, Authenticated> {
     type Error = Infallible;
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         Outcome::Success(Self {
@@ -85,7 +85,7 @@ impl<'r> FromRequest<'r> for TiberiusRequestState<'r, { SessionMode::Authenticat
             headers: request.headers(),
             uri: request.uri(),
             session: request
-                .guard::<SessionPtr<{ SessionMode::Authenticated }>>()
+                .guard::<SessionPtr<Authenticated>>()
                 .await
                 .succeeded()
                 .unwrap(),
@@ -97,7 +97,7 @@ impl<'r> FromRequest<'r> for TiberiusRequestState<'r, { SessionMode::Authenticat
 
 //todo: make this an anonymous session if no auth is needed
 #[rocket::async_trait]
-impl<'r> FromRequest<'r> for TiberiusRequestState<'r, { SessionMode::Unauthenticated }> {
+impl<'r> FromRequest<'r> for TiberiusRequestState<'r, Unauthenticated> {
     type Error = Infallible;
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         Outcome::Success(Self {
@@ -105,7 +105,7 @@ impl<'r> FromRequest<'r> for TiberiusRequestState<'r, { SessionMode::Unauthentic
             headers: request.headers(),
             uri: request.uri(),
             session: request
-                .guard::<SessionPtr<{ SessionMode::Unauthenticated }>>()
+                .guard::<SessionPtr<Unauthenticated>>()
                 .await
                 .succeeded()
                 .unwrap(),
@@ -221,7 +221,7 @@ impl<'a> StateRequestExt for Request<'a> {
     }
 }
 
-impl<'a, const T: SessionMode> TiberiusRequestState<'a, T> {
+impl<'a, T: SessionMode> TiberiusRequestState<'a, T> {
     pub async fn flash(&self) -> Option<Flash> {
         self.flash.clone()
     }
@@ -254,7 +254,7 @@ impl<'a, const T: SessionMode> TiberiusRequestState<'a, T> {
     }
 }
 
-impl<'a, const T: SessionMode> TiberiusRequestState<'a, T> {
+impl<'a, T: SessionMode> TiberiusRequestState<'a, T> {
     pub async fn search_query(&self) -> TiberiusResult<String> {
         Ok("".to_string()) // TODO: recover search query
     }
