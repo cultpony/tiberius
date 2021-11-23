@@ -50,7 +50,7 @@ thiserror = "1.0.30"
 tiberius-core = { path = "../tiberius-core" }
 tiberius-models = { path = "../tiberius-models" }
 tokio = { version = "1.10", features = ["full"] }
-tokio-cron-scheduler = "0.2.1"
+tokio-cron-scheduler = "0.3.1"
 tracing = "0.1.29"
 uri-builder = "0.1.0"
 url = { version = "2.2", features = ["serde"] }
