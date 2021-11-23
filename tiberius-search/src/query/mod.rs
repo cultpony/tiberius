@@ -137,6 +137,7 @@ pub enum QueryError {
     ChronoEnglish(#[from] chrono_english::DateError),
     #[error("We're working hard on making the query syntax accept more things")]
     UnsupportedQuerySyntaxTodo,
+    #[cfg(feature = "search-with-tantivy")]
     #[error("Error in index: {0}")]
     TantivyError(#[from] tantivy::TantivyError),
     #[error("Auxiliary Query Error: {0}")]
@@ -147,9 +148,11 @@ use either::Either;
 use lazy_regex::lazy_regex;
 use lazy_regex::Lazy;
 use lazy_regex::Regex;
+#[cfg(feature = "search-with-tantivy")]
 use tantivy::schema::FieldType;
 #[cfg(feature = "search-with-tantivy")]
 use tantivy::schema::IndexRecordOption;
+#[cfg(feature = "search-with-tantivy")]
 use tantivy::Term;
 use tracing::info;
 

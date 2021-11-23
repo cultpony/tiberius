@@ -69,6 +69,6 @@ processing-jobs = ["job_process_image"]
 
 job_cleanup_sessions = []
 job_picarto_tv = []
-job_process_image = []
+job_process_image = ["job_reindex_images"]
 job_reindex_images = []
 job_reindex_tags = []
