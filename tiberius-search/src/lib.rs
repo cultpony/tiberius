@@ -12,7 +12,7 @@ use tracing::info;
 
 #[cfg(feature = "search-with-tantivy")]
 pub use tantivy;
-
+#[cfg(feature = "search-with-tantivy")]
 use tantivy::query::Occur;
 #[cfg(feature = "search-with-tantivy")]
 use tantivy::*;
@@ -136,6 +136,7 @@ pub trait Queryable {
         Self::search_tantivy_query(i, q, limit, offset)
     }
 
+    #[cfg(feature = "search-with-tantivy")]
     fn search_tantivy_query<T: tantivy::query::Query>(
         i: &IndexReader,
         q: T,

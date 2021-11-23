@@ -130,9 +130,9 @@ impl<T: SessionMode> Session<T> {
     /// To set a session as ephemeral, it must be created by passing `true` to the `Session::new()` constructor.
     ///
     /// ```
-    /// use tiberius_core::session::{Session, SessionMode};
-    /// let ephemeral_session = Session::<{SessionMode::Unauthenticated}>::new(true);
-    /// let stored_session = Session::<{SessionMode::Unauthenticated}>::new(false);
+    /// use tiberius_core::session::{Session, Unauthenticated, Authenticated};
+    /// let ephemeral_session = Session::<Unauthenticated>::new(true);
+    /// let stored_session = Session::<Unauthenticated>::new(false);
     ///
     /// assert!(ephemeral_session.ephemeral());
     /// assert!(!stored_session.ephemeral());
@@ -494,21 +494,14 @@ async fn get_session_ptr<'r, T: SessionMode>(request: &'r Request<'_>) -> Option
             Ok(None) => {
                 info!("Got an empty session");
                 return None;
-                //return Outcome::Failure((Status::Forbidden, TiberiusError::AccessDenied));
-                //return Outcome::Forward(Redirect::temporary("/"));
-                //new_session(request)
             }
             Err(e) => {
                 warn!("error trying to get session: {}", e);
                 return None;
-                //return Outcome::Failure((Status::Forbidden, TiberiusError::AccessDenied));
-                //return Outcome::Forward(Redirect::temporary("/"));
-                //new_session(request)
             }
         }
     } else {
         return None;
-        //return Outcome::Failure((Status::Forbidden, TiberiusError::AccessDenied));
     }
 }
 
