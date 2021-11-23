@@ -14,7 +14,7 @@ base64 = "0.13"
 chrono = { version = "0.4.19", features = [ "serde" ] }
 futures = "0.3.5"
 hex = "0.4.3"
-ipnetwork = "0.17" # sqlx dep
+ipnetwork = "0.18" # sqlx dep
 itertools = "0.10.0"
 tracing = "0.1.29"
 progressing = "3.0.2"
