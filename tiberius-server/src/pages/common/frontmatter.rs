@@ -9,6 +9,7 @@ use tiberius_core::assets::{QuickTagTableContent, SiteConfig};
 use tiberius_core::error::TiberiusResult;
 use tiberius_core::session::{Session, SessionMode, SessionPtr};
 use tiberius_core::state::{SiteNotices, TiberiusRequestState, TiberiusState};
+use tiberius_core::request_helper::FormMethod;
 
 use crate::pages::common::image::image_thumb_urls;
 use crate::pages::common::{
@@ -45,6 +46,26 @@ pub async fn csrf_meta_tag<T: SessionMode>(rstate: &TiberiusRequestState<'_, T>)
     let csrf = session.read().await.csrf_token();
     html! {
         meta content=(csrf) csrf-param="_csrf_token" method-param="_method" name="csrf-token";
+    }
+}
+
+pub async fn csrf_input_tag<T: SessionMode>(rstate: &TiberiusRequestState<'_, T>) -> Markup {
+    let session: &SessionPtr<T> = &rstate.session;
+    let csrf = session.read().await.csrf_token();
+    html! {
+        input type="hidden" name="_csrf_token" value=(csrf);
+    }
+}
+
+pub fn form_method(method: FormMethod) -> Markup {
+    html! {
+        input type="hidden" name="_method" value=(method.to_string());
+    }
+}
+
+pub fn form_submit_button(label: &str) -> Markup {
+    html! {
+        input type="submit" value=(label);
     }
 }
 

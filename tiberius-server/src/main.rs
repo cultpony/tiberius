@@ -3,7 +3,6 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
 #![allow(unreachable_code)]
-//#![feature(let_chains)]
 
 #[cfg(all(feature = "stable-release", feature = "full-release"))]
 compile_error!("Cannot enable \"stable-release\" and \"full-release\" features at the same time");
@@ -16,13 +15,14 @@ extern crate tracing;
 
 use std::{path::Path, str::FromStr};
 
+use clap::AppSettings;
 use tracing::{debug, info};
 
 use rocket::yansi::Paint;
 use sqlx::Postgres;
 use tiberius_core::app::DBPool;
 use tiberius_core::config::Configuration;
-use tiberius_core::error::TiberiusResult;
+use tiberius_core::error::{TiberiusError, TiberiusResult};
 use tiberius_core::session::PostgresSessionStore;
 use tiberius_core::state::TiberiusState;
 use tiberius_core::{package_full, package_name, package_version, CSPHeader};
@@ -30,166 +30,9 @@ use tiberius_core::{package_full, package_name, package_version, CSPHeader};
 mod api;
 mod init;
 mod pages;
+mod cli;
 
 const MAX_IMAGE_DIMENSION: u32 = 2_000_000u32;
-
-async fn run_migrations(
-    _config: &Configuration,
-    db_conn: sqlx::Pool<Postgres>,
-) -> TiberiusResult<()> {
-    info!("Migrating database");
-    sqlx::migrate!("../migrations").run(&db_conn).await?;
-    info!("Database migrated!");
-    Ok(())
-}
-
-async fn server_start(start_job_scheduler: bool) -> TiberiusResult<()> {
-    let config = envy::from_env::<Configuration>()?;
-    info!("Starting with config {:?}", config);
-    let db_conn: DBPool = config.db_conn().await?;
-    run_migrations(&config, db_conn.clone()).await?;
-    let job_runner = if start_job_scheduler {
-        debug!("Starting job runner");
-        Some(tiberius_jobs::runner(db_conn.clone(), config.clone()))
-    } else {
-        None
-    };
-    debug!("Configuring application server");
-
-    let rkt = rocket::build();
-    let rkt = rkt.manage(TiberiusState::new(config.clone()).await?);
-    let rkt = rkt.attach(CSPHeader);
-    let rkt = rkt.manage(PostgresSessionStore::from_client(db_conn.clone()));
-    let rkt = rkt.attach(PostgresSessionStore::from_client(db_conn.clone()));
-
-    #[cfg(feature = "full-release")]
-    let rkt = rkt.mount(
-        "/",
-        routes![
-            crate::api::int::image::favorite,
-            crate::api::int::oembed::fetch,
-            crate::api::int::tag::fetch,
-            crate::api::v3::images::change_image_uploader,
-            crate::api::v3::images::change_image_uploader_user,
-            crate::api::v3::misc::sessho::session_handover,
-            crate::api::v3::misc::sessho::session_handover_user,
-            crate::pages::apikeys::manage_keys_page,
-            crate::pages::apikeys::create_api_key,
-            crate::pages::apikeys::delete_api_key,
-            crate::api::well_known::imageboard_type::imageboardapiflavor_philomena_int,
-            crate::api::well_known::imageboard_type::imageboardapiflavor_philomena_v1,
-            crate::api::well_known::imageboard_type::imageboardapiflavor,
-            crate::api::well_known::imageboard_type::imageboardtype,
-            tiberius_core::assets::serve_asset,
-            tiberius_core::assets::serve_favicon_ico,
-            tiberius_core::assets::serve_favicon_svg,
-            tiberius_core::assets::serve_robots,
-            crate::pages::activity::index,
-            crate::pages::channels::list_channels,
-            crate::pages::channels::read,
-            crate::pages::channels::set_nsfw,
-            crate::pages::files::image_full_get,
-            crate::pages::files::image_thumb_get_simple,
-            crate::pages::files::image_thumb_get,
-            crate::pages::images::new_image,
-            crate::pages::images::show_image,
-            crate::pages::images::upload_image,
-            crate::pages::images::search_empty,
-            crate::pages::images::search_reverse_page,
-            crate::pages::images::search,
-            crate::pages::session::destroy_session,
-            crate::pages::session::new_session_post,
-            crate::pages::session::new_session_totp,
-            crate::pages::session::new_session,
-            crate::pages::session::registration,
-            crate::pages::tags::alias,
-            crate::pages::tags::edit_tag,
-            crate::pages::tags::list_tags,
-            crate::pages::tags::reindex,
-            crate::pages::tags::show_tag,
-            crate::pages::tags::tag_changes,
-            crate::pages::tags::usage,
-            crate::pages::tags::autocomplete,
-        ],
-    );
-
-    #[cfg(feature = "stable-release")]
-    let rkt = rkt.mount(
-        "/",
-        routes![
-            crate::api::v3::images::change_image_uploader,
-            crate::api::v3::images::change_image_uploader_user,
-            crate::api::v3::misc::sessho::session_handover,
-            crate::api::v3::misc::sessho::session_handover_user,
-            crate::pages::apikeys::manage_keys_page,
-            crate::pages::apikeys::create_api_key,
-            crate::pages::apikeys::delete_api_key,
-            crate::pages::session::alt_url_new_session_post,
-            crate::pages::session::alt_url_new_session,
-            tiberius_core::assets::serve_asset,
-            tiberius_core::assets::serve_favicon_ico,
-            tiberius_core::assets::serve_favicon_svg,
-            tiberius_core::assets::serve_robots,
-        ],
-    );
-
-    let rkt = rkt.register("/", catchers![pages::errors::server_error]);
-    let scheduler = if start_job_scheduler {
-        debug!("Booting up job scheduler");
-        let db_conn = db_conn.clone();
-        let config = config.clone();
-        Some(tokio::spawn(async move {
-            tiberius_jobs::scheduler(db_conn, config).await
-        }))
-    } else {
-        None
-    };
-    let server = rkt.launch();
-    if start_job_scheduler {
-        let scheduler = scheduler.unwrap();
-        let job_runner = job_runner.unwrap();
-        tokio::select! {
-            r = server => {
-                match r {
-                    Ok(()) => error!("server exited cleanly but unexpectedly"),
-                    Err(e) => error!("server error exit: {:?}", e),
-                }
-            }
-            r = scheduler => {
-                match r {
-                    Ok(()) => error!("scheduler exited cleanly but unexpectedly"),
-                    Err(e) => error!("scheduler error exit: {}", e),
-                }
-            }
-            r = job_runner => {
-                match r {
-                    Ok(()) => error!("job runner exited cleanly but unexpectedly"),
-                    Err(e) => error!("scheduler error exit: {}", e),
-                }
-            }
-        };
-    } else {
-        match server.await {
-            Ok(()) => error!("server exited cleanly but unexpectedly"),
-            Err(e) => {
-                error!("Could not start server: {}", e);
-                match e.kind() {
-                    rocket::error::ErrorKind::Collisions(v) => {
-                        for &(ref a, ref b) in &v.catchers {
-                            info!("{} {} {}", a, Paint::red("collision").italic(), b);
-                        }
-                        for &(ref a, ref b) in &v.routes {
-                            info!("{} {} {}", a, Paint::red("collision").italic(), b);
-                        }
-                    }
-                    v => error!("{:?}", v),
-                }
-            }
-        }
-    }
-    println!("Tiberius exited.");
-    Ok(())
-}
 
 fn main() -> TiberiusResult<()> {
     crate::init::LOGGER.flush();
@@ -211,6 +54,10 @@ fn main() -> TiberiusResult<()> {
     let app = App::new(package_name())
         .version(package_version())
         .about("The Lunar Image Board")
+        .setting(AppSettings::SubcommandRequiredElseHelp)
+        .setting(AppSettings::ArgRequiredElseHelp)
+        .setting(AppSettings::ArgsNegateSubcommands)
+        .setting(AppSettings::ColoredHelp)
         .subcommand(
             SubCommand::with_name("server")
                 .about("starts main server")
@@ -256,6 +103,94 @@ fn main() -> TiberiusResult<()> {
                         .takes_value(true)
                         .required(true),
                 ),
+        )
+        .subcommand(
+            SubCommand::with_name("list-users")
+                .about("List users in database")
+                .arg(
+                    Arg::with_name("search")
+                        .short("s")
+                        .long("search")
+                        .required(true)
+                        .takes_value(true)
+                        .value_name("TERM")
+                        .help("Text to search in user database table, must be 5 characters or more")
+                        .validator(|x| {
+                            if x.len() > 5 {
+                                Ok(())
+                            } else {
+                                Err("Search term must be 5 characters or more".to_string())
+                            }
+                        })
+                )
+        )
+        .subcommand(
+            SubCommand::with_name("grant-acl")
+                .about("Inserts, Lists or Removes ACL in database. Either set --user/--group <--member-of> OR --user/--group <--action> <--subject>")
+                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand(
+                    SubCommand::with_name("grant")
+                            .about("Grant ACL Entry")
+                )
+                .subcommand(
+                    SubCommand::with_name("revoke")
+                            .about("Revoke ACL Entry")
+                )
+                .subcommand(
+                    SubCommand::with_name("list")
+                            .about("List ACL Entries")
+                )
+                .arg(
+                    Arg::with_name("user")
+                        .short("u")
+                        .long("user")
+                        .help("User ID")
+                        .takes_value(true)
+                        .value_name("USER")
+                        .group("role-subject")
+                        .global(true)
+                )
+                .arg(
+                    Arg::with_name("group")
+                        .short("g")
+                        .long("group")
+                        .help("Group Name")
+                        .takes_value(true)
+                        .value_name("GROUP")
+                        .group("role-subject")
+                        .global(true)
+                )
+                .arg(
+                    Arg::with_name("member-of")
+                        .short("m")
+                        .long("member-of")
+                        .help("Argument is member of")
+                        .takes_value(true)
+                        .value_name("GROUP")
+                        .requires("role-subject")
+                        .conflicts_with("acl-entry")
+                        .global(true)
+                )
+                .arg(
+                    Arg::with_name("subject")
+                        .short("s")
+                        .long("subject")
+                        .help("Subject can be specific or '*'")
+                        .takes_value(true)
+                        .value_name("SUBJECT")
+                        .conflicts_with("member-of")
+                        .global(true)
+                )
+                .arg(
+                    Arg::with_name("action")
+                        .short("a")
+                        .long("action")
+                        .help("Action can be specified or '*'")
+                        .takes_value(true)
+                        .value_name("ACTION")
+                        .conflicts_with("member-of")
+                        .global(true)
+                )
         );
 
     let matches = app.get_matches();
@@ -267,52 +202,18 @@ fn main() -> TiberiusResult<()> {
             warn!("Running without job scheduler and job runner");
         }
         runtime.block_on(async move {
-            tokio::spawn(async move { server_start(job_runner).await }).await
+            tokio::spawn(async move { crate::cli::server::server_start(job_runner).await }).await
         })??;
         runtime.shutdown_timeout(std::time::Duration::from_secs(10));
         Ok(())
-    } else if let Some(matches) = matches.subcommand_matches("verify-db") {
+    } else if let Some(matches) = matches.subcommand_matches("verify-db") {        
         runtime.block_on(async move {
-            let table = matches.value_of("table");
-            let table = match table {
-                None => {
-                    error!("require to know which table to verify");
-                    return Ok(());
-                }
-                Some(t) => t,
-            };
-            let start_id = matches.value_of("start-id");
-            let start_id: u64 = match start_id {
-                None => {
-                    error!("require to know where to start verify");
-                    return Ok(());
-                }
-                Some(t) => t.parse().expect("can't parse start id"),
-            };
-            let stop_id = matches.value_of("stop-id");
-            let stop_id: u64 = match stop_id {
-                None => {
-                    error!("require to know where to stop verify");
-                    return Ok(());
-                }
-                Some(t) => t.parse().expect("can't parse stop id"),
-            };
-            let config = envy::from_env::<Configuration>().expect("could not parse config");
-            info!("Starting with config {:?}", config);
-            let db_conn = config
-                .db_conn()
-                .await
-                .expect("could not establish db connection");
-            use tiberius_models::*;
-            let client = Client::new(db_conn.clone(), &config.search_dir);
-            let mut table: Box<dyn tiberius_models::VerifiableTable> = match table {
-                "images" => Image::verifier(client, db_conn, start_id, stop_id, 10240),
-                v => {
-                    error!("table {} is invalid", v);
-                    return Ok(());
-                }
-            };
-            table.verify().await
+            crate::cli::verify_db::verify_db(matches).await
+        })?;
+        Ok(())
+    } else if let Some(matches) = matches.subcommand_matches("grant-acl") {
+        runtime.block_on(async move {
+            crate::cli::grant_acl::grant_acl(matches).await
         })?;
         Ok(())
     } else if let Some(matches) = matches.subcommand_matches("gen-keys") {

@@ -362,7 +362,7 @@ mod test {
                 ]),
             ),
             (
-                "pride flag, -oc, -twilight sparkle, -fluttershy, -pinkie pie, -rainbow dash, -applejack, -rarity",
+                "pride flag, -oc, -twilight sparkle, -fluttershy, -pinkie pie,-rainbow dash, -applejack, -rarity",
                 FoldStateVec(vec![
                     FoldState::Raw("pride flag".into()),
                     FoldState::LogicalAnd,

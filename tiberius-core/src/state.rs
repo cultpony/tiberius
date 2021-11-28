@@ -1,7 +1,9 @@
+use std::borrow::BorrowMut;
 use std::rc::Rc;
 use std::time::Instant;
 use std::{convert::Infallible, sync::Arc};
 
+use async_std::sync::RwLock;
 use async_std::{fs::File, path::Path};
 use casbin::CoreApi;
 use chrono::{NaiveDate, NaiveDateTime, Utc};
@@ -13,6 +15,7 @@ use rocket::{
     response::stream::ReaderStream,
     Request,
 };
+use sqlx::{Pool, Postgres};
 use tiberius_models::{ApiKey, Client, Conversation, Filter, Notification, SiteNotice, User};
 
 use crate::app::DBPool;
@@ -31,7 +34,7 @@ pub struct TiberiusState {
     pub db_pool: DBPool,
     pub asset_loader: AssetLoader,
     pub client: Client,
-    pub casbin: Arc<casbin::Enforcer>,
+    pub casbin: Arc<RwLock<casbin::Enforcer>>,
 }
 
 impl TiberiusState {
@@ -39,8 +42,8 @@ impl TiberiusState {
         let pool = self.get_db_pool().await;
         pool.acquire().await
     }
-    pub fn get_casbin(&self) -> &casbin::Enforcer {
-        &self.casbin
+    pub fn get_casbin(&self) -> Arc<RwLock<casbin::Enforcer>> {
+        self.casbin.clone()
     }
     pub async fn get_db_pool(&self) -> DBPool {
         self.db_pool.clone()
@@ -129,6 +132,12 @@ pub struct EncryptedData<T> {
 }
 
 impl TiberiusState {
+    async fn casbin(db_pool: Pool<Postgres>) -> TiberiusResult<(casbin::DefaultModel, sqlx_adapter::SqlxAdapter)> {
+        let casbin_adapter = sqlx_adapter::SqlxAdapter::new_with_pool(db_pool).await?;
+        let casbin_model = casbin::DefaultModel::from_str(include_str!("../casbin.ini")).await?;
+        Ok((casbin_model, casbin_adapter))
+    }
+
     pub async fn new(config: Configuration) -> TiberiusResult<Self> {
         let cryptokeys = {
             tracing::info!("Loading cryptographic keys");
@@ -152,9 +161,8 @@ impl TiberiusState {
         };
         tracing::debug!("Grabbing Database Pool for HTTP Stateful Requests");
         let db_pool = config.db_conn().await?;
-        let casbin_adapter = sqlx_adapter::SqlxAdapter::new_with_pool(db_pool.clone()).await?;
-        let casbin_model = casbin::DefaultModel::from_str(include_str!("../casbin.ini")).await?;
-        let casbin = Arc::new(casbin::Enforcer::new(casbin_model, casbin_adapter).await?);
+        let (casbin_model, casbin_adapter) = Self::casbin(db_pool.clone()).await?;
+        let casbin = Arc::new(RwLock::new(casbin::Enforcer::new(casbin_model, casbin_adapter).await?));
         Ok(Self {
             config: config.clone(),
             client: Client::new(db_pool.clone(), &config.search_dir),

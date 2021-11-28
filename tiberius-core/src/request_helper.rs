@@ -30,6 +30,17 @@ pub enum FormMethod {
     Update,
 }
 
+impl ToString for FormMethod {
+    fn to_string(&self) -> String {
+        use FormMethod::*;
+        match self {
+            Delete => "delete",
+            Create => "create",
+            Update => "update",
+        }.to_string()
+    }
+}
+
 #[derive(serde::Deserialize, Clone, PartialEq, Eq)]
 #[serde(transparent)]
 pub struct CSRFToken(String);
@@ -127,6 +138,7 @@ impl SqlxMiddleware {
 pub enum TiberiusResponse<T> {
     Html(HtmlResponse),
     Json(JsonResponse),
+    JsonNoHeader(HlJsonResponse),
     File(FileResponse),
     Redirect(RedirectResponse),
     NoFlashRedirect(NonFlashRedirectResponse),
@@ -173,6 +185,12 @@ pub struct NonFlashRedirectResponse {
 pub struct JsonResponse {
     pub content: serde_json::Value,
     pub headers: rocket::http::Header<'static>,
+}
+
+#[derive(rocket::Responder)]
+#[response(status = 200, content_type = "json")]
+pub struct HlJsonResponse {
+    pub content: serde_json::Value,
 }
 
 #[derive(rocket::Responder)]

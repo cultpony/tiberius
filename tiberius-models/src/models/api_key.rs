@@ -1,6 +1,7 @@
 use std::ops::DerefMut;
 
-use chrono::NaiveDateTime;
+use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
+use sqlx::query;
 use sqlx::{query_as, types::Uuid};
 use std::convert::TryInto;
 
@@ -9,14 +10,28 @@ use crate::{Client, PhilomenaModelError, User};
 #[derive(sqlx::FromRow, Debug, Clone)]
 pub struct ApiKey {
     id: Uuid,
-    user_id: i32,
+    user_id: i64,
     private: String,
-    valid_until: NaiveDateTime,
-    created_at: NaiveDateTime,
-    updated_at: NaiveDateTime,
+    valid_until: DateTime<Utc>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 }
 
 impl ApiKey {
+    pub fn new(user: &User) -> Result<ApiKey, PhilomenaModelError> {
+        let id = Uuid::new_v4();
+        let key_data: String = {
+            todo!()
+        };
+        Ok(ApiKey{
+            id,
+            user_id: user.id(),
+            private: key_data,
+            valid_until: Utc::now().checked_add_signed(chrono::Duration::weeks(52 * 5)).expect("should not overflow"),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        })
+    }
     pub async fn get_id(
         client: &mut Client,
         id: Uuid,
@@ -56,11 +71,38 @@ impl ApiKey {
             "SELECT * FROM user_api_keys WHERE user_id = $3 OFFSET $1 LIMIT $2",
             offset,
             limit,
-            user.id
+            user.id()
         )
         .fetch_all(client)
         .await?;
         Ok(api_keys)
+    }
+    pub async fn insert(self, client: &mut Client) -> Result<Uuid, PhilomenaModelError> {
+        struct UuidW {
+            id: Uuid
+        }
+        let uuid = query_as!(
+            UuidW,
+            "INSERT INTO user_api_keys (id, user_id, private, valid_until, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+            self.id,
+            self.user_id,
+            self.private,
+            self.valid_until,
+            self.created_at,
+            self.updated_at,
+        ).fetch_one(client).await?;
+        Ok(uuid.id)
+    }
+    pub async fn delete(self, client: &mut Client) -> Result<Uuid, PhilomenaModelError> {
+        struct UuidW {
+            id: Uuid,
+        }
+        let id = query_as!(
+            UuidW,
+            "DELETE FROM user_api_keys WHERE id = $1 RETURNING id",
+            self.id,
+        ).fetch_one(client).await?;
+        Ok(id)
     }
     pub async fn user(&self, client: &mut Client) -> Result<Option<User>, PhilomenaModelError> {
         Ok(User::get_id(client, self.user_id.into()).await?)
@@ -70,5 +112,8 @@ impl ApiKey {
     }
     pub fn secret(&self) -> &str {
         &self.private
+    }
+    pub fn user_id(&self) -> i64 {
+        self.user_id
     }
 }

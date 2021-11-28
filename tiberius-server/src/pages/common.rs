@@ -120,7 +120,7 @@ impl ACLSubjectTrait for ACLSubject {
     fn subject(&self) -> String {
         match self {
             ACLSubject::User(v) => {
-                format!("user::{}", v.id)
+                format!("user::{}", v.email)
             }
             ACLSubject::None => "user::anonymous".to_string(),
         }
@@ -166,7 +166,7 @@ pub async fn verify_acl(
     };
     let v = (subject.subject(), object.object(), action.action());
     debug!("Checking if {:?} is OK in RBAC", v);
-    let enforce_result = casbin.enforce(v.clone())?;
+    let enforce_result = casbin.read().await.enforce(v.clone())?;
     debug!("Result of {:?} = {:?}", v, enforce_result);
     Ok(enforce_result)
 }
