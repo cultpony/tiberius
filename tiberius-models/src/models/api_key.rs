@@ -102,7 +102,7 @@ impl ApiKey {
             "DELETE FROM user_api_keys WHERE id = $1 RETURNING id",
             self.id,
         ).fetch_one(client).await?;
-        Ok(id)
+        Ok(id.id)
     }
     pub async fn user(&self, client: &mut Client) -> Result<Option<User>, PhilomenaModelError> {
         Ok(User::get_id(client, self.user_id.into()).await?)
