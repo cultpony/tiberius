@@ -86,7 +86,7 @@ pub async fn manage_keys_page(
 pub async fn create_api_key(
     state: &State<TiberiusState>,
     rstate: TiberiusRequestState<'_, Authenticated>,
-) -> TiberiusResult<()> {
+) -> TiberiusResult<TiberiusResponse<()>> {
     let edit_api_key: bool = verify_acl(
         state,
         &rstate,
@@ -105,9 +105,11 @@ pub async fn create_api_key(
     let new_key = ApiKey::new(&user)?;
 
     let id = new_key.insert(&mut client).await?;
-    let key = ApiKey::get_id(&mut client, id).await?;
+    let key = ApiKey::get_id(&mut client, id).await?.expect("we just inserted, cannot fail");
 
-    todo!("Return JSON Response");
+    Ok(TiberiusResponse::JsonNoHeader(HlJsonResponse{
+        content: serde_json::to_value(&key)?,
+    }))
 }
 
 #[post("/v3/manage/keys/<uuid>/delete")]
@@ -115,7 +117,7 @@ pub async fn delete_api_key(
     state: &State<TiberiusState>,
     rstate: TiberiusRequestState<'_, Authenticated>,
     uuid: Uuid,
-) -> TiberiusResult<()> {
+) -> TiberiusResult<TiberiusResponse<()>> {
     let edit_api_key: bool = verify_acl(
         state,
         &rstate,
@@ -142,6 +144,6 @@ pub async fn delete_api_key(
     let ok = api_key.clone().delete(&mut client).await?;
 
     Ok(TiberiusResponse::JsonNoHeader(HlJsonResponse{
-        content: serde_json::to_string(ok),
+        content: serde_json::to_value(&ok)?,
     }))
 }

@@ -7,7 +7,7 @@ use std::convert::TryInto;
 
 use crate::{Client, PhilomenaModelError, User};
 
-#[derive(sqlx::FromRow, Debug, Clone)]
+#[derive(sqlx::FromRow, Debug, Clone, serde::Serialize)]
 pub struct ApiKey {
     id: Uuid,
     user_id: i64,
