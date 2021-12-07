@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::{borrow::Cow, path::PathBuf, str::FromStr};
 
+use anyhow::Context;
 use async_std::sync::RwLock;
 use rocket::response::content;
 use rocket::response::status;
@@ -76,7 +77,7 @@ pub async fn serve_static_file(file: PathBuf) -> TiberiusResult<FileResponse> {
     })
 }
 
-#[derive(serde::Deserialize, Clone, Debug)]
+#[derive(serde::Deserialize, Clone, Debug, Default)]
 pub struct SiteConfig {
     name: String,
     source_repo: String,
@@ -103,7 +104,7 @@ impl SiteConfig {
     }
 }
 
-#[derive(serde::Deserialize, Clone, Debug)]
+#[derive(serde::Deserialize, Clone, Debug, Default)]
 #[serde(deny_unknown_fields)]
 pub struct QuickTagTable(Vec<QuickTagTableEntry>);
 
@@ -161,7 +162,7 @@ pub struct QuickTagTableSeasonSeason {
     pub name: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct AssetLoader {
     data: FooterData,
     siteconf: SiteConfig,
@@ -172,19 +173,23 @@ impl AssetLoader {
     pub fn new(c: &Configuration) -> TiberiusResult<Self> {
         tracing::info!("Configuring Assets");
         let dataroot = std::path::PathBuf::from(&c.static_root);
+        if !dataroot.exists() {
+            tracing::error!("COULD NOT FIND ASSETS ON DISK");
+            return Ok(Self::default());
+        }
         tracing::debug!("Data root for static assets is {}", dataroot.display());
         let mut data = dataroot.clone();
         data.push("footer.json");
-        let data = std::fs::File::open(data)?;
-        let data: FooterData = serde_json::from_reader(data)?;
+        let data = std::fs::File::open(data).context("Could not find footer data")?;
+        let data: FooterData = serde_json::from_reader(data).context("Could not parse Footer Data")?;
         let mut siteconf = dataroot.clone();
         siteconf.push("site-conf.json");
-        let siteconf = std::fs::File::open(siteconf)?;
-        let siteconf: SiteConfig = serde_json::from_reader(siteconf)?;
+        let siteconf = std::fs::File::open(siteconf).context("Could not find site config data")?;
+        let siteconf: SiteConfig = serde_json::from_reader(siteconf).context("Could not parse site config data")?;
         let mut quicktagtable = dataroot.clone();
         quicktagtable.push("quick_tag_table.json");
-        let quicktagtable = std::fs::File::open(quicktagtable)?;
-        let quicktagtable = serde_json::from_reader(quicktagtable)?;
+        let quicktagtable = std::fs::File::open(quicktagtable).context("Could not find quick tag table")?;
+        let quicktagtable = serde_json::from_reader(quicktagtable).context("Could not parse quicktag table")?;
         Ok(Self {
             data,
             siteconf,

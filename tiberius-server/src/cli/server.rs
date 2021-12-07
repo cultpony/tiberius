@@ -1,3 +1,4 @@
+use rocket::{Rocket, Build};
 use rocket::yansi::Paint;
 use sqlx::Postgres;
 use tiberius_core::CSPHeader;
@@ -19,19 +20,7 @@ pub async fn run_migrations(
     Ok(())
 }
 
-pub async fn server_start(start_job_scheduler: bool) -> TiberiusResult<()> {
-    let config = envy::from_env::<Configuration>()?;
-    info!("Starting with config {:?}", config);
-    let db_conn: DBPool = config.db_conn().await?;
-    run_migrations(&config, db_conn.clone()).await?;
-    let job_runner = if start_job_scheduler {
-        debug!("Starting job runner");
-        Some(tiberius_jobs::runner(db_conn.clone(), config.clone()))
-    } else {
-        None
-    };
-    debug!("Configuring application server");
-
+pub async fn rocket(db_conn: DBPool, config: &Configuration) -> TiberiusResult<Rocket<Build>> {
     let rkt = rocket::build();
     let rkt = rkt.manage(TiberiusState::new(config.clone()).await?);
     let rkt = rkt.attach(CSPHeader);
@@ -100,6 +89,11 @@ pub async fn server_start(start_job_scheduler: bool) -> TiberiusResult<()> {
             crate::pages::apikeys::manage_keys_page,
             crate::pages::apikeys::create_api_key,
             crate::pages::apikeys::delete_api_key,
+            crate::pages::session::destroy_session,
+            crate::pages::session::new_session_post,
+            crate::pages::session::new_session_totp,
+            crate::pages::session::new_session,
+            crate::pages::session::registration,
             crate::pages::session::alt_url_new_session_post,
             crate::pages::session::alt_url_new_session,
             tiberius_core::assets::serve_asset,
@@ -109,7 +103,26 @@ pub async fn server_start(start_job_scheduler: bool) -> TiberiusResult<()> {
         ],
     );
 
-    let rkt = rkt.register("/", catchers![pages::errors::server_error]);
+    let rkt = rkt.register("/", catchers![pages::errors::server_error, pages::errors::access_denied]);
+
+    Ok(rkt)
+}
+
+pub async fn server_start(start_job_scheduler: bool) -> TiberiusResult<()> {
+    let config = envy::from_env::<Configuration>()?;
+    info!("Starting with config {:?}", config);
+    let db_conn: DBPool = config.db_conn().await?;
+    run_migrations(&config, db_conn.clone()).await?;
+    let job_runner = if start_job_scheduler {
+        debug!("Starting job runner");
+        Some(tiberius_jobs::runner(db_conn.clone(), config.clone()))
+    } else {
+        None
+    };
+    debug!("Configuring application server");
+
+    let rkt = rocket(db_conn.clone(), &config).await?;
+
     let scheduler = if start_job_scheduler {
         debug!("Booting up job scheduler");
         let db_conn = db_conn.clone();

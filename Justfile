@@ -14,6 +14,9 @@ run: build
 build: check
   cargo build --no-default-features --features=stable-release
 
+build-release: check
+  cargo build --release --no-default-features --features=stable-release
+
 fullbuild: fullcheck
   cargo hack build {{hack_step_a}}
   cargo hack build {{hack_step_b}}
@@ -34,10 +37,10 @@ fmt:
 clippy:
   cargo clippy --workspace
 
-test: build
+test: check
   cargo test --workspace
 
-fulltest: fullbuild
+fulltest: fullcheck
   cargo hack test {{hack_step_a}}
   cargo hack test {{hack_step_b}}
 

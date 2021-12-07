@@ -27,3 +27,6 @@ thiserror = "1.0.30"
 tiberius-search = { path = "../tiberius-search" }
 tokio = { version = "1.10" }
 url = { version = "2.2", features = ["serde"] }
+
+[features]
+verify-db = []

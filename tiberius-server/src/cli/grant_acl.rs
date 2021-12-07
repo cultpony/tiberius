@@ -13,7 +13,7 @@ pub async fn grant_acl(args: &ArgMatches<'_>) -> TiberiusResult<()> {
     let state = TiberiusState::new(config.clone()).await?;
     let casbin = state.get_casbin();
     let mut casbin = casbin.write().await;
-    let client = tiberius_models::Client::new(db_conn, &config.search_dir);
+    let client = tiberius_models::Client::new(db_conn, config.search_dir.as_ref());
     let grant = args.subcommand_matches("grant").is_some();
     let revoke = args.subcommand_matches("revoke").is_some();
     let list = args.subcommand_matches("list").is_some();

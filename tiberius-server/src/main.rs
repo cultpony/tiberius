@@ -31,6 +31,8 @@ mod api;
 mod init;
 mod pages;
 mod cli;
+#[cfg(test)]
+mod tests;
 
 const MAX_IMAGE_DIMENSION: u32 = 2_000_000u32;
 
@@ -67,7 +69,9 @@ fn main() -> TiberiusResult<()> {
                         .short("z")
                         .help("disable job scheduling and running"),
                 ),
-        )
+        );
+    #[cfg(feature = "verify-db")]
+    let app = app
         .subcommand(
             SubCommand::with_name("verify-db")
                 .about("verify database-integrity")
@@ -92,7 +96,8 @@ fn main() -> TiberiusResult<()> {
                         .takes_value(true)
                         .help("ID to stop at"),
                 ),
-        )
+        );
+    let app = app
         .subcommand(
             SubCommand::with_name("gen-keys")
                 .about("generate or refresh server cryptographic keys")
@@ -207,6 +212,7 @@ fn main() -> TiberiusResult<()> {
         runtime.shutdown_timeout(std::time::Duration::from_secs(10));
         Ok(())
     } else if let Some(matches) = matches.subcommand_matches("verify-db") {        
+        #[cfg(feature = "verify-db")]
         runtime.block_on(async move {
             crate::cli::verify_db::verify_db(matches).await
         })?;

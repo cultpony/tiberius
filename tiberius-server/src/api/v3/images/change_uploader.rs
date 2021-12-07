@@ -97,3 +97,34 @@ pub async fn change_image_uploader(
     todo!("save to database");
     todo!("return OK json");
 }
+
+#[cfg(test)]
+mod test {
+    use rocket::http::Status;
+    use rocket::local::asynchronous::Client;
+    use tiberius_core::app::DBPool;
+    use tiberius_core::config::Configuration;
+    use tiberius_core::error::TiberiusResult;
+
+    use crate::cli::server::rocket;
+    use crate::api::v3::images::ChangeUploader;
+
+    #[sqlx_database_tester::test(
+        pool(variable = "pool", migrations = "../migrations"),
+    )]
+    async fn test_change_uploader_reject_unauthoriezd() -> TiberiusResult<()> {
+        let mut config = Configuration::default();
+        unsafe { config.set_alt_dbconn(pool.clone()) };
+        let rocket = rocket(pool, &config).await.unwrap();
+        let client = Client::tracked(rocket).await.unwrap();
+
+        let resp = client.post("/api/v3/images/0/change_uploader")
+            .json(&ChangeUploader{
+                new_uploader: "120".to_string(),
+                old_uploader: "100".to_string()
+            })
+            .dispatch().await;
+        assert_eq!(resp.status(), Status::NotFound);
+        Ok(())
+    }
+}

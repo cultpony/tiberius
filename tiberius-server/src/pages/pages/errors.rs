@@ -13,3 +13,8 @@ pub async fn server_error() -> TiberiusResponse<()> {
     .into_string();
     TiberiusResponse::Html(HtmlResponse { content })
 }
+
+#[catch(403)]
+pub async fn access_denied(req: &Request<'_>) -> String {
+    format!("Access Denied")
+}

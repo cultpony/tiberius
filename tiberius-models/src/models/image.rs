@@ -18,8 +18,10 @@ use tracing::trace;
 
 use crate::{
     tantivy_bool_text_field, tantivy_date_field, tantivy_raw_text_field, tantivy_text_field,
-    tantivy_u64_field, Client, ImageFeature, ImageTag, PhilomenaModelError, Tag, VerifiableTable,
+    tantivy_u64_field, Client, ImageFeature, ImageTag, PhilomenaModelError, Tag,
 };
+#[cfg(feature = "verify-db")]
+use crate::VerifiableTable;
 
 pub struct VerifierImage {
     pool: PgPool,
@@ -29,6 +31,7 @@ pub struct VerifierImage {
     subbatching: u64,
 }
 
+#[cfg(feature = "verify-db")]
 #[async_trait]
 impl VerifiableTable for VerifierImage {
     async fn verify(&mut self) -> Result<(), PhilomenaModelError> {
@@ -400,6 +403,7 @@ pub struct ImageWithTags {
 }
 
 impl Image {
+    #[cfg(feature = "verify-db")]
     pub fn verifier(
         client: Client,
         pool: PgPool,

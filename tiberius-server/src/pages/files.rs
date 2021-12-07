@@ -51,7 +51,7 @@ pub async fn image_full_get(
         if let Some(image_path) = image.image {
             let path = PathBuf::from_str(&image_path)?;
             let path = PathBuf::from_str("images")?.join(path);
-            let path = config.data_root.clone().join(path);
+            let path = config.data_root.clone().expect("require static data root").join(path);
             path
         } else {
             return Ok(TiberiusResponse::Error(TiberiusError::Other(
@@ -107,7 +107,7 @@ async fn read_static(
 ) -> TiberiusResult<status::Custom<content::Custom<ReaderStream![File]>>> {
     let config = state.config();
     trace!("requesting static file {}", path.display());
-    let path = config.data_root.clone().join(path);
+    let path = config.data_root.clone().expect("require static data root").join(path);
     let path = if let Ok(md) = path.symlink_metadata() {
         if md.file_type().is_symlink() {
             trace!("using full path image");
@@ -117,7 +117,7 @@ async fn read_static(
                 if let Some(image_path) = image.image {
                     let path = PathBuf::from_str(&image_path)?;
                     let path = PathBuf::from_str("images")?.join(path);
-                    let path = config.data_root.clone().join(path);
+                    let path = config.data_root.clone().expect("require static data root").join(path);
                     path
                 } else {
                     path

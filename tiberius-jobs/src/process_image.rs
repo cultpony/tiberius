@@ -48,7 +48,7 @@ pub(crate) async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> Tib
         current_job.id(),
         img.id
     );
-    let dataroot = sctx.config.data_root.clone();
+    let dataroot = sctx.config.data_root.clone().expect("require configured data root directory");
     //TODO: improve error handling here
     {
         let path = dataroot.join("images").join(img.image.clone().unwrap());

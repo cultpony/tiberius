@@ -595,7 +595,7 @@ pub async fn new_image(
     };
     let config = state.config();
     let unixts = chrono::Utc::now();
-    let mut subdir = config.data_root.clone();
+    let mut subdir = config.data_root.clone().expect("require configured data root directory");
     subdir.push("images");
     if !subdir.exists() {
         std::fs::create_dir(&subdir)?;
@@ -665,7 +665,7 @@ pub async fn new_image(
     let tags = tiberius_models::Tag::get_many_by_name(&mut client, tags, true).await?;
     let tags = tags.into_iter().map(|x| x.id).collect();
     let canon_path = new_path.clone();
-    let canon_path = canon_path.strip_prefix(&config.data_root)?;
+    let canon_path = canon_path.strip_prefix(&config.data_root.as_ref().expect("require static data root"))?;
     let canon_path = canon_path.strip_prefix("images")?;
     //image.image.persist_to(new_path);
     let image = Image {

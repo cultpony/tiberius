@@ -81,6 +81,8 @@ pub enum TiberiusError {
     ErlangTermDecode(String),
     #[error("{0} {0} not found")]
     ObjectNotFound(String, String),
+    #[error(transparent)]
+    Internal(#[from] anyhow::Error),
 }
 
 pub type TiberiusResult<T> = std::result::Result<T, TiberiusError>;

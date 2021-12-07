@@ -101,7 +101,7 @@ impl<T: SessionMode> Session<T> {
         self.csrf_token.clone()
     }
     pub async fn save(&self, state: &TiberiusState) {
-        let pss = state.get_db_pool().await;
+        let pss = state.get_db_pool();
         let pss = PostgresSessionStore::from_client(pss);
         pss.store_session(self).await.unwrap();
     }

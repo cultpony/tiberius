@@ -43,6 +43,7 @@ tokio = { version = "1.10", features = ["full"] }
 url = { version = "2.2", features = ["serde"] }
 uuid = "0.8.1"
 erlang-term = "0.1.1"
+anyhow = "1.0"
 
 [dev-dependencies]
 openssl = { version = "0.10.36", features = ["vendored", "v111"] }

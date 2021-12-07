@@ -88,10 +88,10 @@ impl Fairing for CSPHeader {
     async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut Response<'r>) {
         use csp::*;
         let state: &State<crate::state::TiberiusState> = req.guard().await.succeeded().unwrap();
-        let rstate: TiberiusRequestState<Unauthenticated> =
-            req.guard().await.succeeded().unwrap();
+        let rstate: Option<TiberiusRequestState<Unauthenticated>> =
+            req.guard().await.succeeded();
         let config = state.config();
-        let static_host = config.static_host(&rstate);
+        let static_host = config.static_host(rstate.as_ref());
         let camo_host = config.camo_config().map(|x| x.0);
         let csp = CSP::new()
             .add(Directive::DefaultSrc(

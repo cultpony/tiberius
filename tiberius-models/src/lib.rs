@@ -52,6 +52,8 @@ pub enum PhilomenaModelError {
     IOError(#[from] std::io::Error),
     #[error("Could not find {} in {}", .1, .0)]
     NotFoundInSequence(String, String),
+    #[error("Search not configured")]
+    NoSearchConfigured,
     #[error("Column {} in {} {} was null", .column, .table, .id)]
     DataWasNull {
         column: String,
@@ -65,22 +67,22 @@ pub enum PhilomenaModelError {
 #[derive(Clone)]
 pub struct Client {
     db: PgPool,
-    search_dir: std::path::PathBuf,
+    search_dir: Option<std::path::PathBuf>,
     indices: Arc<RwLock<BTreeMap<String, tantivy::Index>>>,
     writers: Arc<RwLock<BTreeMap<String, Arc<RwLock<tantivy::IndexWriter>>>>>,
 }
 
 impl Client {
-    pub fn new(db: PgPool, search_dir: &std::path::Path) -> Self {
+    pub fn new(db: PgPool, search_dir: Option<&std::path::PathBuf>) -> Self {
         assert!(
-            search_dir.exists(),
-            "Search directory {} did not exist",
-            search_dir.display()
+            search_dir.map(|x| x.exists()).unwrap_or(true),
+            "Search directory {:?} did not exist",
+            search_dir
         );
         warn!("Creating new Database Client");
         Self {
             db,
-            search_dir: search_dir.to_path_buf(),
+            search_dir: search_dir.cloned(),
             indices: Arc::new(RwLock::new(BTreeMap::new())),
             writers: Arc::new(RwLock::new(BTreeMap::new())),
         }
@@ -92,6 +94,10 @@ impl Client {
     pub async fn index_writer<T: Queryable>(
         &mut self,
     ) -> Result<Arc<RwLock<IndexWriter>>, PhilomenaModelError> {
+        let search_dir = match &self.search_dir {
+            Some(v) => v.clone(),
+            None => return Err(PhilomenaModelError::NoSearchConfigured),
+        };
         let t = std::any::type_name::<T>();
 
         trace!("Need index writer {}", t);
@@ -116,7 +122,7 @@ impl Client {
                     i.clone()
                 } else {
                     trace!("Index does not exist, opening");
-                    let i = T::open_or_create_index(self.search_dir.clone())?;
+                    let i = T::open_or_create_index(search_dir.clone())?;
                     iwg.insert(t.to_string(), i.clone());
                     i
                 };
@@ -146,7 +152,11 @@ impl Client {
         }
     }
     pub fn index_reader<T: Queryable>(&mut self) -> Result<IndexReader, PhilomenaModelError> {
-        let i = T::open_or_create_index(self.search_dir.clone())?;
+        let search_dir = match &self.search_dir {
+            Some(v) => v.clone(),
+            None => return Err(PhilomenaModelError::NoSearchConfigured),
+        };
+        let i = T::open_or_create_index(search_dir.clone())?;
         Ok(i.reader()?)
     }
     pub(crate) async fn clone_new_conn(&self, pool: &PgPool) -> Result<Self, PhilomenaModelError> {
@@ -233,6 +243,7 @@ impl<'c> sqlx::Executor<'c> for &mut Client {
 /// Tables that implement this trait can be verified.
 /// Verifying means all table entries are loaded, scanned and it's foreign keys loaded.
 /// If any foreign keys are missing, it is noted in the log output.
+#[cfg(feature = "verify-db")]
 #[async_trait]
 pub trait VerifiableTable {
     async fn verify(&mut self) -> Result<(), PhilomenaModelError>;
