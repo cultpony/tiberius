@@ -8,6 +8,7 @@ use rocket::http::Header;
 use crate::cli::server::rocket;
 use crate::api::v3::images::ChangeUploader;
 
+#[cfg(any(feature = "full-release", feature = "stable-release"))]
 #[sqlx_database_tester::test(
     pool(variable = "pool", migrations = "../migrations"),
 )]
@@ -29,6 +30,7 @@ async fn test_staff_only_mode_enabled() -> TiberiusResult<()> {
     Ok(())
 }
 
+#[cfg(any(feature = "full-release", feature = "stable-release"))]
 #[sqlx_database_tester::test(
     pool(variable = "pool", migrations = "../migrations"),
 )]

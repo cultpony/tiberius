@@ -1,8 +1,9 @@
 set dotenv-load := true
 msrv := "1.56"
 maxrv := ""
-excluded_features_step_a := "full-release,default"
-excluded_features_step_b := "stable-release,default"
+excluded_features_all := ",default,dev-release"
+excluded_features_step_a := "full-release" + excluded_features_all
+excluded_features_step_b := "stable-release" + excluded_features_all
 
 hack_step := "--all --feature-powerset --version-range " + msrv + ".." + maxrv + " --exclude-features "
 hack_step_a := hack_step + excluded_features_step_a

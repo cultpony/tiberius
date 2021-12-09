@@ -2,7 +2,6 @@ use clap::ArgMatches;
 use tiberius_core::config::Configuration;
 use tiberius_core::error::TiberiusResult;
 
-#[cfg(feature = "verify-db")]
 pub async fn verify_db(matches: &ArgMatches<'_>) -> TiberiusResult<()> {
         let table = matches.value_of("table");
         let table = match table {
@@ -35,7 +34,7 @@ pub async fn verify_db(matches: &ArgMatches<'_>) -> TiberiusResult<()> {
             .await
             .expect("could not establish db connection");
         use tiberius_models::*;
-        let client = Client::new(db_conn.clone(), &config.search_dir.as_ref());
+        let client = Client::new(db_conn.clone(), config.search_dir.as_ref());
         let mut table: Box<dyn tiberius_models::VerifiableTable> = match table {
             "images" => Image::verifier(client, db_conn, start_id, stop_id, 10240),
             v => {
