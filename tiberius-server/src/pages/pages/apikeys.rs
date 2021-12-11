@@ -12,7 +12,7 @@ use crate::pages::common::frontmatter::{form_submit_button, form_method, csrf_in
 
 use crate::pages::common::{verify_acl, ACLActionAPIKey, ACLActionImage, ACLObject, ACLSubject};
 
-#[get("/v3/manage/keys")]
+#[get("/api/v3/manage/keys")]
 pub async fn manage_keys_page(
     state: &State<TiberiusState>,
     rstate: TiberiusRequestState<'_, Authenticated>,
@@ -82,7 +82,7 @@ pub async fn manage_keys_page(
     }))
 }
 
-#[post("/v3/manage/keys/create")]
+#[post("/api/v3/manage/keys/create")]
 pub async fn create_api_key(
     state: &State<TiberiusState>,
     rstate: TiberiusRequestState<'_, Authenticated>,
@@ -112,7 +112,7 @@ pub async fn create_api_key(
     }))
 }
 
-#[post("/v3/manage/keys/<uuid>/delete")]
+#[post("/api/v3/manage/keys/<uuid>/delete")]
 pub async fn delete_api_key(
     state: &State<TiberiusState>,
     rstate: TiberiusRequestState<'_, Authenticated>,

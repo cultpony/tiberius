@@ -59,7 +59,7 @@ pub async fn new_session(
     }))
 }
 
-#[get("/v3/sessions/login")]
+#[get("/api/v3/sessions/login")]
 pub async fn alt_url_new_session(
     state: &State<TiberiusState>,
     rstate: TiberiusRequestState<'_, Unauthenticated>,
@@ -112,7 +112,7 @@ pub struct NewSession<'r> {
     password: &'r str,
 }
 
-#[post("/v3/sessions/login", data = "<login_data>")]
+#[post("/api/v3/sessions/login", data = "<login_data>")]
 pub async fn alt_url_new_session_post(
     state: &State<TiberiusState>,
     rstate: TiberiusRequestState<'_, Unauthenticated>,
