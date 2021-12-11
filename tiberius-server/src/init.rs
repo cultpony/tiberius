@@ -10,14 +10,9 @@ lazy_static! {
         }
         flexi_logger::Logger::with(
             flexi_logger::LogSpecification::builder()
-                .default(LevelFilter::Warn)
                 .module("sqlx", LevelFilter::Warn)
                 .module("sqlx::query", LevelFilter::Warn)
                 .module("sqlxmq", LevelFilter::Warn)
-                .module("tiberius", LevelFilter::Trace)
-                .module("tiberius_models", LevelFilter::Trace)
-                .module("tiberius_jobs", LevelFilter::Trace)
-                .module("tiberius_core", LevelFilter::Trace)
                 .module("tiberius_search", LevelFilter::Warn)
                 .build(),
         )
