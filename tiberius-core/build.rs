@@ -7,7 +7,12 @@ fn main() {
     if std::env::var("TIBERIUS_PREBUILT_ASSETS") == Ok("YES".to_string()) {
         return;
     }
-    let debug = std::env::var("PROFILE").expect("need rust compile profile") != "release";
+    let debug = std::env::var("PROFILE").expect("need rust compile profile").to_lowercase();
+    let debug = match debug {
+        "release" => false,
+        "deploy" => false,
+        _ => true
+    };
     if !debug {
         let assetdir = "../res/assets-build";
         let assetdir =
