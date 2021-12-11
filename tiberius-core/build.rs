@@ -8,7 +8,7 @@ fn main() {
         return;
     }
     let debug = std::env::var("PROFILE").expect("need rust compile profile").to_lowercase();
-    let debug = match debug {
+    let debug = match debug.as_str() {
         "release" => false,
         "deploy" => false,
         _ => true
