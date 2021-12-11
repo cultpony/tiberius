@@ -272,26 +272,6 @@
       ]
     }
   },
-  "0f5c1c5c927fa415f6728bd33b211a0a5401fdc247dcb4c0e760c5e2a6b3d7a9": {
-    "query": "SELECT id FROM users WHERE id = ANY($1)",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Int4"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Int4Array"
-        ]
-      },
-      "nullable": [
-        false
-      ]
-    }
-  },
   "121b8c3f9138bf6e8201bb59b487a380c65a371b430ee87387355c3d33be9d55": {
     "query": "SELECT * FROM tags WHERE namespace = $1 AND name_in_namespace = $2",
     "describe": {
@@ -1002,6 +982,26 @@
       },
       "nullable": [
         null
+      ]
+    }
+  },
+  "305c008ad7d84ae972421a62886a74632008192e51d20c3f8f1572d8e9a42d18": {
+    "query": "DELETE FROM user_api_keys WHERE id = $1 RETURNING id",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false
       ]
     }
   },
@@ -2503,32 +2503,6 @@
       ]
     }
   },
-  "5de2c80c6b1c4ff249e22041f9825c7070eea4878f17a2c49da857d36752c28f": {
-    "query": "SELECT * FROM image_taggings WHERE image_id = ANY($1)",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "image_id",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 1,
-          "name": "tag_id",
-          "type_info": "Int8"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Int8Array"
-        ]
-      },
-      "nullable": [
-        false,
-        false
-      ]
-    }
-  },
   "666e4531e2bdf5c6a7171f6a781afea100bf8ac98e9da94aef7ca0361d3296dd": {
     "query": "SELECT id FROM users WHERE authentication_token = $1",
     "describe": {
@@ -3710,6 +3684,31 @@
       ]
     }
   },
+  "7adc0a970eb7335ac0f49216f0f73b056e68749179a1e7285def55d6f65166a8": {
+    "query": "INSERT INTO user_api_keys (id, user_id, private, valid_until, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Int8",
+          "Varchar",
+          "Timestamptz",
+          "Timestamptz",
+          "Timestamptz"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
   "7c1fd8511fe27b20b567731329f6cd089d5ac58adfa019d0b186dd7dd5adbfe7": {
     "query": "SELECT * FROM user_tokens WHERE token = $1 AND context = $2",
     "describe": {
@@ -4790,6 +4789,108 @@
       ]
     }
   },
+  "a5753dc1aeeb9e6262e547570957a08fff46a76d66a38c852021211b461101fd": {
+    "query": "SELECT * FROM user_api_keys WHERE id = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "user_id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 2,
+          "name": "private",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 3,
+          "name": "valid_until",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 5,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "a5f2b3d347f08f7aeef5cfa190b92f0b77c04c63417866476f8314d716089b75": {
+    "query": "SELECT * FROM user_api_keys WHERE user_id = $3 OFFSET $1 LIMIT $2",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "user_id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 2,
+          "name": "private",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 3,
+          "name": "valid_until",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 5,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Int8"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
   "a6ae603fd07e771984f2e385fb39a0a612f3c304fd3e691d4744cb68f11aa4b0": {
     "query": "SELECT COUNT(*) AS cnt FROM images WHERE id <= $1",
     "describe": {
@@ -4807,6 +4908,57 @@
       },
       "nullable": [
         null
+      ]
+    }
+  },
+  "adaef99a104e864ec10006091080433d86a5e2b8aead845647126c15748a3996": {
+    "query": "SELECT * FROM user_api_keys OFFSET $1 LIMIT $2",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Uuid"
+        },
+        {
+          "ordinal": 1,
+          "name": "user_id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 2,
+          "name": "private",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 3,
+          "name": "valid_until",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 4,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 5,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
       ]
     }
   },
@@ -4968,356 +5120,6 @@
         false,
         true,
         true,
-        true
-      ]
-    }
-  },
-  "ca1746a085a77d238aabc939e6adf52f334b4efb268139fc06e4451861a7a4fa": {
-    "query": "SELECT * FROM images WHERE id = ANY($1)",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 1,
-          "name": "image",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 2,
-          "name": "image_name",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 3,
-          "name": "image_width",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 4,
-          "name": "image_height",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 5,
-          "name": "image_size",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 6,
-          "name": "image_format",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 7,
-          "name": "image_mime_type",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 8,
-          "name": "image_aspect_ratio",
-          "type_info": "Float8"
-        },
-        {
-          "ordinal": 9,
-          "name": "ip",
-          "type_info": "Inet"
-        },
-        {
-          "ordinal": 10,
-          "name": "fingerprint",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 11,
-          "name": "user_agent",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 12,
-          "name": "referrer",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 13,
-          "name": "anonymous",
-          "type_info": "Bool"
-        },
-        {
-          "ordinal": 14,
-          "name": "score",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 15,
-          "name": "faves_count",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 16,
-          "name": "upvotes_count",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 17,
-          "name": "downvotes_count",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 18,
-          "name": "votes_count",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 19,
-          "name": "watcher_ids",
-          "type_info": "Int4Array"
-        },
-        {
-          "ordinal": 20,
-          "name": "watcher_count",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 21,
-          "name": "source_url",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 22,
-          "name": "description",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 23,
-          "name": "image_sha512_hash",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 24,
-          "name": "image_orig_sha512_hash",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 25,
-          "name": "deletion_reason",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 26,
-          "name": "tag_list_cache",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 27,
-          "name": "tag_list_plus_alias_cache",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 28,
-          "name": "file_name_cache",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 29,
-          "name": "duplicate_id",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 30,
-          "name": "tag_ids",
-          "type_info": "Int4Array"
-        },
-        {
-          "ordinal": 31,
-          "name": "comments_count",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 32,
-          "name": "processed",
-          "type_info": "Bool"
-        },
-        {
-          "ordinal": 33,
-          "name": "thumbnails_generated",
-          "type_info": "Bool"
-        },
-        {
-          "ordinal": 34,
-          "name": "duplication_checked",
-          "type_info": "Bool"
-        },
-        {
-          "ordinal": 35,
-          "name": "hidden_from_users",
-          "type_info": "Bool"
-        },
-        {
-          "ordinal": 36,
-          "name": "tag_editing_allowed",
-          "type_info": "Bool"
-        },
-        {
-          "ordinal": 37,
-          "name": "description_editing_allowed",
-          "type_info": "Bool"
-        },
-        {
-          "ordinal": 38,
-          "name": "commenting_allowed",
-          "type_info": "Bool"
-        },
-        {
-          "ordinal": 39,
-          "name": "is_animated",
-          "type_info": "Bool"
-        },
-        {
-          "ordinal": 40,
-          "name": "first_seen_at",
-          "type_info": "Timestamp"
-        },
-        {
-          "ordinal": 41,
-          "name": "featured_on",
-          "type_info": "Timestamp"
-        },
-        {
-          "ordinal": 42,
-          "name": "se_intensity",
-          "type_info": "Float8"
-        },
-        {
-          "ordinal": 43,
-          "name": "sw_intensity",
-          "type_info": "Float8"
-        },
-        {
-          "ordinal": 44,
-          "name": "ne_intensity",
-          "type_info": "Float8"
-        },
-        {
-          "ordinal": 45,
-          "name": "nw_intensity",
-          "type_info": "Float8"
-        },
-        {
-          "ordinal": 46,
-          "name": "average_intensity",
-          "type_info": "Float8"
-        },
-        {
-          "ordinal": 47,
-          "name": "user_id",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 48,
-          "name": "deleted_by_id",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 49,
-          "name": "created_at",
-          "type_info": "Timestamp"
-        },
-        {
-          "ordinal": 50,
-          "name": "updated_at",
-          "type_info": "Timestamp"
-        },
-        {
-          "ordinal": 51,
-          "name": "destroyed_content",
-          "type_info": "Bool"
-        },
-        {
-          "ordinal": 52,
-          "name": "hidden_image_key",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 53,
-          "name": "scratchpad",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 54,
-          "name": "hides_count",
-          "type_info": "Int4"
-        },
-        {
-          "ordinal": 55,
-          "name": "image_duration",
-          "type_info": "Float8"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Int4Array"
-        ]
-      },
-      "nullable": [
-        false,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        false,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        false,
-        false,
-        false,
-        true,
-        true,
-        false,
         true
       ]
     }

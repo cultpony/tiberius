@@ -120,13 +120,20 @@ impl<'r> FromRequest<'r> for TiberiusRequestState<'r, Unauthenticated> {
     type Error = TiberiusError;
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let state = request.state().await;
-        match state.staff_only() {
-            None => (),
-            Some(v) => {
-                if request.headers().get("X-Tiberius-Staff-Auth").next() != Some(&v) {
-                    debug!("No staff key, denying access");
-                    return Outcome::Failure((rocket::http::Status::Forbidden, TiberiusError::AccessDenied));
+        {
+            let staff_key = state.staff_only();
+            let supplied_key = request.headers().get("X-Tiberius-Staff-Auth").next();
+            let accepted = match (supplied_key, staff_key) {
+                (None, Some(_)) => false,
+                (Some(supplied_key), Some(staff_key)) => {
+                    debug!("Comparing Staff Key {:?} to supplied key {:?}", staff_key, supplied_key);
+                    ring::constant_time::verify_slices_are_equal(supplied_key.as_bytes(), staff_key.as_bytes()).is_ok()
                 }
+                (_, None) => true,
+            };
+            if !accepted {
+                debug!("No staff key, denying access");
+                return Outcome::Failure((rocket::http::Status::Forbidden, TiberiusError::AccessDenied));
             }
         }
         Outcome::Success(Self {

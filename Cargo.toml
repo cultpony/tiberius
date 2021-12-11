@@ -1,3 +1,9 @@
 [workspace]
 members = ["tiberius-server", "tiberius-models", "tiberius-core", "tiberius-jobs"]
 default-members = ["tiberius-server"]
+
+[profile.deploy]
+inherits = "release"
+opt-level = 3
+lto = true
+codegen-units = 1

@@ -25,6 +25,11 @@ async fn test_staff_only_mode_enabled() -> TiberiusResult<()> {
     assert_eq!(resp.status(), Status::Ok, "Must accept all access to sessions with staff key if staff key configured");
 
     let resp = client.get("/sessions/login")
+        .header(Header::new("X-Tiberius-Staff-Auth", "no-test"))
+        .dispatch().await;
+    assert_eq!(resp.status(), Status::Forbidden, "Staff key is wrongly configured -> Deny Access");
+
+    let resp = client.get("/sessions/login")
         .dispatch().await;
     assert_eq!(resp.status(), Status::Forbidden, "Must deny all access to sessions without staff key if staff key configured");
     Ok(())

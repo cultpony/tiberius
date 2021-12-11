@@ -12,11 +12,17 @@ hack_step_b := hack_step + excluded_features_step_b
 run: build
   cargo run --no-default-features --features=stable-release -- server -z
 
+sqlx-prep:
+  cargo sqlx prepare --merged
+
 build: check
   cargo build --no-default-features --features=stable-release
 
 build-release: check
-  cargo build --release --no-default-features --features=stable-release
+  cargo build --profile=deploy --no-default-features --features=stable-release
+
+build-release-docker: sqlx-prep
+  docker run -it --rm -v $PWD:/app rust:1.57-buster /bin/bash /app/docker-build.sh
 
 fullbuild: fullcheck
   cargo hack build {{hack_step_a}}
