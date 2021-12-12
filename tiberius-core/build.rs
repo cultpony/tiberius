@@ -13,7 +13,7 @@ fn main() {
         "deploy" => false,
         _ => true
     };
-    if !debug {
+    /*if !debug {
         let assetdir = "../res/assets-build";
         let assetdir =
             std::path::PathBuf::try_from(assetdir).expect("release asset path not readable");
@@ -25,7 +25,7 @@ fn main() {
             assetdir.display()
         );
         std::fs::remove_dir_all(assetdir).unwrap();
-    }
+    }*/
     let builddir = "../res/assets";
     let builddir = std::path::PathBuf::try_from(builddir).expect("asset path not readable");
     let builddir = builddir
