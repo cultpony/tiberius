@@ -1,6 +1,7 @@
 use std::ops::DerefMut;
 
 use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
+use ring::rand::SecureRandom;
 use sqlx::query;
 use sqlx::{query_as, types::Uuid};
 use std::convert::TryInto;
@@ -21,7 +22,9 @@ impl ApiKey {
     pub fn new(user: &User) -> Result<ApiKey, PhilomenaModelError> {
         let id = Uuid::new_v4();
         let key_data: String = {
-            todo!()
+            let mut data = [0u8; 64];
+            ring::rand::SystemRandom::new().fill(&mut data)?;
+            base64::encode(data)
         };
         Ok(ApiKey{
             id,

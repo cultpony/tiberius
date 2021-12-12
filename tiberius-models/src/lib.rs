@@ -62,6 +62,8 @@ pub enum PhilomenaModelError {
     },
     #[error("Could not convert: {}", .0)]
     TryFromIntError(#[from] std::num::TryFromIntError),
+    #[error("Unspecified Cryptographic error")]
+    Ring(#[from] ring::error::Unspecified)
 }
 
 #[derive(Clone)]
