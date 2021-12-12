@@ -19,7 +19,7 @@ build: check
   cargo build --no-default-features --features=stable-release
 
 build-release: check
-  cargo build --profile=deploy --no-default-features --features=stable-release
+  cargo build --release --no-default-features --features=stable-release
 
 build-release-docker: sqlx-prep
   docker run -it --rm -v $PWD:/app rust:1.57-buster /bin/bash /app/docker-build.sh
