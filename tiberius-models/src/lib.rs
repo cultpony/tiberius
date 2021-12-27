@@ -73,7 +73,7 @@ pub enum PhilomenaModelError {
     Base64(#[from] base64::DecodeError),
     #[error("BCrypt Error: {}", .0)]
     Bcrypt(#[from] bcrypt::BcryptError),
-    #[error("{}", .0)]
+    #[error("{:?}", .0)]
     Context(#[from] anyhow::Error),
 }
 
