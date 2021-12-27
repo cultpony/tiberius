@@ -35,7 +35,7 @@ pub async fn handover_session<T: SessionMode>(
             session.set_data(METADATA_KEY, "rejected".into())?;
         }
     } else {
-        trace!("User does not exist, handover failed");
+        trace!("User for token {:?} does not exist, handover failed", hex::encode(cookie.user_token()));
         session
             .write()
             .await
