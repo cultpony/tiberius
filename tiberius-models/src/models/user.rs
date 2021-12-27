@@ -218,10 +218,7 @@ impl User {
                     let time = time as u64;
                     use totp_rs::{Algorithm, TOTP};
                     let totpi = TOTP::new(Algorithm::SHA1, 6, 1, 30, dotp);
-                    let totp_result = totpi.generate(time);
-                    let totp_result = totp_result.as_bytes();
-                    let totp = totp.as_bytes();
-                    if ring::constant_time::verify_slices_are_equal(totp_result, totp).is_ok() {
+                    if totpi.check(totp, time) {
                         return Ok(UserLoginResult::Valid);
                     } else {
                         // TODO: retry with backup codes if not [0-9]{6} format
