@@ -63,7 +63,6 @@ pub async fn new_session(
     }))
 }
 
-#[tracing::instrument]
 #[get("/api/v3/sessions/login")]
 pub async fn alt_url_new_session(
     state: &State<TiberiusState>,

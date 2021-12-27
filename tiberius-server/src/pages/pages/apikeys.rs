@@ -12,7 +12,6 @@ use crate::pages::common::frontmatter::{form_submit_button, form_method, csrf_in
 
 use crate::pages::common::{verify_acl, ACLActionAPIKey, ACLActionImage, ACLObject, ACLSubject};
 
-#[tracing::instrument]
 #[get("/api/v3/manage/keys")]
 pub async fn manage_keys_page(
     state: &State<TiberiusState>,
