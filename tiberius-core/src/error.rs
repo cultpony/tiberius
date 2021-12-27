@@ -105,10 +105,19 @@ impl<'r> Responder<'r, 'static> for TiberiusError {
             }
             _ => (),
         }
+        #[cfg(debug_assert)]
         let c = maud::html! {
             "Internal Error"
             br;
             b { pre { (format!("{}", self.to_string())) } };
+        };
+        #[cfg(not(debug_assert))]
+        let c = {
+            error!("Error presented to user: {:?}", self);
+            maud::html! {
+                "Internal Error"
+                br;
+            }
         };
         let c: String = c.into_string();
         Ok(Response::build()
