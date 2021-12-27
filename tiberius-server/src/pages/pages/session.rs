@@ -2,9 +2,9 @@ use maud::{html, Markup, PreEscaped};
 use rocket::{form::Form, response::Redirect, State};
 use tiberius_core::error::TiberiusResult;
 use tiberius_core::request_helper::{HtmlResponse, RedirectResponse, TiberiusResponse};
-use tiberius_core::session::{Authenticated, SessionMode, Unauthenticated};
+use tiberius_core::session::{Authenticated, SessionMode, Unauthenticated, AuthMethod};
 use tiberius_core::state::{Flash, TiberiusRequestState, TiberiusState};
-use tiberius_models::{Client, User};
+use tiberius_models::{Client, User, UserLoginResult};
 
 use crate::pages::common::flash::put_flash;
 
@@ -33,6 +33,10 @@ pub async fn new_session(
                 input.input #user_password name="password" type="password" required="true" placeholder="Password";
             }
 
+            .field {
+                input.input #user_totp name="totp" type="text" pattern="[0-9]{6}" placeholder="TOTP";
+            }
+
             /*.field { We don't implement session remembering, just let the session linger
                 input#user_remember_me name="remember_me" type="checkbox" value="true";
                 label for="user_remember_me" { "Remember me" }
@@ -59,6 +63,7 @@ pub async fn new_session(
     }))
 }
 
+#[tracing::instrument]
 #[get("/api/v3/sessions/login")]
 pub async fn alt_url_new_session(
     state: &State<TiberiusState>,
@@ -71,6 +76,7 @@ pub async fn alt_url_new_session(
         h3 { b { "Alternative login page: Ensure you have the v3-Deployment Key setup in your browser"} }
 
         form action=(uri!(alt_url_new_session_post)) method="POST" {
+            input type="hidden" name="alt_r" value="1";
 
             .field {
                 input.input #user_email name="email" type="email" required="true" placeholder="Email" autofocus="true" pattern=".*@.*";
@@ -78,6 +84,10 @@ pub async fn alt_url_new_session(
 
             .field {
                 input.input #user_password name="password" type="password" required="true" placeholder="Password";
+            }
+
+            .field {
+                input.input #user_totp name="totp" type="text" pattern="[0-9]{6}" placeholder="TOTP";
             }
 
             .actions {
@@ -110,6 +120,9 @@ pub async fn forgot_password() -> TiberiusResult<String> {
 pub struct NewSession<'r> {
     email: &'r str,
     password: &'r str,
+    totp: Option<&'r str>,
+    // use alternative login route and success
+    alt_r: Option<bool>,
 }
 
 #[post("/api/v3/sessions/login", data = "<login_data>")]
@@ -133,32 +146,43 @@ pub async fn new_session_post(
     let user: Option<User> =
         User::get_mail_or_name(&mut client, login_data.email.to_string()).await?;
     if let Some(user) = user {
-        let password = login_data.password.to_string()
-            + state
-                .config
-                .password_pepper
-                .as_ref()
-                .unwrap_or(&"".to_string())
-                .as_str();
-        let hash = &user.encrypted_password;
-        trace!("password: {}, hash: {}", password, hash);
-        let valid = bcrypt::verify(password, &hash)?;
-        if valid {
-            let session = rstate.session;
-            session.write().await.set_user(&user);
-            let id = session.read().await.id();
-            trace!("Creating new session, persisting {} to DB", id);
-            session.write().await.save(state).await;
-            Ok(RedirectResponse {
-                redirect: Flash::alert("Login successfull!")
-                    .into_resp(Redirect::to(uri!(crate::pages::activity::index))),
-            })
+        let valid = user.validate_login(state.config.password_pepper(), &state.config.otp_secret(), login_data.email, login_data.password, login_data.totp)?;
+        let home = if login_data.alt_r.unwrap_or(false) {
+            uri!(crate::pages::activity::index)
         } else {
-            trace!("password disagree");
-            Ok(RedirectResponse {
-                redirect: Flash::alert("User or password incorrect")
-                    .into_resp(Redirect::to(uri!(new_session))),
-            })
+            uri!(crate::api::v3::misc::sessho::session_handover_user)
+        };
+        let retry = if login_data.alt_r.unwrap_or(false) {
+            uri!(new_session)
+        } else {
+            uri!(alt_url_new_session)
+        };
+        match valid {
+            UserLoginResult::Valid => {
+                let session = rstate.session;
+                session.write().await.set_user(&user);
+                let id = session.read().await.id();
+                trace!("Creating new session, persisting {} to DB", id);
+                session.write().await.save(state).await;
+                Ok(RedirectResponse {
+                    redirect: Flash::alert("Login successfull!")
+                        .into_resp(Redirect::to(home)),
+                })
+            },
+            UserLoginResult::Invalid => {
+                trace!("password disagree");
+                Ok(RedirectResponse {
+                    redirect: Flash::alert("User or password incorrect")
+                        .into_resp(Redirect::to(retry)),
+                })
+            }
+            UserLoginResult::RetryWithTOTP => {
+                trace!("password agree, TOTP missing");
+                Ok(RedirectResponse {
+                    redirect: Flash::alert("TOTP incorrect or required")
+                        .into_resp(Redirect::to(retry)),
+                })
+            }
         }
     } else {
         trace!("user not found");
@@ -169,11 +193,6 @@ pub async fn new_session_post(
     }
 }
 
-#[post("/sessions/login/totp")]
-pub async fn new_session_totp() -> TiberiusResult<String> {
-    todo!()
-}
-
 #[post("/sessions/register")]
 pub async fn registration() -> TiberiusResult<String> {
     todo!()
@@ -181,10 +200,28 @@ pub async fn registration() -> TiberiusResult<String> {
 
 #[get("/session/logout")]
 pub async fn destroy_session(
+    state: &State<TiberiusState>,
     rstate: TiberiusRequestState<'_, Authenticated>,
 ) -> TiberiusResult<RedirectResponse> {
+    let session = rstate.session;
+    session.write().await.unset_user();
+    session.write().await.save(state).await;
     Ok(RedirectResponse {
         redirect: Flash::info("You have been logged out")
             .into_resp(Redirect::to(uri!(crate::pages::activity::index))),
+    })
+}
+
+#[get("/api/v3/sessions/logout")]
+pub async fn alt_url_destroy_session(
+    state: &State<TiberiusState>,
+    rstate: TiberiusRequestState<'_, Authenticated>,
+) -> TiberiusResult<RedirectResponse> {
+    let session = rstate.session;
+    session.write().await.unset_user();
+    session.write().await.save(state).await;
+    Ok(RedirectResponse {
+        redirect: Flash::info("You have been logged out")
+            .into_resp(Redirect::to(uri!(alt_url_new_session))),
     })
 }

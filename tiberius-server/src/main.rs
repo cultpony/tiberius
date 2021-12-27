@@ -28,16 +28,16 @@ use tiberius_core::state::TiberiusState;
 use tiberius_core::{package_full, package_name, package_version, CSPHeader};
 
 mod api;
+mod cli;
 mod init;
 mod pages;
-mod cli;
 #[cfg(test)]
 mod tests;
 
 const MAX_IMAGE_DIMENSION: u32 = 2_000_000u32;
 
 fn main() -> TiberiusResult<()> {
-    crate::init::LOGGER.flush();
+    crate::init::logging();
     use tokio::runtime::Builder;
     let runtime = Builder::new_multi_thread()
         .worker_threads(16)
@@ -71,32 +71,31 @@ fn main() -> TiberiusResult<()> {
                 ),
         );
     #[cfg(feature = "verify-db")]
-    let app = app
-        .subcommand(
-            SubCommand::with_name("verify-db")
-                .about("verify database-integrity")
-                .arg(
-                    Arg::with_name("table")
-                        .short("t")
-                        .required(true)
-                        .takes_value(true)
-                        .help("table to verify"),
-                )
-                .arg(
-                    Arg::with_name("start-id")
-                        .short("s")
-                        .required(true)
-                        .takes_value(true)
-                        .help("ID to start at"),
-                )
-                .arg(
-                    Arg::with_name("stop-id")
-                        .short("e")
-                        .required(true)
-                        .takes_value(true)
-                        .help("ID to stop at"),
-                ),
-        );
+    let app = app.subcommand(
+        SubCommand::with_name("verify-db")
+            .about("verify database-integrity")
+            .arg(
+                Arg::with_name("table")
+                    .short("t")
+                    .required(true)
+                    .takes_value(true)
+                    .help("table to verify"),
+            )
+            .arg(
+                Arg::with_name("start-id")
+                    .short("s")
+                    .required(true)
+                    .takes_value(true)
+                    .help("ID to start at"),
+            )
+            .arg(
+                Arg::with_name("stop-id")
+                    .short("e")
+                    .required(true)
+                    .takes_value(true)
+                    .help("ID to stop at"),
+            ),
+    );
     let app = app
         .subcommand(
             SubCommand::with_name("gen-keys")
@@ -207,11 +206,14 @@ fn main() -> TiberiusResult<()> {
             warn!("Running without job scheduler and job runner");
         }
         runtime.block_on(async move {
-            tokio::spawn(async move { crate::cli::server::server_start(job_runner).await }).await
+            tokio::spawn(async move {
+                crate::cli::server::server_start(job_runner).await
+            })
+            .await
         })??;
         runtime.shutdown_timeout(std::time::Duration::from_secs(10));
         Ok(())
-    } else if let Some(matches) = matches.subcommand_matches("verify-db") {        
+    } else if let Some(matches) = matches.subcommand_matches("verify-db") {
         #[cfg(feature = "verify-db")]
         runtime.block_on(async move {
             crate::cli::verify_db::verify_db(matches).await

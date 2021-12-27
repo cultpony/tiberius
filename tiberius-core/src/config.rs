@@ -90,6 +90,9 @@ pub struct Configuration {
     #[serde(skip)]
     #[sensitive]
     pub alt_dbconn: Option<DBPool>,
+    #[serde(skip)]
+    #[sensitive]
+    pub otp_secret: Option<String>,
 }
 
 impl Configuration {
@@ -138,6 +141,15 @@ impl Configuration {
     pub unsafe fn set_staff_key(&mut self, staff_secret: Option<String>) {
         self.staff_secret = staff_secret
     }
+    pub fn otp_secret(&self) -> Vec<u8> {
+        match &self.otp_secret {
+            Some(v) => base64::decode(v).expect("invalid OTP secret"),
+            None => Vec::new(),
+        }
+    }
+    pub fn password_pepper(&self) -> Option<&str> {
+        self.password_pepper.as_ref().map(|x| x.as_str())
+    }
 }
 
 impl Default for Configuration {
@@ -152,11 +164,6 @@ impl Default for Configuration {
             flash_cookie: default_flash_cookie(),
             philomena_encryption_salt: default_philomena_encryption_salt(),
             philomena_signing_salt: default_philomena_signing_salt(),
-            /*postgres_host: "localhost".to_string(),
-            postgres_port: 5432,
-            postgres_user: "postgres".to_string(),
-            postgres_password: "postgres".to_string(),
-            postgres_db: "philomena".to_string(),*/
             camo_host: None,
             camo_key: None,
             static_host: None,
@@ -172,6 +179,7 @@ impl Default for Configuration {
             session_handover_secret: None,
             staff_secret: None,
             alt_dbconn: None,
+            otp_secret: None,
         }
     }
 }

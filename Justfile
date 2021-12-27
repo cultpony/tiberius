@@ -15,7 +15,7 @@ run: build
 sqlx-prep:
   cargo sqlx prepare --merged
 
-build: check
+build:
   cargo build --no-default-features --features=stable-release
 
 build-release: check

@@ -36,6 +36,8 @@ pub type ClientRef<'a> = &'a mut Client;
 
 #[derive(thiserror::Error, Debug)]
 pub enum PhilomenaModelError {
+    #[error("Other error: {}", .0)]
+    Other(String),
     #[error("Error in underlying datamodel: {}", .0)]
     SQLx(#[from] sqlx::Error),
     #[error("Could not deserialize upstream: {}", .0)]
@@ -63,7 +65,11 @@ pub enum PhilomenaModelError {
     #[error("Could not convert: {}", .0)]
     TryFromIntError(#[from] std::num::TryFromIntError),
     #[error("Unspecified Cryptographic error")]
-    Ring(#[from] ring::error::Unspecified)
+    Ring(#[from] ring::error::Unspecified),
+    #[error("Decode error: {}", .0)]
+    Base64(#[from] base64::DecodeError),
+    #[error("BCrypt Error: {}", .0)]
+    Bcrypt(#[from] bcrypt::BcryptError),
 }
 
 #[derive(Clone)]

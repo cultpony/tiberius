@@ -39,6 +39,14 @@ pub struct TiberiusState {
     pub casbin: Arc<RwLock<casbin::Enforcer>>,
 }
 
+impl std::fmt::Debug for TiberiusState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TiberiusState")
+          .field("config", &self.config)
+        .field("asset_loader", &self.asset_loader).finish()
+    }
+}
+
 impl TiberiusState {
     pub async fn get_db(&self) -> std::result::Result<DbRef, sqlx::Error> {
         let pool = self.get_db_pool();
@@ -79,6 +87,26 @@ pub struct TiberiusRequestState<'a, T: SessionMode> {
     pub session: SessionPtr<T>,
     pub flash: Option<Flash>,
     pub started_at: Instant,
+}
+
+impl std::fmt::Debug for TiberiusRequestState<'_, Authenticated> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TiberiusRequestState")
+            .field("authenticated", &true)
+            .field("headers", &self.headers)
+            .field("uri", &self.uri)
+            .field("started_at", &self.started_at).finish()
+    }
+}
+
+impl std::fmt::Debug for TiberiusRequestState<'_, Unauthenticated> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TiberiusRequestState")
+            .field("authenticated", &false)
+            .field("headers", &self.headers)
+            .field("uri", &self.uri)
+            .field("started_at", &self.started_at).finish()
+    }
 }
 
 #[rocket::async_trait]

@@ -1,6 +1,7 @@
+use std::num::NonZeroU32;
 use std::ops::DerefMut;
 
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
 use sqlx::{query, query_as};
 use tracing::trace;
@@ -86,12 +87,213 @@ pub struct User {
     pub confirmed_at: Option<NaiveDateTime>,
 }
 
+impl Default for User {
+    fn default() -> Self {
+        let time = Utc::now().naive_utc();
+        Self {
+            id: 0,
+            email: String::default(),
+            encrypted_password: String::default(),
+            reset_password_token: None,
+            reset_password_sent_at: None,
+            remember_created_at: None,
+            sign_in_count: 0,
+            current_sign_in_at: None,
+            last_sign_in_at: None,
+            current_sign_in_ip: None,
+            last_sign_in_ip: None,
+            created_at: time,
+            updated_at: time,
+            deleted_at: None,
+            authentication_token: String::default(),
+            name: String::default(),
+            slug: String::default(),
+            role: String::default(),
+            description: None,
+            avatar: None,
+            spoiler_type: String::default(),
+            theme: String::default(),
+            images_per_page: 20,
+            show_large_thumbnails: false,
+            show_sidebar_and_watched_images: false,
+            fancy_tag_field_on_upload: true,
+            fancy_tag_field_on_edit: true,
+            fancy_tag_field_in_settings: true,
+            autorefresh_by_default: false,
+            anonymous_by_default: false,
+            scale_large_images: true,
+            comments_newest_first: true,
+            comments_always_jump_to_last: false,
+            comments_per_page: 20,
+            watch_on_reply: true,
+            watch_on_new_topic: true,
+            watch_on_upload: true,
+            messages_newest_first: true,
+            serve_webm: true,
+            no_spoilered_in_watched: true,
+            watched_images_query_str: String::default(),
+            watched_images_exclude_str: String::default(),
+            forum_posts_count: 0,
+            topic_count: 0,
+            recent_filter_ids: Vec::new(),
+            unread_notification_ids: Vec::new(),
+            watched_tag_ids: Vec::new(),
+            deleted_by_user_id: None,
+            current_filter_id: None,
+            failed_attempts: None,
+            unlock_token: None,
+            locked_at: None,
+            uploads_count: 0,
+            votes_cast_count: 0,
+            comments_posted_count: 0,
+            metadata_updates_count: 0,
+            images_favourited_count: 0,
+            last_donation_at: None,
+            scratchpad: None,
+            use_centered_layout: false,
+            secondary_role: None,
+            hide_default_role: false,
+            personal_title: None,
+            show_hidden_items: false,
+            hide_vote_counts: false,
+            hide_advertisements: false,
+            encrypted_otp_secret: None,
+            encrypted_otp_secret_iv: None,
+            encrypted_otp_secret_salt: None,
+            consumed_timestep: None,
+            otp_required_for_login: None,
+            otp_backup_codes: None,
+            last_renamed_at: time,
+            forced_filter_id: None,
+            confirmed_at: None,
+        }
+    }
+}
+pub enum UserLoginResult {
+    // Password, User or TOTP invalid
+    Invalid,
+    // Password valid but TOTP required
+    RetryWithTOTP,
+    // Password and TOTP correct
+    Valid,
+}
+
+struct OTPDecrypted {
+    secret: Vec<u8>,
+    salt: Vec<u8>,
+    iv: Vec<u8>,
+}
+
 impl User {
     pub fn id(&self) -> i64 {
         self.id as i64
     }
     pub fn displayname(&self) -> &str {
         &self.name
+    }
+    pub fn validate_login(
+        &self,
+        pepper: Option<&str>,
+        otp_secret: &[u8],
+        username: &str,
+        password: &str,
+        totp: Option<&str>,
+    ) -> Result<UserLoginResult, PhilomenaModelError> {
+        if totp.is_none() && self.otp_required_for_login == Some(true) {
+            return Ok(UserLoginResult::RetryWithTOTP);
+        }
+        if username != self.name && username != self.email {
+            // Sanity check this but we shouldn't ever hit this code point
+            return Ok(UserLoginResult::Invalid);
+        }
+        let password = format!("{}{}", password, pepper.unwrap_or(""));
+        let valid_pw = bcrypt::verify(password, &self.encrypted_password)?;
+
+        if self.otp_required_for_login.unwrap_or(false) {
+            let dotp = self.decrypt_otp(otp_secret)?;
+            if let Some(totp) = totp {
+                if let Some(dotp) = dotp {
+                    let time = chrono::Utc::now().timestamp();
+                    assert!(time > 0, "We don't run before 1970");
+                    let time = time as u64;
+                    use totp_rs::{Algorithm, TOTP};
+                    let totpi = TOTP::new(Algorithm::SHA1, 6, 1, 30, dotp);
+                    let totp_result = totpi.generate(time);
+                    let totp_result = totp_result.as_bytes();
+                    let totp = totp.as_bytes();
+                    if ring::constant_time::verify_slices_are_equal(totp_result, totp).is_ok() {
+                        return Ok(UserLoginResult::Valid);
+                    } else {
+                        // TODO: retry with backup codes if not [0-9]{6} format
+                        return Ok(UserLoginResult::Invalid);
+                    }
+                } else {
+                    // User has required TOTP but no TOTP setup, so reject the attempt
+                    return Ok(UserLoginResult::Invalid);
+                }
+            } else {
+                // User did not supply any TOTP
+                return Ok(UserLoginResult::RetryWithTOTP);
+            }
+        } else {
+            return Ok(UserLoginResult::Valid);
+        }
+    }
+    fn decrypt_otp(&self, otp_secret: &[u8]) -> Result<Option<Vec<u8>>, PhilomenaModelError> {
+        if self.encrypted_otp_secret.is_none()
+            || self.encrypted_otp_secret_iv.is_none()
+            || self.encrypted_otp_secret_salt.is_none()
+        {
+            return Ok(None);
+        }
+        let mut secret = base64::decode(self.encrypted_otp_secret.as_ref().unwrap())?;
+        let iv = base64::decode(self.encrypted_otp_secret_iv.as_ref().unwrap())?;
+        let iv: Result<[u8; 12], Vec<u8>> = iv.try_into();
+        let iv = match iv {
+            Ok(v) => v,
+            Err(_) => return Err(PhilomenaModelError::Other("Incorrect OTP IV".to_string())),
+        };
+        let salt = base64::decode(self.encrypted_otp_secret_salt.as_ref().unwrap())?;
+        let mut key = [0u8; 32];
+        ring::pbkdf2::derive(
+            ring::pbkdf2::PBKDF2_HMAC_SHA1,
+            NonZeroU32::new(2000).unwrap(),
+            &salt,
+            &otp_secret,
+            &mut key,
+        );
+        use ring::aead::*;
+        let iv = Nonce::assume_unique_for_key(iv);
+        let key = UnboundKey::new(&ring::aead::AES_256_GCM, &key)?;
+        let key = LessSafeKey::new(key);
+        let aad = Aad::empty();
+        let msg = key.open_in_place(iv, aad, &mut secret)?;
+        Ok(Some(msg.to_vec()))
+    }
+    fn encrypt_otp(&mut self, otp_secret: &[u8], otp: &[u8]) -> Result<(), PhilomenaModelError> {
+        let salt: [u8; 16] = ring::rand::generate(&ring::rand::SystemRandom::new())?.expose();
+        let iv: [u8; 16] = ring::rand::generate(&ring::rand::SystemRandom::new())?.expose();
+        let ivr: [u8; 12] = iv[0..12].try_into().unwrap();
+        let mut key = [0u8; 32];
+        ring::pbkdf2::derive(
+            ring::pbkdf2::PBKDF2_HMAC_SHA1,
+            NonZeroU32::new(2000).unwrap(),
+            &salt,
+            &otp_secret,
+            &mut key,
+        );
+        use ring::aead::*;
+        let iv = Nonce::assume_unique_for_key(ivr);
+        let key = UnboundKey::new(&ring::aead::AES_256_GCM, &key)?;
+        let key = LessSafeKey::new(key);
+        let aad = Aad::empty();
+        let mut secret = otp.to_vec();
+        key.seal_in_place_append_tag(iv, aad, &mut secret)?;
+        assert_eq!(secret.len(), otp.len() + 16);
+        self.encrypted_otp_secret = Some(base64::encode(secret));
+        self.encrypted_otp_secret_iv = Some(base64::encode(ivr));
+        self.encrypted_otp_secret_salt = Some(base64::encode(salt));
+        Ok(())
     }
     pub async fn badge_awards(
         &self,
@@ -207,5 +409,34 @@ impl User {
         } else {
             Ok(None)
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{PhilomenaModelError, User};
+
+    #[test]
+    fn test_encrypt_decrypt_otp() -> Result<(), PhilomenaModelError> {
+        let mut user = User::default();
+        let otp_secret =
+            base64::decode("Wn7O/8DD+qxL0X4X7bvT90wOkVGcA90bIHww4twR03Ci//zq7PnMw8ypqyyT/b/C")
+                .unwrap();
+        let otp = "AAFFEFASAA1119119DEADBEEF".as_bytes();
+
+        user.encrypt_otp(&otp_secret, otp)
+            .expect("could not encrypt OTP secret");
+
+        assert!(user.encrypted_otp_secret.is_some());
+        assert!(user.encrypted_otp_secret_iv.is_some());
+        assert!(user.encrypted_otp_secret_salt.is_some());
+
+        let r = user
+            .decrypt_otp(&otp_secret)
+            .expect("could not decrypt OTP secret");
+        let r = r.unwrap();
+
+        assert_eq!(otp, r);
+        Ok(())
     }
 }

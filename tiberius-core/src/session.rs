@@ -43,6 +43,10 @@ pub struct Unauthenticated {}
 impl SessionMode for Authenticated {}
 impl SessionMode for Unauthenticated {}
 
+pub enum AuthMethod {
+    TOTP,
+}
+
 /// Session contains and maintains a user session as well as metadata for the session,
 /// such as if the session resulted from a handover or special authorization markers.
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
@@ -62,6 +66,7 @@ pub struct Session<MODE: SessionMode> {
     /// The main purpose is to handle sessions from bots/API clients
     #[serde(skip)]
     ephemeral: bool,
+    waiting_on_totp: bool,
 }
 
 impl Into<Session<Unauthenticated>> for Session<Authenticated> {
@@ -76,6 +81,7 @@ impl Into<Session<Unauthenticated>> for Session<Authenticated> {
             data: self.data,
             dirty: self.dirty,
             ephemeral: self.ephemeral,
+            waiting_on_totp: false,
         }
     }
 }
@@ -151,6 +157,21 @@ impl<T: SessionMode> Session<T> {
     pub fn set_user(&mut self, user: &User) {
         self.user_id = Some(user.id as i64);
     }
+
+    pub fn unset_user(&mut self) {
+        self.user_id = None;
+    }
+
+    /// Indicates that more authentication methods are still being waited on, the session is not yet valid
+    pub fn more_auth(&self) -> bool {
+        self.waiting_on_totp
+    }
+
+    pub fn set_waiting_auths(&mut self, r: AuthMethod) {
+        match r {
+            AuthMethod::TOTP => self.waiting_on_totp = true,
+        }
+    }
 }
 
 impl Session<Authenticated> {
@@ -172,6 +193,7 @@ impl Session<Authenticated> {
             ),
             dirty: false,
             ephemeral,
+            waiting_on_totp: false,
         }
     }
 }
@@ -195,6 +217,7 @@ impl Session<Unauthenticated> {
             ),
             dirty: false,
             ephemeral,
+            waiting_on_totp: false,
         }
     }
     pub fn into_authenticated(self, user_id: i64) -> Session<Authenticated> {
@@ -208,6 +231,7 @@ impl Session<Unauthenticated> {
             data: self.data,
             dirty: self.dirty,
             ephemeral: self.ephemeral,
+            waiting_on_totp: false,
         }
     }
 }
@@ -490,7 +514,12 @@ async fn get_session_ptr<'r, T: SessionMode>(request: &'r Request<'_>) -> Option
             .load_session(session_id.value().to_string())
             .await;
         match session_data {
-            Ok(Some(session_data)) => Some(SessionPtr(Arc::new(RwLock::new(session_data)))),
+            Ok(Some(session_data)) => {
+                if session_data.more_auth() {
+                    return None;
+                }
+                Some(SessionPtr(Arc::new(RwLock::new(session_data))))
+            },
             Ok(None) => {
                 info!("Got an empty session");
                 return None;
@@ -526,7 +555,7 @@ impl<'r> FromRequest<'r> for SessionPtr<Authenticated> {
             match handover_session(&mut client, config, cookie.value(), session.clone()).await {
                 Ok(v) => (),
                 Err(e) => {
-                    warn!("error: could not handover session");
+                    warn!("error: could not handover session: {}", e);
                 }
             }
         } else {

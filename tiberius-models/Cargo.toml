@@ -11,6 +11,7 @@ license = "AGPL-3.0"
 async-std = { version = "1.6", features = [ "attributes" ] }
 async-trait = "0.1.50"
 base64 = "0.13"
+bcrypt = "0.10.0"
 chrono = { version = "0.4.19", features = [ "serde" ] }
 futures = "0.3.5"
 hex = "0.4.3"
@@ -28,6 +29,10 @@ tiberius-search = { path = "../tiberius-search" }
 tokio = { version = "1.10" }
 url = { version = "2.2", features = ["serde"] }
 ring = "0.16.20"
+totp-rs = "0.6.4"
+
+[dev-dependencies]
+sqlx-database-tester = { version = "0.2.0", features = ["runtime-tokio"] }
 
 [features]
 verify-db = []

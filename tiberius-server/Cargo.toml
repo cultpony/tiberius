@@ -24,7 +24,7 @@ clap = { version = "2.33.3", features = ["wrap_help"] }
 csp = "0.1.0"
 either = { version = "1.6.1", features = ["serde"] }
 envy = "0.4"
-flexi_logger = "0.19"
+flexi_logger = { version = "0.19", features = ["trc"] }
 hex = "0.4.3"
 human_bytes = "0.3.0"
 image = "0.23.14"
@@ -56,10 +56,11 @@ thiserror = "1.0.30"
 tiberius-core = { path = "../tiberius-core" }
 tiberius-jobs = { path = "../tiberius-jobs", default-features = false }
 tiberius-models = { path = "../tiberius-models" }
-tokio = { version = "1.10", features = ["full"] }
+tokio = { version = "1.10", features = ["full", "tracing"] }
 tokio-cron-scheduler = "0.2.1"
-tracing = { version = "0.1", features = ["log", "log-always"] }
+tracing = { version = "0.1", features = [] }
 tracing-log = { version = "0.1.2" }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uri-builder = "0.1.0"
 url = { version = "2.2", features = ["serde"] }
 url_serde = "0.2"
@@ -68,6 +69,7 @@ textile = "0.2.1"
 pulldown-cmark = "0.8.0"
 ammonia = "3.1.2"
 anyhow = "1.0"
+console-subscriber = "0.1"
 
 [dev-dependencies]
 sqlx-database-tester = { version = "0.2.0", features = ["runtime-tokio"] }
@@ -76,10 +78,11 @@ sqlx-database-tester = { version = "0.2.0", features = ["runtime-tokio"] }
 default = ["full-release"]
 channel-images = []
 # Enables all routes and features, even experimental ones
-full-release = ["channel-images", "tiberius-jobs/all-jobs", "process-images", "session-handover-philomena"]
+full-release = ["channel-images", "tiberius-jobs/all-jobs", "process-images", "session-handover-philomena", "tokio-console"]
 # Enables only routes and features that are ready to deploy
-stable-release = ["tiberius-jobs/stable-jobs", "session-handover-philomena"]
+stable-release = ["tiberius-jobs/stable-jobs", "session-handover-philomena", "tokio-console"]
 dev-release = ["full-release", "verify-db"]
 process-images = ["tiberius-jobs/processing-jobs"]
 session-handover-philomena = []
 verify-db = ["tiberius-models/verify-db"]
+tokio-console = []
