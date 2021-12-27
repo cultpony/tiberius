@@ -244,13 +244,13 @@ impl User {
         {
             return Ok(None);
         }
-        let mut secret = self.encrypted_otp_secret.as_ref().unwrap();
+        let mut secret = self.encrypted_otp_secret.as_ref().unwrap().clone();
         // PG may store garbage codepoints, remove them
         if secret.ends_with('\x0A') {
             secret.pop();
         }
         let mut secret = base64::decode(secret).context("Base64 Secret Decode")?;
-        let mut iv = self.encrypted_otp_secret_iv.as_ref().unwrap();
+        let mut iv = self.encrypted_otp_secret_iv.as_ref().unwrap().clone();
         // PG may stoer garbage codepoints, remove them
         if iv.ends_with('\x0A') {
             iv.pop();
@@ -261,7 +261,7 @@ impl User {
             Ok(v) => v,
             Err(_) => return Err(PhilomenaModelError::Other("Incorrect OTP IV".to_string())),
         };
-        let mut salt = self.encrypted_otp_secret_salt.as_ref().unwrap();
+        let mut salt = self.encrypted_otp_secret_salt.as_ref().unwrap().clone();
         if salt.ends_with('\x0A') {
             salt.pop();
         }
