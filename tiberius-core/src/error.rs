@@ -108,7 +108,7 @@ impl<'r> Responder<'r, 'static> for TiberiusError {
         let c = maud::html! {
             "Internal Error"
             br;
-            b { (format!("{}", self.to_string())) };
+            b { pre { (format!("{}", self.to_string())) } };
         };
         let c: String = c.into_string();
         Ok(Response::build()
