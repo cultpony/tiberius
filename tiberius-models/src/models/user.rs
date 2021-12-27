@@ -5,6 +5,7 @@ use chrono::{NaiveDateTime, Utc};
 use ipnetwork::IpNetwork;
 use sqlx::{query, query_as};
 use tracing::trace;
+use anyhow::Context;
 
 use crate::{Badge, BadgeAward, Client, Filter, PhilomenaModelError, UserToken};
 
@@ -207,10 +208,10 @@ impl User {
             return Ok(UserLoginResult::Invalid);
         }
         let password = format!("{}{}", password, pepper.unwrap_or(""));
-        let valid_pw = bcrypt::verify(password, &self.encrypted_password)?;
+        let valid_pw = bcrypt::verify(password, &self.encrypted_password).context("BCrypt Verify")?;
 
         if self.otp_required_for_login.unwrap_or(false) {
-            let dotp = self.decrypt_otp(otp_secret)?;
+            let dotp = self.decrypt_otp(otp_secret).context("TOTP decrypt")?;
             if let Some(totp) = totp {
                 if let Some(dotp) = dotp {
                     let time = chrono::Utc::now().timestamp();
@@ -243,14 +244,14 @@ impl User {
         {
             return Ok(None);
         }
-        let mut secret = base64::decode(self.encrypted_otp_secret.as_ref().unwrap())?;
+        let mut secret = base64::decode(self.encrypted_otp_secret.as_ref().unwrap()).context("Base64 Secret Decode")?;
         let iv = base64::decode(self.encrypted_otp_secret_iv.as_ref().unwrap())?;
         let iv: Result<[u8; 12], Vec<u8>> = iv.try_into();
         let iv = match iv {
             Ok(v) => v,
             Err(_) => return Err(PhilomenaModelError::Other("Incorrect OTP IV".to_string())),
         };
-        let salt = base64::decode(self.encrypted_otp_secret_salt.as_ref().unwrap())?;
+        let salt = base64::decode(self.encrypted_otp_secret_salt.as_ref().unwrap()).context("Base64 Salt Decode")?;
         let mut key = [0u8; 32];
         ring::pbkdf2::derive(
             ring::pbkdf2::PBKDF2_HMAC_SHA1,
