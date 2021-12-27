@@ -518,7 +518,25 @@ async fn get_session_ptr<'r, T: SessionMode>(request: &'r Request<'_>) -> Option
                 if session_data.more_auth() {
                     return None;
                 }
-                Some(SessionPtr(Arc::new(RwLock::new(session_data))))
+                let session = SessionPtr(Arc::new(RwLock::new(session_data)));
+                if let Some(cookie) = request.cookies().get("_philomena_key") {
+                    trace!("Philomena session, trying takeover");
+                    let state: &State<TiberiusState> = request.guard().await.expect("no tiberius state");
+                    let mut client = match state.get_db_client().await {
+                        Ok(v) => v,
+                        Err(e) => panic!("error in database connection"),
+                    };
+                    let config = state.config();
+                    match handover_session(&mut client, config, cookie.value(), session.clone()).await {
+                        Ok(v) => (),
+                        Err(e) => {
+                            warn!("error: could not handover session: {}", e);
+                        }
+                    }
+                } else {
+                    trace!("No philomena session");
+                }
+                Some(session)
             },
             Ok(None) => {
                 info!("Got an empty session");
@@ -540,27 +558,14 @@ impl<'r> FromRequest<'r> for SessionPtr<Authenticated> {
 
     #[instrument(level = "trace", skip(request))]
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+        trace!("Getting SessionPtr<Auth> from request");
         let session = match get_session_ptr(request).await {
-            None => return Outcome::Forward(()),
+            None => {
+                trace!("No session in request, skipping handover");
+                return Outcome::Forward(())
+            },
             Some(v) => v,
         };
-        if let Some(cookie) = request.cookies().get("_philomena_key") {
-            trace!("Philomena session, trying takeover");
-            let state: &State<TiberiusState> = request.guard().await.expect("no tiberius state");
-            let mut client = match state.get_db_client().await {
-                Ok(v) => v,
-                Err(e) => panic!("error in database connection"),
-            };
-            let config = state.config();
-            match handover_session(&mut client, config, cookie.value(), session.clone()).await {
-                Ok(v) => (),
-                Err(e) => {
-                    warn!("error: could not handover session: {}", e);
-                }
-            }
-        } else {
-            trace!("No philomena session");
-        }
         Outcome::Success(session)
     }
 }

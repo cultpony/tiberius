@@ -4,7 +4,7 @@ use tiberius_models::{Client, User};
 
 use crate::config::Configuration;
 use crate::error::TiberiusResult;
-use crate::session::{Authenticated, Session, SessionPtr};
+use crate::session::{Authenticated, Session, SessionPtr, SessionMode};
 
 mod session;
 #[cfg(test)]
@@ -14,11 +14,11 @@ pub const METADATA_KEY: &str = "_philomena_session_handover";
 
 /// Read the philomena session cookie and update the current session if it is not logged in already
 /// If there is a session with an active user, ignore the cookie
-pub async fn handover_session(
+pub async fn handover_session<T: SessionMode>(
     client: &mut Client,
     config: &Configuration,
     cookie_value: &str,
-    session: SessionPtr<Authenticated>,
+    session: SessionPtr<T>,
 ) -> TiberiusResult<()> {
     trace!("Attempting session handover");
     let cookie = session::PhilomenaCookie::try_from((config, cookie_value))?;
