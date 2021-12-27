@@ -32,7 +32,7 @@ run-full:
   cargo run -- server -z
 
 check:
-  cargo check --workspace
+  cargo check --workspace --no-default-features --features=stable-release
 
 fullcheck:
   cargo hack check {{hack_step_a}}
