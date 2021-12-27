@@ -144,7 +144,10 @@ impl Configuration {
     pub fn otp_secret(&self) -> Vec<u8> {
         match &self.otp_secret {
             Some(v) => v.as_bytes().to_vec(),
-            None => Vec::new(),
+            None => {
+                trace!("Attempting fallback OTP secret loading");
+                std::env::var("OTP_SECRET_KEY").map(|x| x.as_bytes().to_vec()).unwrap_or_default()
+            },
         }
     }
     pub fn password_pepper(&self) -> Option<&str> {

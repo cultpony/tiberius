@@ -44,8 +44,11 @@ fmt:
 clippy:
   cargo clippy --workspace
 
-test: check
+test:
   cargo test --workspace
+
+test-release:
+  cargo test --workspace --release
 
 fulltest: fullcheck
   cargo hack test {{hack_step_a}}

@@ -250,6 +250,7 @@ impl User {
             return Ok(None);
         }
         trace!("SECRET={:?}, IV={:?}, SALT={:?}", self.encrypted_otp_secret, self.encrypted_otp_secret_iv, self.encrypted_otp_secret_salt);
+        trace!("OTP_KEY={:?}", otp_secret);
         let b64c = base64::Config::new(base64::CharacterSet::Standard, true).decode_allow_trailing_bits(true);
         let secret = self.encrypted_otp_secret.as_ref().unwrap();
         // PG may store garbage codepoints, remove them
