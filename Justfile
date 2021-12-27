@@ -18,7 +18,7 @@ sqlx-prep:
 build:
   cargo build --no-default-features --features=stable-release
 
-build-release: check
+build-release:
   cargo build --release --no-default-features --features=stable-release
 
 build-release-docker: sqlx-prep
