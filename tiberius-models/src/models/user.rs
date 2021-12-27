@@ -244,14 +244,28 @@ impl User {
         {
             return Ok(None);
         }
-        let mut secret = base64::decode(self.encrypted_otp_secret.as_ref().unwrap()).context("Base64 Secret Decode")?;
-        let iv = base64::decode(self.encrypted_otp_secret_iv.as_ref().unwrap())?;
+        let mut secret = self.encrypted_otp_secret.as_ref().unwrap();
+        // PG may store garbage codepoints, remove them
+        if secret.ends_with('\x0A') {
+            secret.pop();
+        }
+        let mut secret = base64::decode(secret).context("Base64 Secret Decode")?;
+        let mut iv = self.encrypted_otp_secret_iv.as_ref().unwrap();
+        // PG may stoer garbage codepoints, remove them
+        if iv.ends_with('\x0A') {
+            iv.pop();
+        }
+        let iv = base64::decode(iv)?;
         let iv: Result<[u8; 12], Vec<u8>> = iv.try_into();
         let iv = match iv {
             Ok(v) => v,
             Err(_) => return Err(PhilomenaModelError::Other("Incorrect OTP IV".to_string())),
         };
-        let salt = base64::decode(self.encrypted_otp_secret_salt.as_ref().unwrap()).context("Base64 Salt Decode")?;
+        let mut salt = self.encrypted_otp_secret_salt.as_ref().unwrap();
+        if salt.ends_with('\x0A') {
+            salt.pop();
+        }
+        let salt = base64::decode(salt).context("Base64 Salt Decode")?;
         let mut key = [0u8; 32];
         ring::pbkdf2::derive(
             ring::pbkdf2::PBKDF2_HMAC_SHA1,
