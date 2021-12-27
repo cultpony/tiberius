@@ -214,6 +214,11 @@ impl User {
             let dotp = self.decrypt_otp(otp_secret).context("TOTP decrypt")?;
             if let Some(totp) = totp {
                 if let Some(dotp) = dotp {
+                    let dotp = base32::decode(base32::Alphabet::RFC4648{padding: false}, &String::from_utf8_lossy(&dotp));
+                    let dotp = match dotp {
+                        None => return Err(PhilomenaModelError::Context(anyhow::format_err!("Decode failure on TOTP secret"))),
+                        Some(v) => v,
+                    };
                     let time = chrono::Utc::now().timestamp();
                     assert!(time > 0, "We don't run before 1970");
                     let time = time as u64;
@@ -237,7 +242,7 @@ impl User {
             return Ok(UserLoginResult::Valid);
         }
     }
-    fn decrypt_otp(&self, otp_secret: &[u8]) -> Result<Option<Vec<u8>>, PhilomenaModelError> {
+    pub(crate) fn decrypt_otp(&self, otp_secret: &[u8]) -> Result<Option<Vec<u8>>, PhilomenaModelError> {
         if self.encrypted_otp_secret.is_none()
             || self.encrypted_otp_secret_iv.is_none()
             || self.encrypted_otp_secret_salt.is_none()
@@ -278,7 +283,7 @@ impl User {
         let msg = key.open_in_place(iv, aad, &mut secret)?;
         Ok(Some(msg.to_vec()))
     }
-    fn encrypt_otp(&mut self, otp_secret: &[u8], otp: &[u8]) -> Result<(), PhilomenaModelError> {
+    pub(crate) fn encrypt_otp(&mut self, otp_secret: &[u8], otp: &[u8]) -> Result<(), PhilomenaModelError> {
         let salt: [u8; 16] = ring::rand::generate(&ring::rand::SystemRandom::new())?.expose();
         let iv: [u8; 16] = ring::rand::generate(&ring::rand::SystemRandom::new())?.expose();
         let ivr: [u8; 12] = iv[0..12].try_into().unwrap();

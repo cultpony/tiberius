@@ -5261,6 +5261,7 @@ dependencies = [
  "anyhow",
  "async-std",
  "async-trait",
+ "base32",
  "base64",
  "bcrypt",
  "chrono",
