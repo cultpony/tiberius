@@ -65,13 +65,19 @@ pub enum PhilomenaModelError {
     #[error("Could not convert: {}", .0)]
     TryFromIntError(#[from] std::num::TryFromIntError),
     #[error("Unspecified Cryptographic error")]
-    Ring(#[from] ring::error::Unspecified),
+    RingUnspec,
     #[error("Decode error: {}", .0)]
     Base64(#[from] base64::DecodeError),
     #[error("BCrypt Error: {}", .0)]
     Bcrypt(#[from] bcrypt::BcryptError),
     #[error("{}", .0)]
     Context(#[from] anyhow::Error),
+}
+
+impl From<ring::error::Unspecified> for PhilomenaModelError {
+    fn from(_: ring::error::Unspecified) -> Self {
+        Self::RingUnspec
+    }
 }
 
 #[derive(Clone)]

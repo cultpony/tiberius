@@ -90,7 +90,7 @@ pub struct Configuration {
     #[serde(skip)]
     #[sensitive]
     pub alt_dbconn: Option<DBPool>,
-    #[serde(skip)]
+    #[serde(skip_serializing, alias="OTP_SECRET_KEY")]
     #[sensitive]
     pub otp_secret: Option<String>,
 }
@@ -143,7 +143,7 @@ impl Configuration {
     }
     pub fn otp_secret(&self) -> Vec<u8> {
         match &self.otp_secret {
-            Some(v) => base64::decode(v).expect("invalid OTP secret"),
+            Some(v) => v.as_bytes().to_vec(),
             None => Vec::new(),
         }
     }
