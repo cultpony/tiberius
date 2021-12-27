@@ -244,14 +244,15 @@ impl User {
         {
             return Ok(None);
         }
+        let b64c = base64::Config::new(base64::CharacterSet::UrlSafe, true).decode_allow_trailing_bits(true);
         let secret = self.encrypted_otp_secret.as_ref().unwrap();
         // PG may store garbage codepoints, remove them
         let secret = secret.trim();
-        let mut secret = base64::decode(secret).context("Base64 Secret Decode")?;
+        let mut secret = base64::decode_config(secret, b64c).context("Base64 Secret Decode")?;
         let iv = self.encrypted_otp_secret_iv.as_ref().unwrap();
         // PG may stoer garbage codepoints, remove them
         let iv = iv.trim();
-        let iv = base64::decode(iv)?;
+        let iv = base64::decode_config(iv, b64c)?;
         let iv: Result<[u8; 12], Vec<u8>> = iv.try_into();
         let iv = match iv {
             Ok(v) => v,
@@ -259,7 +260,7 @@ impl User {
         };
         let salt = self.encrypted_otp_secret_salt.as_ref().unwrap();
         let salt = salt.trim();
-        let salt = base64::decode(salt).context("Base64 Salt Decode")?;
+        let salt = base64::decode_config(salt, b64c).context("Base64 Salt Decode")?;
         let mut key = [0u8; 32];
         ring::pbkdf2::derive(
             ring::pbkdf2::PBKDF2_HMAC_SHA1,
