@@ -1,5 +1,6 @@
 use std::convert::TryFrom;
 
+use anyhow::Context;
 use tiberius_models::{Client, User, UserToken};
 
 use crate::config::Configuration;
@@ -23,7 +24,21 @@ pub async fn handover_session<T: SessionMode>(
     trace!("Attempting session handover");
     let cookie = session::PhilomenaCookie::try_from((config, cookie_value))?;
     let user = User::get_user_for_session(client, cookie.user_token()).await?;
+    // double check existing METADATA is not overwritten to preserve status of session handover
     trace!("Got user cookie, checking into session");
+    let session_status = session.read().await.get_data(METADATA_KEY).context("session read failure for handover")?;
+    match session_status.unwrap_or_default().as_str() {
+        // We might want to retry handover in some cases, so this is TODO: 
+        "false" => (),
+        "rejected" => {
+            if session.read().await.user_id.is_some() {
+                return Ok(())
+            }
+        },
+        "true" => return Ok(()),
+        "" => (),
+        _ => unreachable!(),
+    }
     if let Some(user) = user {
         let mut session = session.write().await;
         if session.user_id.is_none() {
