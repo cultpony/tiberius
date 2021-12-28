@@ -2503,57 +2503,6 @@
       ]
     }
   },
-  "628b68425b3dc977d7481c69e9c8b555c8e243061c79b019538d8bd4a42d5386": {
-    "query": "SELECT * FROM user_tokens WHERE token = decode($1, 'hex') AND context = $2",
-    "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "id",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 1,
-          "name": "user_id",
-          "type_info": "Int8"
-        },
-        {
-          "ordinal": 2,
-          "name": "token",
-          "type_info": "Bytea"
-        },
-        {
-          "ordinal": 3,
-          "name": "context",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 4,
-          "name": "sent_to",
-          "type_info": "Varchar"
-        },
-        {
-          "ordinal": 5,
-          "name": "created_at",
-          "type_info": "Timestamp"
-        }
-      ],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Text"
-        ]
-      },
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        true,
-        false
-      ]
-    }
-  },
   "666e4531e2bdf5c6a7171f6a781afea100bf8ac98e9da94aef7ca0361d3296dd": {
     "query": "SELECT id FROM users WHERE authentication_token = $1",
     "describe": {
@@ -3756,6 +3705,57 @@
         ]
       },
       "nullable": [
+        false
+      ]
+    }
+  },
+  "7c1fd8511fe27b20b567731329f6cd089d5ac58adfa019d0b186dd7dd5adbfe7": {
+    "query": "SELECT * FROM user_tokens WHERE token = $1 AND context = $2",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 1,
+          "name": "user_id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 2,
+          "name": "token",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 3,
+          "name": "context",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 4,
+          "name": "sent_to",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 5,
+          "name": "created_at",
+          "type_info": "Timestamp"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Bytea",
+          "Text"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true,
         false
       ]
     }

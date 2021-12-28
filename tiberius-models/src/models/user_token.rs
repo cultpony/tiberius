@@ -19,7 +19,7 @@ pub struct UserToken {
 impl UserToken {
     pub async fn get_user_token_for_session<'a>(
         client: &mut Client,
-        user_token: Vec<u8>,
+        user_token: &[u8],
     ) -> Result<Option<UserToken>, PhilomenaModelError> {
         trace!(
             "loading user session for token {}",
@@ -27,8 +27,8 @@ impl UserToken {
         );
         let user_token = query_as!(
             UserToken,
-            "SELECT * FROM user_tokens WHERE token = decode($1, 'hex') AND context = $2",
-            hex::encode(user_token),
+            "SELECT * FROM user_tokens WHERE token = $1 AND context = $2",
+            user_token,
             "session"
         )
         .fetch_optional(client.db().await?.deref_mut())

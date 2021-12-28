@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 
-use tiberius_models::{Client, User};
+use tiberius_models::{Client, User, UserToken};
 
 use crate::config::Configuration;
 use crate::error::TiberiusResult;
@@ -22,7 +22,7 @@ pub async fn handover_session<T: SessionMode>(
 ) -> TiberiusResult<()> {
     trace!("Attempting session handover");
     let cookie = session::PhilomenaCookie::try_from((config, cookie_value))?;
-    let user = User::get_user_for_philomena_token(client, cookie.user_token()).await?;
+    let user = User::get_user_for_session(client, cookie.user_token()).await?;
     trace!("Got user cookie, checking into session");
     if let Some(user) = user {
         let mut session = session.write().await;

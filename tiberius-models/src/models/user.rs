@@ -321,13 +321,13 @@ impl User {
     }
     pub async fn get_user_for_session<'a>(
         client: &mut Client,
-        session_id: Vec<u8>,
+        session_id: &[u8],
     ) -> Result<Option<User>, PhilomenaModelError> {
         trace!(
             "getting user for session {}",
             hex::encode(session_id.clone())
         );
-        let user_token = UserToken::get_user_token_for_session(client, session_id).await?;
+        let user_token = UserToken::get_user_token_for_session(client, &session_id).await?;
         let user_token = match user_token {
             None => return Ok(None),
             Some(v) => v,
