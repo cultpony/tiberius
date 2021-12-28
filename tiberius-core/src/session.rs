@@ -131,6 +131,12 @@ impl<T: SessionMode> Session<T> {
     ) -> Option<serde_json::Value> {
         self.data.insert(key, value)
     }
+    pub fn get_json_data(
+        &self,
+        key: String,
+    ) -> Option<&serde_json::Value> {
+        self.data.get(&key)
+    }
     /// Returns true if the session is not persisted into cookies or the database backend
     ///
     /// To set a session as ephemeral, it must be created by passing `true` to the `Session::new()` constructor.
