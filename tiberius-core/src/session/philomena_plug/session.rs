@@ -87,14 +87,14 @@ pub struct CookieData<'a> {
 }
 
 pub struct PhilomenaCookie {
-    live_socket_id: String,
-    csrf_token: String,
-    user_token: Vec<u8>,
+    live_socket_id: Option<String>,
+    csrf_token: Option<String>,
+    user_token: Option<Vec<u8>>,
 }
 
 impl PhilomenaCookie {
-    pub fn user_token(&self) -> &[u8] {
-        &self.user_token
+    pub fn user_token(&self) -> Option<&[u8]> {
+        self.user_token.as_ref().map(|x| x.as_slice())
     }
 }
 
@@ -105,36 +105,27 @@ impl TryFrom<Term> for PhilomenaCookie {
         let value = value.as_map().ok_or(TiberiusError::ErlangTermDecode(
             "Philomena Cookie invalid".to_string(),
         ))?;
-        let live_socket_id: String;
-        let csrf_token: String;
-        let user_token: Vec<u8>;
+        let live_socket_id: Option<String>;
+        let csrf_token: Option<String>;
+        let user_token: Option<Vec<u8>>;
         live_socket_id = value
             .get("live_socket_id")
             .cloned()
-            .ok_or(TiberiusError::ErlangTermDecode(
-                "Missing Live Socket ID".to_string(),
-            ))?
-            .as_string()
+            .map(|x| x.as_string())
             .ok_or(TiberiusError::ErlangTermDecode(
                 "Live Socket ID not a string".to_string(),
             ))?;
         csrf_token = value
             .get("_csrf_token")
             .cloned()
-            .ok_or(TiberiusError::ErlangTermDecode(
-                "Missing CSRF Token".to_string(),
-            ))?
-            .as_string()
+            .map(|x| x.as_string())
             .ok_or(TiberiusError::ErlangTermDecode(
                 "CSRF Token not a string".to_string(),
             ))?;
         user_token = value
             .get("user_token")
             .cloned()
-            .ok_or(TiberiusError::ErlangTermDecode(
-                "Missing User Token".to_string(),
-            ))?
-            .as_bytes()
+            .map(|x| x.as_bytes())
             .ok_or(TiberiusError::ErlangTermDecode(
                 "User Token not a byte array".to_string(),
             ))?;
@@ -436,12 +427,12 @@ mod test {
         let phck = super::PhilomenaCookie::try_from((&config, cookie))?;
         assert_eq!(
             "users_sessions:v3qg6KrwisBK6sM1iYiw_eW6HcbFXgb5qU0-SHgDL48=",
-            phck.live_socket_id
+            phck.live_socket_id.unwrap()
         );
-        assert_eq!("HDPbiDZTSWZIWgCGruaFXfOz", phck.csrf_token);
+        assert_eq!("HDPbiDZTSWZIWgCGruaFXfOz", phck.csrf_token.unwrap());
         assert_eq!(
             "bf7aa0e8aaf08ac04aeac3358988b0fde5ba1dc6c55e06f9a94d3e4878032f8f",
-            hex::encode(phck.user_token)
+            hex::encode(phck.user_token.unwrap())
         );
         Ok(())
     }

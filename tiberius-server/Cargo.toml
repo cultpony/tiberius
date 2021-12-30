@@ -15,8 +15,6 @@ base64 = "0.13"
 bcrypt = "0.10.0"
 better-panic = "0.2"
 camo-url = "0.1.2"
-cap-async-std = "0.20"
-cap-std = "0.20"
 casbin = "2.0.7" # needs tobe 2.0.8 until sqlxmq is replaced or updated
 chrono = "0.4.19"
 chrono-humanize = "0.2.1"
@@ -29,13 +27,11 @@ hex = "0.4.3"
 human_bytes = "0.3.0"
 image = "0.23.14"
 itertools = "0.10.1"
-josekit = "0.7.1"
 kankyo = "0.3"
 lazy_static = "1.4"
 maud = { git = "https://github.com/mbr/maud", branch = "mbr/rocket-0.5", features = ["rocket"] }
 new_mime_guess = "3.0"
 paseto = "2.0.0"
-r2d2 = "0.8.9"
 rand = "0.8.3"
 regex = "1.5.3"
 reqwest = { version = "0.11", features = ["json", "socks", "cookies"] }
@@ -61,9 +57,9 @@ tokio-cron-scheduler = "0.2.1"
 tracing = { version = "0.1", features = [] }
 tracing-log = { version = "0.1.2" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-uri-builder = "0.1.0"
+#uri-builder = "0.1.0"
 url = { version = "2.2", features = ["serde"] }
-url_serde = "0.2"
+#url_serde = "0.2"
 uuid = "0.8.1"
 textile = "0.2.1"
 pulldown-cmark = "0.8.0"
