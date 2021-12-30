@@ -112,23 +112,17 @@ impl TryFrom<Term> for PhilomenaCookie {
             .get("live_socket_id")
             .cloned()
             .map(|x| x.as_string())
-            .ok_or(TiberiusError::ErlangTermDecode(
-                "Live Socket ID not a string".to_string(),
-            ))?;
+            .flatten();
         csrf_token = value
             .get("_csrf_token")
             .cloned()
             .map(|x| x.as_string())
-            .ok_or(TiberiusError::ErlangTermDecode(
-                "CSRF Token not a string".to_string(),
-            ))?;
+            .flatten();
         user_token = value
             .get("user_token")
             .cloned()
             .map(|x| x.as_bytes())
-            .ok_or(TiberiusError::ErlangTermDecode(
-                "User Token not a byte array".to_string(),
-            ))?;
+            .flatten();
         Ok(PhilomenaCookie {
             live_socket_id,
             csrf_token,
