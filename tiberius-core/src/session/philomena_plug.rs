@@ -51,6 +51,8 @@ pub async fn handover_session<T: SessionMode>(
                     }
                 }
                 "true" => return Ok(()),
+                // User logged out, revalidate!
+                "terminated" => (),
                 "" => (),
                 _ => unreachable!(),
             }
