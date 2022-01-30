@@ -18,6 +18,7 @@ futures = "0.3.5"
 hex = "0.4.3"
 ipnetwork = "0.17" # sqlx dep
 itertools = "0.10.0"
+either = "1.6.1"
 tracing = "0.1.29"
 reqwest = { version = "0.11.6", features = ["json"] }
 serde = { version = "1.0", features = ["derive"] }
@@ -31,6 +32,9 @@ url = { version = "2.2", features = ["serde"] }
 ring = "0.16.20"
 totp-rs = "0.6.4"
 anyhow = "1.0"
+rocket = { version = "0.5.0-rc.1", features = ["secrets", "uuid", "json", "msgpack", "tls"] }
+tiberius-common-html = { path = "../tiberius-common-html" }
+maud = { git = "https://github.com/mbr/maud", branch = "mbr/rocket-0.5", features = ["rocket"] }
 
 [dev-dependencies]
 sqlx-database-tester = { version = "0.2.0", features = ["runtime-tokio"] }

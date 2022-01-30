@@ -8,7 +8,7 @@ use tiberius_core::session::{Authenticated, SessionMode};
 use tiberius_core::state::{TiberiusRequestState, TiberiusState};
 use tiberius_models::{Image, User};
 
-use crate::pages::common::{verify_acl, ACLActionImage, ACLObject, ACLSubject};
+use crate::pages::common::acl::{verify_acl, ACLActionImage, ACLObject, ACLSubject};
 
 #[derive(FromForm, serde::Serialize)]
 pub struct ChangeUploader {
@@ -64,7 +64,7 @@ pub async fn change_image_uploader(
     if !verify_acl {
         return Err(TiberiusError::AccessDenied);
     }
-    let new_uploader = User::get_by_name(&mut client, change_uploader.new_uploader.clone()).await?;
+    let new_uploader = User::get_by_name(&mut client, &change_uploader.new_uploader).await?;
     let new_uploader = match new_uploader {
         Some(v) => v,
         None => {
@@ -74,7 +74,7 @@ pub async fn change_image_uploader(
             ))
         }
     };
-    let old_uploader = User::get_by_name(&mut client, change_uploader.old_uploader.clone()).await?;
+    let old_uploader = User::get_by_name(&mut client, &change_uploader.old_uploader).await?;
     let old_uploader = match old_uploader {
         Some(v) => v,
         None => {

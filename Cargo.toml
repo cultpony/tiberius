@@ -1,5 +1,5 @@
 [workspace]
-members = ["tiberius-server", "tiberius-models", "tiberius-core", "tiberius-jobs"]
+members = ["tiberius-server", "tiberius-models", "tiberius-core", "tiberius-jobs", "tiberius-common-html"]
 default-members = ["tiberius-server"]
 
 [profile.release]

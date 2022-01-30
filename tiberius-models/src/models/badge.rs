@@ -11,3 +11,9 @@ pub struct Badge {
     pub disable_award: bool,
     pub priority: bool,
 }
+
+impl Badge {
+    pub fn title(&self) -> String {
+        format!("{} - {}", self.title, self.description)
+    }
+}

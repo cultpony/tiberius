@@ -143,7 +143,7 @@ pub async fn new_session_post(
     let mut client = state.get_db_client().await?;
 
     let user: Option<User> =
-        User::get_mail_or_name(&mut client, login_data.email.to_string()).await?;
+        User::get_mail_or_name(&mut client, login_data.email).await?;
     if let Some(user) = user {
         let valid = user.validate_login(state.config.password_pepper(), &state.config.otp_secret(), login_data.email, login_data.password, login_data.totp)?;
         let home = if login_data.alt_r.unwrap_or(false) {

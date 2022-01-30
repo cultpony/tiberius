@@ -2,7 +2,9 @@ use std::num::NonZeroU32;
 use std::ops::DerefMut;
 
 use chrono::{NaiveDateTime, Utc};
+use either::Either;
 use ipnetwork::IpNetwork;
+use maud::Markup;
 use sqlx::{query, query_as};
 use tracing::trace;
 use anyhow::Context;
@@ -191,6 +193,12 @@ impl User {
     }
     pub fn displayname(&self) -> &str {
         &self.name
+    }
+    pub fn avatar(&self) -> Either<&str, Markup> {
+        match &self.avatar {
+            Some(s) => Either::Left(s.as_str()),
+            None => Either::Right(tiberius_common_html::no_avatar_svg()),
+        }
     }
     pub fn validate_login(
         &self,
@@ -395,7 +403,7 @@ impl User {
 
     pub async fn get_mail_or_name(
         client: &mut Client,
-        mail_or_name: String,
+        mail_or_name: &str,
     ) -> Result<Option<User>, PhilomenaModelError> {
         let user = query!(
             "SELECT id FROM users WHERE email::TEXT = $1 OR name = $1",
@@ -413,9 +421,24 @@ impl User {
 
     pub async fn get_by_name(
         client: &mut Client,
-        name: String,
+        name: &str,
     ) -> Result<Option<User>, PhilomenaModelError> {
         let user = query!("SELECT id FROM users WHERE name = $1", name)
+            .fetch_optional(client.db().await?.deref_mut())
+            .await?;
+        if let Some(user) = user {
+            let user: i32 = user.id;
+            Ok(Self::get_id(client, user as i64).await?)
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub async fn get_by_email(
+        client: &mut Client,
+        email: &str,
+    ) -> Result<Option<User>, PhilomenaModelError> {
+        let user = query!("SELECT id FROM users WHERE email::TEXT = $1", email)
             .fetch_optional(client.db().await?.deref_mut())
             .await?;
         if let Some(user) = user {

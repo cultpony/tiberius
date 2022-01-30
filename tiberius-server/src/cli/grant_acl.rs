@@ -6,7 +6,7 @@ use tiberius_core::error::TiberiusResult;
 use tiberius_core::state::TiberiusState;
 
 
-pub async fn grant_acl(args: &ArgMatches<'_>) -> TiberiusResult<()> {
+pub async fn grant_acl(args: &ArgMatches) -> TiberiusResult<()> {
     let config: Configuration = envy::from_env::<Configuration>()?;
     info!("Initializing Database connection");
     let db_conn: DBPool = config.db_conn().await?;

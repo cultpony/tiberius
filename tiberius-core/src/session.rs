@@ -445,7 +445,7 @@ impl<T: SessionMode> SessionPtr<T> {
     }
     pub async fn write<'a>(&'a self) -> RwLockWriteGuard<'a, Session<T>> {
         let mut session = self.0.write().await;
-        info!(
+        trace!(
             "Session {} marked dirty due to possible write",
             session.id()
         );

@@ -73,6 +73,9 @@ pub async fn rocket(db_conn: DBPool, config: &Configuration) -> TiberiusResult<R
             crate::pages::tags::tag_changes,
             crate::pages::tags::usage,
             crate::pages::tags::autocomplete,
+            crate::pages::blog::staff_page::show,
+            crate::pages::blog::staff_page::new_category,
+            crate::pages::blog::staff_page::add_user_to_category,
         ],
     );
 
@@ -96,10 +99,16 @@ pub async fn rocket(db_conn: DBPool, config: &Configuration) -> TiberiusResult<R
             crate::pages::channels::list_channels,
             crate::pages::channels::read,
             crate::pages::channels::set_nsfw,
+            crate::pages::blog::staff_page::show,
+            crate::pages::blog::staff_page::new_category,
+            crate::pages::blog::staff_page::add_user_to_category,
             tiberius_core::assets::serve_asset,
             tiberius_core::assets::serve_favicon_ico,
             tiberius_core::assets::serve_favicon_svg,
             tiberius_core::assets::serve_robots,
+            crate::api::int::image::favorite,
+            crate::api::int::oembed::fetch,
+            crate::api::int::tag::fetch,
         ],
     );
 

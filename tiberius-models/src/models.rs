@@ -1,5 +1,13 @@
+/*
+ * This module links all the various SQL Tables to the appropriate models and exports them for ease of use.
+*/
+
 mod channel;
 pub use channel::*;
+mod user_staff_entry;
+pub use user_staff_entry::*;
+mod staff_category;
+pub use staff_category::*;
 mod user_token;
 pub use user_token::*;
 mod user;

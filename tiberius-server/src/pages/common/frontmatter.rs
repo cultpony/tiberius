@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use tiberius_common_html::no_avatar_svg;
 use std::fmt::Display;
 use std::{
     collections::BTreeMap,
@@ -22,7 +23,7 @@ use rocket::Request;
 use rocket::{request::FromRequest, uri, State};
 use tiberius_models::{
     Channel, Client, Conversation, Filter, Forum, Image, ImageThumbType, Notification, SiteNotice,
-    Tag, User,
+    Tag, User, Badge,
 };
 use tracing::trace;
 
@@ -66,19 +67,6 @@ pub fn form_method(method: FormMethod) -> Markup {
 pub fn form_submit_button(label: &str) -> Markup {
     html! {
         input type="submit" value=(label);
-    }
-}
-
-pub fn no_avatar_svg() -> Markup {
-    html! {
-        svg xmlns="http://www.w3.org/2000/svg" width="125" height="125" viewBox="0 0 125 125" class="avatar-svg" {
-            rect width="125" height="125" fill="#c6dff2" {}
-            path d="M15.456 109.15C12.02 97.805 6.44 95.036-.794 98.89v19.102c5.13-10.09 10.263-8.294 15.395-5.7" fill="#A29859" {}
-            path d="M73.054 24.46c25.886 0 39.144 26.39 28.916 44.95 1.263.38 4.924 2.274 3.41 4.8-1.516 2.525-7.577 16.288-27.78 14.773-1.01 6.44-.33 12.613 1.642 22.854 1.39 7.224-.632 14.648-.632 14.648s-47.785.216-73.74-.127c-1.883-6.387 8.964-25.76 20.833-24.748 15.674 1.334 19.193 1.64 21.592-2.02 2.4-3.662 0-23.234-3.535-30.81-3.536-7.577-7.83-40.785 29.294-44.32z" fill="#4CA782" {}
-            path d="M64.335 34.675c3.358 1.584 6.716.908 10.073 1.043-.265 13.078 19.05 19.74 31.58 4.16 6.077 6.273 24.776 2.28 12.42-18.66-12.88-21.833-42.605-11.287-61-.5l-7.25 11c-29.918 14.92-16.418 45.666-.75 57.625-12.967 2.522-6.234 30.16 9.904 24.894 18.84-6.147-1.986-51.066-7.78-62.644l1.495-11.736z" fill="#A29859" {}
-            path d="M43.267 107.324s-6.825-14.137-7.64-30.166c-.817-16.03-4.197-31.468-10.55-40.688-6.354-9.22-13.272-9.73-11.997-3.982 1.275 5.748 11.123 33.016 12.128 35.954C23.042 65.648 7.038 41.11-.43 37.222c-7.47-3.886-8.96.346-6.892 5.885 2.068 5.54 18.507 30.844 20.886 33.502-2.738-1.685-12.256-9.036-16.997-8.996-4.742.04-4.91 5.366-2.617 8.526 2.292 3.162 20.912 19.173 25.15 20.945-5.35.28-10.384 1.996-9.186 6.004 1.2 4.006 11.384 14.063 28.53 12.377 2.576-2.834 4.823-8.143 4.823-8.143z" fill="#4CA782" {}
-            path d="M64.342 35.57s3.283-8.08-7.324-19.318c-1.768-1.768-3.03-2.273-4.672-.758-1.64 1.515-17.046 16.036.253 38.26.504-2.4 1.135-9.597 1.135-9.597z" fill="#4CA782" {}
-        }
     }
 }
 
@@ -735,6 +723,72 @@ pub async fn container_class<T: SessionMode>(
         }
     }
     Ok("".to_string())
+}
+
+pub async fn user_attribution<S: ToString>(client: &mut Client, user: &User) -> TiberiusResult<maud::Markup> {
+    Ok(html! {
+        strong {
+            a href="user link" { (user.displayname()) }
+        }
+        (user_badges(user, client).await?)
+    })
+}
+
+pub fn user_attribution_avatar<S: ToString>(user: &User, classes: S) -> TiberiusResult<maud::Markup> {
+    let av = user.avatar();
+    let classes = classes.to_string();
+    let classes = if !classes.is_empty() {
+        format!("image-constrained {}", classes)
+    } else {
+        classes
+    };
+    Ok(match av {
+        Either::Left(url) => html! {
+            div class=(classes) { img src=(url) {} }
+        },
+        Either::Right(markup) => html! {
+            div class=(classes) { (markup) }
+        },
+    })
+}
+
+pub fn badge_image(img: Option<&String>, alt: String, title: String, width: u64, height: u64) -> maud::Markup {
+    html! {
+        img src=(img.unwrap_or(&"placeholder/url".to_string())) alt=(alt) title=(title) width=(width) height=(height) {}
+    }
+}
+
+pub async fn user_badges(user: &User, client: &mut Client) -> TiberiusResult<maud::Markup> {
+    let badges = user.badges(client).await?;
+    let (badges, overflow): (&[Badge], &[Badge]) = if badges.len() <= 10 {
+        (&*badges, &[])
+    } else {
+        badges.split_at(10)
+    };
+    Ok(html! {
+        .badges {
+            // Grab the next 10 badges
+            @for badge in badges {
+                .badge {
+                    (badge_image(badge.image.as_ref(), badge.title(), badge.title(), 18, 18))
+                }
+            }
+            @if !overflow.is_empty() {
+                .dropdown {
+                    i.fa.fa-caret-down {}
+                    .dropdown__content.block__header {
+                        .badges.flex--column {
+                            @for badge in badges {
+                                .badge {
+                                    (badge_image(badge.image.as_ref(), badge.title(), badge.title(), 18, 18))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    })
 }
 
 pub async fn app<T: SessionMode>(

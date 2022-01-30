@@ -10,7 +10,7 @@ use tiberius_models::{ApiKey, Image, User};
 use uuid::Uuid;
 use crate::pages::common::frontmatter::{form_submit_button, form_method, csrf_input_tag};
 
-use crate::pages::common::{verify_acl, ACLActionAPIKey, ACLActionImage, ACLObject, ACLSubject};
+use crate::pages::common::acl::{verify_acl, ACLActionAPIKey, ACLActionImage, ACLObject, ACLSubject};
 
 #[get("/api/v3/manage/keys")]
 pub async fn manage_keys_page(
@@ -64,6 +64,7 @@ pub async fn manage_keys_page(
         }
         @if edit_api_key {
             form method="POST" action=(uri!(create_api_key)) {
+                (csrf_input_tag(&rstate).await);
                 input type="submit" value="Create new Key";
             }
         }
