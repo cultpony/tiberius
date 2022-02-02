@@ -23,8 +23,6 @@ pub enum TiberiusError {
     Envy(#[from] envy::Error),
     #[error("Serde: JSON: {0}")]
     SerdeJson(#[from] serde_json::Error),
-    #[error("Serde: CBOR: {0}")]
-    SerdeCbor(#[from] serde_cbor::Error),
     #[error("Paseto: {0}")]
     Paseto(String),
     #[error("Other Error: {0:?}")]

@@ -31,21 +31,19 @@ kankyo = "0.3"
 lazy_static = "1.4"
 maud = { git = "https://github.com/mbr/maud", branch = "mbr/rocket-0.5", features = ["rocket"] }
 new_mime_guess = "3.0"
-paseto = "2.0.0"
 rand = "0.8.3"
-regex = "1.5.3"
+regex = "1.5.4"
 reqwest = { version = "0.11", features = ["json", "socks", "cookies"] }
-ring = "0.16.20"
+ring = { version = "0.16.20", features = ["std"] }
 rocket = { version = "0.5.0-rc.1", features = ["secrets", "uuid", "json", "msgpack", "tls"] }
 rust-embed = { version = "6.1", features = ["compression"] }
 securefmt = "0.1.1"
 serde = { version = "1.0", features = ["derive"] }
-serde_cbor = "0.11.1"
 serde_derive = "1.0"
 serde_json = "1.0"
 sha2 = "0.9.5"
 sha3 = "0.9.1"
-sqlx = { version = "0.5.9", features = ["postgres", "chrono", "time", "macros", "json", "runtime-tokio-rustls", "offline", "migrate"] }
+sqlx = { version = "0.5.10", features = ["postgres", "chrono", "time", "macros", "json", "runtime-tokio-rustls", "offline", "migrate"] }
 sqlxmq = { git = "https://github.com/cultpony/sqlxmq.git", default-features = false, features = ["runtime-tokio-rustls"] }
 sqlx-adapter = { version = "0.4.2", default-features = false, features = ["runtime-tokio-rustls", "postgres"] }
 thiserror = "1.0.30"

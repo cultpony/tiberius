@@ -287,10 +287,10 @@ impl User {
         );
         use ring::aead::*;
         let iv = Nonce::assume_unique_for_key(iv);
-        let key = UnboundKey::new(&ring::aead::AES_256_GCM, &key).context("invalid key")?;
+        let key = UnboundKey::new(&ring::aead::AES_256_GCM, &key)?;
         let key = LessSafeKey::new(key);
         let aad = Aad::empty();
-        let msg = key.open_in_place(iv, aad, &mut secret).context("ring decryption error")?;
+        let msg = key.open_in_place(iv, aad, &mut secret)?;
         Ok(Some(msg.to_vec()))
     }
     pub(crate) fn encrypt_otp(&mut self, otp_secret: &[u8], otp: &[u8]) -> Result<(), PhilomenaModelError> {

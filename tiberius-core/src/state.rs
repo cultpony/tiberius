@@ -267,22 +267,6 @@ impl TiberiusState {
     pub fn config(&self) -> &Configuration {
         &self.config
     }
-
-    /// The data will be signed and encrypted securely
-    /// The resulting string can be freely sent to the user without being able to inspect the data itself
-    pub fn encrypt_data<T: serde::ser::Serialize>(&self, data: &T) -> TiberiusResult<String> {
-        let msg = serde_cbor::to_vec(data)?;
-        let msg = base64::encode(msg);
-        let footer = "";
-        Ok(
-            paseto::v2::local_paseto(&msg, Some(footer), &self.cryptokeys.random_key)
-                .map_err(|e| TiberiusError::Paseto(e.to_string()))?,
-        )
-    }
-    pub fn decrypt_data<T: serde::de::DeserializeOwned, S: Into<String>>(&self, data: S) -> T {
-        let data: String = data.into();
-        todo!()
-    }
     pub fn site_config(&self) -> &SiteConfig {
         self.asset_loader.site_config()
     }
