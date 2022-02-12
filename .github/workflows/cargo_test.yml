@@ -56,9 +56,6 @@ jobs:
         with:
           command: install
           args: sqlx-cli
-        
-      - name: Cache Setup
-        uses: Swatinem/rust-cache@v1
       
       - name: Run cargo sqlx migrate
         uses: actions-rs/cargo@v1
@@ -76,6 +73,9 @@ jobs:
         env:
           TIBERIUS_PREBUILT_ASSETS: YES
           DATABASE_URL: postgres://github_actions:github_actions@localhost:5432/philomena_db
+        
+      - name: Cache Setup
+        uses: Swatinem/rust-cache@v1
 
   test:
     name: Test Suite
@@ -117,9 +117,6 @@ jobs:
         with:
           command: install
           args: sqlx-cli
-        
-      - name: Cache Setup
-        uses: Swatinem/rust-cache@v1
       
       - name: Run cargo sqlx migrate
         uses: actions-rs/cargo@v1
@@ -138,3 +135,6 @@ jobs:
         env:
           TIBERIUS_PREBUILT_ASSETS: YES
           DATABASE_URL: postgres://github_actions:github_actions@localhost:5432/philomena_db
+        
+      - name: Cache Setup
+        uses: Swatinem/rust-cache@v1
