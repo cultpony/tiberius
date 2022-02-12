@@ -17,8 +17,8 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-#[cfg(test)]
-mod secret_tests;
+//#[cfg(test)]
+//mod secret_tests;
 
 use async_std::sync::{RwLock, RwLockWriteGuard};
 pub use models::*;
