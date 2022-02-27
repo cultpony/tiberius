@@ -11,6 +11,7 @@ extern crate tracing;
 mod models;
 #[macro_use]
 mod macros;
+pub mod pluggables;
 use std::sync::Arc;
 use std::{
     collections::BTreeMap,

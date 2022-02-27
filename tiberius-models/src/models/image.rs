@@ -16,6 +16,7 @@ use tantivy::IndexWriter;
 use tiberius_search::Queryable;
 use tracing::trace;
 
+use crate::pluggables::{Hashable, Representations, Intensities, ImageInteractionMetadata, ImageFileMetadata, ImageUrls};
 use crate::{
     tantivy_bool_text_field, tantivy_date_field, tantivy_raw_text_field, tantivy_text_field,
     tantivy_u64_field, Client, ImageFeature, ImageTag, PhilomenaModelError, Tag,
@@ -272,6 +273,26 @@ impl VerifiableTable for VerifierImage {
         tracing::warn!("Scanned {} images (expected {})", images_scanned, size);
         Ok(())
     }
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+pub struct APIImage {
+    pub id: u64,
+    #[serde(flatten)]
+    pub hash: Hashable,
+    #[serde(flatten)]
+    pub urls: ImageUrls,
+    #[serde(flatten)]
+    pub image_file_metadata: ImageFileMetadata,
+    #[serde(flatten)]
+    pub image_interaction_metadata: ImageInteractionMetadata,
+    pub first_seen_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub name: String,
+    pub uploader_id: u64,
+    pub uploader: String,
+    pub description: String,
 }
 
 #[derive(sqlx::FromRow, Clone, serde::Serialize, serde::Deserialize, Debug)]

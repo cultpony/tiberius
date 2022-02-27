@@ -3,7 +3,7 @@ use rocket::form::Form;
 use rocket::State;
 use tiberius_core::app::PageTitle;
 use tiberius_core::error::{TiberiusError, TiberiusResult};
-use tiberius_core::request_helper::{HtmlResponse, JsonResponse, TiberiusResponse};
+use tiberius_core::request_helper::{HtmlResponse, JsonResponse, TiberiusResponse, SafeJsonResponse};
 use tiberius_core::session::{Authenticated, SessionMode};
 use tiberius_core::state::{TiberiusRequestState, TiberiusState};
 use tiberius_models::{Image, User};
@@ -52,7 +52,7 @@ pub async fn change_image_uploader(
     rstate: TiberiusRequestState<'_, Authenticated>,
     image: u64,
     change_uploader: Form<ChangeUploader>,
-) -> TiberiusResult<JsonResponse> {
+) -> TiberiusResult<TiberiusResponse> {
     let mut client = state.get_db_client().await?;
     let verify_acl = verify_acl(
         state,
@@ -93,9 +93,9 @@ pub async fn change_image_uploader(
         return Err(TiberiusError::AccessDenied);
     }
     image.user_id = Some(new_uploader.id);
-    todo!("issue reindex to philomena if necessary");
-    todo!("save to database");
-    todo!("return OK json");
+    //TODO: issue reindex to philomena if necessary
+    image.save(&mut client).await?;
+    Ok(TiberiusResponse::SafeJson(SafeJsonResponse::safe_serialize(image)?))
 }
 
 #[cfg(test)]

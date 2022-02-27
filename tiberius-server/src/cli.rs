@@ -35,8 +35,7 @@ pub enum Command {
 #[derive(Args, Debug)]
 pub struct ServerCli {
     #[clap(long, short = 'z')]
-    no_jobs: bool,
-
+    pub no_jobs: bool,
 }
 
 #[cfg(feature = "verify-db")]
@@ -75,18 +74,18 @@ pub struct GrantAclCli {
     #[clap(subcommand)]
     pub act: GrantAclAction,
     #[clap(long)]
-    pub user: String,
+    pub user: Option<String>,
     #[clap(long)]
-    pub group: String,
+    pub group: Option<String>,
     #[clap(long)]
-    pub member_of: String,
+    pub member_of: Option<String>,
     #[clap(long)]
-    pub subject: String,
+    pub subject: Option<String>,
     #[clap(long)]
-    pub action: String,
+    pub action: Option<String>,
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, PartialEq, Eq, Copy, Clone)]
 pub enum GrantAclAction {
     Grant,
     Revoke,

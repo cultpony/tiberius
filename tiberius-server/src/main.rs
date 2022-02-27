@@ -52,71 +52,70 @@ fn main() -> TiberiusResult<()> {
         .build()
         .unwrap();
     let app = cli::AppCli::parse();
-    let app = todo!();/*
-    let matches = app.get_matches();
-
-    if let Some(matches) = matches.subcommand_matches("server") {
-        info!("Starting {}", package_full());
-        let job_runner = !matches.is_present("no-jobs");
-        if !job_runner {
-            warn!("Running without job scheduler and job runner");
-        }
-        runtime.block_on(async move {
-            tokio::spawn(async move {
-                crate::cli::server::server_start(job_runner).await
-            })
-            .await
-        })??;
-        runtime.shutdown_timeout(std::time::Duration::from_secs(10));
-        Ok(())
-    } else if let Some(matches) = matches.subcommand_matches("verify-db") {
+    use cli::Command;
+    match app.command {
+        Command::Server(config) => {
+            info!("Starting {}", package_full());
+            let job_runner = !config.no_jobs;
+            if !job_runner {
+                warn!("Running without job scheduler and job runner");
+            }
+            runtime.block_on(async move {
+                tokio::spawn(async move {
+                    crate::cli::server::server_start(job_runner).await
+                })
+                .await
+            })??;
+            runtime.shutdown_timeout(std::time::Duration::from_secs(10));
+            Ok(())
+        },
         #[cfg(feature = "verify-db")]
-        runtime.block_on(async move {
-            crate::cli::verify_db::verify_db(matches).await
-        })?;
-        Ok(())
-    } else if let Some(matches) = matches.subcommand_matches("grant-acl") {
-        runtime.block_on(async move {
-            crate::cli::grant_acl::grant_acl(matches).await
-        })?;
-        Ok(())
-    } else if let Some(matches) = matches.subcommand_matches("gen-keys") {
-        let base_path = matches
-            .value_of("key-directory")
-            .expect("must have key directory");
-        let base_path = std::path::PathBuf::from_str(base_path)?;
-        if !base_path.exists() {
-            info!("Creating keys directory...");
-            std::fs::create_dir_all(&base_path)?;
-        }
-        let rng = ring::rand::SystemRandom::new();
-        info!("Generting keys...");
-        let ed25519path = base_path.join(Path::new("ed25519.pkcs8"));
-        let mainkeypath = base_path.join(Path::new("main.key"));
+        Command::VerifyDb(config) => {
+            runtime.block_on(async move {
+                crate::cli::verify_db::verify_db(matches).await
+            })?;
+            Ok(())
+        },
+        Command::GenKeys(config) => {
+            let base_path = std::path::PathBuf::from_str(&config.key_directory)?;
+            if !base_path.exists() {
+                info!("Creating keys directory...");
+                std::fs::create_dir_all(&base_path)?;
+            }
+            let rng = ring::rand::SystemRandom::new();
+            info!("Generting keys...");
+            let ed25519path = base_path.join(Path::new("ed25519.pkcs8"));
+            let mainkeypath = base_path.join(Path::new("main.key"));
 
-        let sessionkeypath = base_path.join(Path::new("session.key"));
-        if !ed25519path.exists() {
-            info!("Generating signing key");
-            let signing_key = ring::signature::Ed25519KeyPair::generate_pkcs8(&rng)?;
-            std::fs::write(ed25519path, signing_key.as_ref())?;
+            let sessionkeypath = base_path.join(Path::new("session.key"));
+            if !ed25519path.exists() {
+                info!("Generating signing key");
+                let signing_key = ring::signature::Ed25519KeyPair::generate_pkcs8(&rng)?;
+                std::fs::write(ed25519path, signing_key.as_ref())?;
+            }
+            if !mainkeypath.exists() {
+                info!("Generating main key");
+                let random_key: [u8; 64] = ring::rand::generate(&rng)?.expose();
+                //TODO: generate other needed keys
+                std::fs::write(mainkeypath, random_key.as_ref())?;
+            }
+            if !sessionkeypath.exists() {
+                info!("Generating session key");
+                let random_key: [u8; 64] = ring::rand::generate(&rng)?.expose();
+                std::fs::write(sessionkeypath, random_key.as_ref())?;
+            }
+            warn!("Keys generated, you are ready to roll.");
+            error!("MAKE BACKUPS OF THE {} DIRECTORY", base_path.display());
+            Ok(())
+        },
+        Command::GrantAcl(config) => {
+            runtime.block_on(async move {
+                crate::cli::grant_acl::grant_acl(&config).await
+            })?;
+            Ok(())
+        },
+        Command::ListUsers(config) => {
+            todo!()
         }
-        if !mainkeypath.exists() {
-            info!("Generating main key");
-            let random_key: [u8; 64] = ring::rand::generate(&rng)?.expose();
-            //TODO: generate other needed keys
-            std::fs::write(mainkeypath, random_key.as_ref())?;
-        }
-        if !sessionkeypath.exists() {
-            info!("Generating session key");
-            let random_key: [u8; 64] = ring::rand::generate(&rng)?.expose();
-            std::fs::write(sessionkeypath, random_key.as_ref())?;
-        }
-        warn!("Keys generated, you are ready to roll.");
-        error!("MAKE BACKUPS OF THE {} DIRECTORY", base_path.display());
-        Ok(())
-    } else {
-        error!("No subcommand specified, please tell me what to do or use --help");
-        Ok(())
-    }*/
-    Ok(())
+    }
 }

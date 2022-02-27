@@ -325,6 +325,6 @@ pub async fn edit_user_entry(
             .into_resp(Redirect::to(uri!(show))),
     })
 }
-// TODO: Add user to category
+
 // TODO: allow user to hide from staff list
 // TODO: allow user to link primary account instead of true staff account

@@ -5,8 +5,10 @@ use tiberius_core::config::Configuration;
 use tiberius_core::error::TiberiusResult;
 use tiberius_core::state::TiberiusState;
 
+use crate::cli::GrantAclAction;
 
-pub async fn grant_acl(args: &ArgMatches) -> TiberiusResult<()> {
+
+pub async fn grant_acl(args: &crate::cli::GrantAclCli) -> TiberiusResult<()> {
     let config: Configuration = envy::from_env::<Configuration>()?;
     info!("Initializing Database connection");
     let db_conn: DBPool = config.db_conn().await?;
@@ -14,24 +16,23 @@ pub async fn grant_acl(args: &ArgMatches) -> TiberiusResult<()> {
     let casbin = state.get_casbin();
     let mut casbin = casbin.write().await;
     let client = tiberius_models::Client::new(db_conn, config.search_dir.as_ref());
-    let grant = args.subcommand_matches("grant").is_some();
-    let revoke = args.subcommand_matches("revoke").is_some();
-    let list = args.subcommand_matches("list").is_some();
-    let user = args.value_of("user").map(|x| format!("user::{}", x));
-    let group = args.value_of("group");
-    let action = args.value_of("action");
-    let subject = args.value_of("subject");
-    let member_of = args.value_of("member-of");
-    assert!(!group.map(|x| x.starts_with("user::")).unwrap_or(false), "Group cannot start with user prefix");
+    let grant = args.act == GrantAclAction::Grant;
+    let revoke = args.act == GrantAclAction::Revoke;
+    let list = args.act == GrantAclAction::List;
+    let user = args.user.clone().map(|x| format!("user::{}", x));
+    let group = args.group.clone();
+    let subject = args.subject.clone();
+    let member_of = args.member_of.clone();
+    let action = args.action.clone();
+    assert!(!group.as_ref().map(|x| x.starts_with("user::")).unwrap_or(false), "Group cannot start with user prefix");
     assert!(user.as_ref().map(|x| x.starts_with("user::")).unwrap_or(true), "User must start with user:: if present");
-    assert!(!member_of.map(|x| x.starts_with("user::")).unwrap_or(false), "Member Of cannot start with user prefix");
-    let action = args.value_of("action");
+    assert!(!member_of.as_ref().map(|x| x.starts_with("user::")).unwrap_or(false), "Member Of cannot start with user prefix");
     assert!(!(grant && revoke), "Cannot grant & revoke at the same time");
     assert!(!(grant && list), "Cannot grant & list at the same time");
     assert!(!(list && revoke), "Cannot list & revoke at the same time");
     assert!(list || grant || revoke, "Atleast one subcommand must be set");
     warn!("No DB Migrations are run, ensure your databse is up-to-date!");
-    match (user.as_ref(), subject, action) {
+    match (user.as_ref(), subject.as_ref(), action.as_ref()) {
         (Some(v), Some(w), Some(x)) => {
             if grant {
                 todo!("grant ACL")
@@ -48,28 +49,28 @@ pub async fn grant_acl(args: &ArgMatches) -> TiberiusResult<()> {
         (Some(v), None, Some(x)) => { todo!() }
         v => {}
     }
-    match (group, subject, action) {
+    match (group.as_ref(), subject.as_ref(), action.as_ref()) {
         (Some(v), Some(w), Some(x)) => { todo!() }
         (Some(v), Some(w), None) => { todo!() }
         (Some(v), None, Some(x)) => { todo!() }
         _ => {}
     }
-    match (user.as_ref(), member_of) {
+    match (user.as_ref(), member_of.as_ref()) {
         (Some(v), Some(w)) => { 
             if grant {
-                if casbin.has_role_for_user(v, w, None) {
+                if casbin.has_role_for_user(&v, &w, None) {
                     warn!("ACL already present: {} -> {}", w, v);
                     return Ok(());
                 }
                 info!("Granting membership {} -> {}", w, v);
-                casbin.add_role_for_user(v, w, None).await?;
+                casbin.add_role_for_user(&v, &w, None).await?;
             } else if revoke {
-                if !casbin.has_role_for_user(v, w, None) {
+                if !casbin.has_role_for_user(&v, &w, None) {
                     warn!("ACL already present: {} -> {}", w, v);
                     return Ok(());
                 }
                 info!("Revoking membership {} -> {}", w, v);
-                casbin.delete_role_for_user(v, w, None).await?;
+                casbin.delete_role_for_user(&v, &w, None).await?;
             } else if list {
                 error!("Cannot grant to user member-of");
             } else {
@@ -90,22 +91,22 @@ pub async fn grant_acl(args: &ArgMatches) -> TiberiusResult<()> {
          }
         _ => {}
     }
-    match (group, member_of) {
+    match (group.as_ref(), member_of.as_ref()) {
         (Some(v), Some(w)) => {
             if grant {
-                if casbin.has_role_for_user(v, w, None) {
+                if casbin.has_role_for_user(&v, &w, None) {
                     warn!("ACL already present: {} -> {}", w, v);
                     return Ok(());
                 }
                 info!("Granting membership {} -> {}", w, v);
-                casbin.add_role_for_user(v, w, None).await?;
+                casbin.add_role_for_user(&v, &w, None).await?;
             } else if revoke {
-                if !casbin.has_role_for_user(v, w, None) {
+                if !casbin.has_role_for_user(&v, &w, None) {
                     warn!("ACL already present: {} -> {}", w, v);
                     return Ok(());
                 }
                 info!("Revoking membership {} -> {}", w, v);
-                casbin.delete_role_for_user(v, w, None).await?;
+                casbin.delete_role_for_user(&v, &w, None).await?;
             } else if list {
                 error!("Cannot grant to group member-of");
             } else {
