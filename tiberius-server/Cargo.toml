@@ -67,7 +67,7 @@ anyhow = "1.0"
 console-subscriber = "0.1"
 
 [dev-dependencies]
-sqlx-database-tester = { version = "0.2.0", features = ["runtime-tokio"] }
+sqlx-database-tester = { version = "0.3.0", features = ["runtime-tokio"] }
 
 [features]
 default = ["full-release"]
