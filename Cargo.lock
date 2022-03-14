@@ -149,12 +149,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4c527152e37cf757a3f78aae5a06fbeefdb07ccc535c980a3208ee3060dd544"
 
 [[package]]
-name = "arrayvec"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23b62fc65de8e4e7f52534fb52b0f3ed04746ae267519eef2a83941e8085068b"
-
-[[package]]
 name = "async-attributes"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1383,12 +1377,12 @@ dependencies = [
 
 [[package]]
 name = "erlang-term"
-version = "0.1.1"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61d1d5215715e35e9dc4d8381b0b8c609242a86f5039ac33c83058a1583b576c"
+checksum = "5f1418af097b3c18ae6671b545fd177f69dc56a0a629d4627ebab559f5e80a57"
 dependencies = [
  "keylist",
- "nom 5.1.2",
+ "nom 7.1.0",
  "num-bigint",
  "num-traits",
 ]
@@ -2327,9 +2321,9 @@ dependencies = [
 
 [[package]]
 name = "keylist"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c36779f3a4e3214ccb2f34bc3e06d3efb2ad2c9386387664edf8469705aef343"
+checksum = "97f61b7847852337dc0509caaa772579ca241b9269c7d0e19421eada8865a2cf"
 
 [[package]]
 name = "kv-log-macro"
@@ -2386,19 +2380,6 @@ name = "levenshtein_automata"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c2cdeb66e45e9f36bfad5bbdb4d2384e70936afbee843c6f6543f0c551ebb25"
-
-[[package]]
-name = "lexical-core"
-version = "0.7.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6607c62aa161d23d17a9072cc5da0be67cdfc89d3afb1e8d9c842bebc2525ffe"
-dependencies = [
- "arrayvec",
- "bitflags",
- "cfg-if 1.0.0",
- "ryu",
- "static_assertions",
-]
 
 [[package]]
 name = "libc"
@@ -2833,17 +2814,6 @@ dependencies = [
 
 [[package]]
 name = "nom"
-version = "5.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffb4262d26ed83a1c0a33a38fe2bb15797329c85770da05e6b828ddb782627af"
-dependencies = [
- "lexical-core",
- "memchr 2.4.1",
- "version_check",
-]
-
-[[package]]
-name = "nom"
 version = "7.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b1d11e1ef389c76fe5b81bcaf2ea32cf88b62bc494e19f493d0b30e7a930109"
@@ -2882,9 +2852,9 @@ dependencies = [
 
 [[package]]
 name = "num-bigint"
-version = "0.2.6"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "090c7f9998ee0ff65aa5b723e4009f7b217707f1fb5ea551329cc4d6231fb304"
+checksum = "f93ab6289c7b344a8a9f60f88d80aa20032336fe78da341afc91c8a2341fc75f"
 dependencies = [
  "autocfg",
  "num-integer",
@@ -4220,9 +4190,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.78"
+version = "1.0.79"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d23c1ba4cf0efd44be32017709280b32d1cea5c3f1275c3b6d9e8bc54f758085"
+checksum = "8e8d9fa5c3b304765ce1fd9c4c8a3de2c8db365a5b91be52f186efc675681d95"
 dependencies = [
  "indexmap",
  "itoa 1.0.1",
@@ -4487,21 +4457,22 @@ dependencies = [
 
 [[package]]
 name = "sqlx-database-tester"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "916fcf21db15987e5ed62ea31ce814eb7f3f4d87afaa92e32d15e0a5169af7de"
+checksum = "9178cbeb433bc69fc31dcc2af7b8dbfb7a3a91327dc8738a9181b80932c11d4a"
 dependencies = [
  "dotenv",
  "http",
+ "sqlx",
  "sqlx-database-tester-macros",
  "uuid",
 ]
 
 [[package]]
 name = "sqlx-database-tester-macros"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cfeb1097fcdba0d4571d76617bec2e4446bfee5910e46db9e8dcb7fed8e5ac36"
+checksum = "13c089a5aafca704137ebf3dd09350efb98de6ab7eb027d63ee4b2ade99088c1"
 dependencies = [
  "darling",
  "proc-macro2",
