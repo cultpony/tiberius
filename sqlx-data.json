@@ -383,6 +383,26 @@
       ]
     }
   },
+  "16c91452705b4cc643c83c96445df267c6bf464b45ff2bd71422ddcea54b8e88": {
+    "query": "SELECT id FROM users WHERE email::TEXT = $1",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int4"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
   "17f8029804c3e6de6d67d89d1aba434a9a086a66c1360f4363d1529d9469e488": {
     "query": "SELECT COUNT(title) AS cnt FROM channels WHERE is_live = TRUE",
     "describe": {
@@ -398,6 +418,72 @@
       },
       "nullable": [
         null
+      ]
+    }
+  },
+  "18f1e8a14ec520c9e50efd138b00120a20e61415aebb85e02ddc5a6058814c9e": {
+    "query": "SELECT id, role, ordering, color as \"color: StaffCategoryColor\", display_name, text, created_at, updated_at, deleted_at FROM staff_category WHERE deleted_at IS NULL ORDER BY ordering, id",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 1,
+          "name": "role",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 2,
+          "name": "ordering",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 3,
+          "name": "color: StaffCategoryColor",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 4,
+          "name": "display_name",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 5,
+          "name": "text",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true
       ]
     }
   },
@@ -2503,6 +2589,72 @@
       ]
     }
   },
+  "5eba3c32057109ccb91516f1c72ec4cb5da31633b4eafea18971e92d8a359120": {
+    "query": "SELECT * FROM user_staff_entry WHERE deleted_at IS NULL",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 1,
+          "name": "user_id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 2,
+          "name": "staff_category_id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 3,
+          "name": "display_name",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 4,
+          "name": "text",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "unavailable",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true
+      ]
+    }
+  },
   "666e4531e2bdf5c6a7171f6a781afea100bf8ac98e9da94aef7ca0361d3296dd": {
     "query": "SELECT id FROM users WHERE authentication_token = $1",
     "describe": {
@@ -3114,6 +3266,74 @@
       ]
     }
   },
+  "6eca1f4ce3c4383872031834f96a9c3f0e64754df85532e5c0ca0e5b6fcd9c69": {
+    "query": "SELECT * FROM user_staff_entry WHERE user_id = $1 AND deleted_at IS NULL",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 1,
+          "name": "user_id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 2,
+          "name": "staff_category_id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 3,
+          "name": "display_name",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 4,
+          "name": "text",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "unavailable",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true
+      ]
+    }
+  },
   "702e04c4a9b2d6ea1ab7bcb2d6240d028910f74b6b3a451d0075b147a28d09b6": {
     "query": "SELECT * FROM tags WHERE namespace IS NULL AND name_in_namespace = $1",
     "describe": {
@@ -3572,6 +3792,18 @@
         false,
         true
       ]
+    }
+  },
+  "71ce4767ebf19ec1a738f6ad37f6ce587a2643e75e1f6cbadee7462b273b75bd": {
+    "query": "DELETE FROM user_staff_entry WHERE id = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      },
+      "nullable": []
     }
   },
   "71cfcb13a610da93cefc6b2a295b188c679eaa3f282562d0e7c00c63ddefafe8": {
@@ -4789,6 +5021,113 @@
       ]
     }
   },
+  "9eb64c0a57087284ee4993aaf8c6ebe8f08c218660b96b98942f130d4d8c5483": {
+    "query": "DELETE FROM staff_category WHERE id = $1",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "9fb6036107ef6bbbe5009b68fa6948e02d876eedfdd5a8c526bcf6f1307aff0f": {
+    "query": "SELECT * FROM user_staff_entry WHERE id = $1 AND deleted_at IS NULL",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 1,
+          "name": "user_id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 2,
+          "name": "staff_category_id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 3,
+          "name": "display_name",
+          "type_info": "Varchar"
+        },
+        {
+          "ordinal": 4,
+          "name": "text",
+          "type_info": "Text"
+        },
+        {
+          "ordinal": 5,
+          "name": "unavailable",
+          "type_info": "Bool"
+        },
+        {
+          "ordinal": 6,
+          "name": "created_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 7,
+          "name": "updated_at",
+          "type_info": "Timestamptz"
+        },
+        {
+          "ordinal": 8,
+          "name": "deleted_at",
+          "type_info": "Timestamptz"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true
+      ]
+    }
+  },
+  "a0a638dfa71f7c6a6022c94e891bded16528ccfd4ce0c2a4f2cae1b02050ba4d": {
+    "query": "INSERT INTO\n            user_staff_entry (staff_category_id, user_id, display_name, text, created_at, updated_at, deleted_at, unavailable)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n            ON CONFLICT (user_id) DO UPDATE\n                SET \n                    staff_category_id = excluded.staff_category_id,\n                    display_name = excluded.display_name,\n                    \"text\" = excluded.text,\n                    unavailable = excluded.unavailable,\n                    created_at = excluded.created_at,\n                    updated_at = excluded.updated_at,\n                    deleted_at = excluded.deleted_at\n            RETURNING id",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int8"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Varchar",
+          "Text",
+          "Timestamptz",
+          "Timestamptz",
+          "Timestamptz",
+          "Bool"
+        ]
+      },
+      "nullable": [
+        false
+      ]
+    }
+  },
   "a5753dc1aeeb9e6262e547570957a08fff46a76d66a38c852021211b461101fd": {
     "query": "SELECT * FROM user_api_keys WHERE id = $1",
     "describe": {
@@ -5155,6 +5494,32 @@
         ]
       },
       "nullable": []
+    }
+  },
+  "da44117e904dad89d73884839385824b79e499053d602c8164c9e0182485416b": {
+    "query": "INSERT INTO\n            staff_category (role, display_name, text, created_at, updated_at, deleted_at, color)\n            VALUES ($1, $2, $3, $4, $5, $6, $7)\n            ON CONFLICT (role) DO UPDATE\n                SET \n                    display_name = excluded.display_name,\n                    \"role\" = excluded.role,\n                    created_at = excluded.created_at,\n                    updated_at = excluded.updated_at,\n                    deleted_at = excluded.deleted_at,\n                    color = excluded.color\n            RETURNING id",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int8"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Varchar",
+          "Varchar",
+          "Text",
+          "Timestamptz",
+          "Timestamptz",
+          "Timestamptz",
+          "Int4"
+        ]
+      },
+      "nullable": [
+        false
+      ]
     }
   },
   "dedbd17999c1cb2e08fde3b1c056d6929e9dcac09641f11c0b2a25ca46976a56": {
