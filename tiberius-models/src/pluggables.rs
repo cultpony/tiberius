@@ -1,8 +1,8 @@
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct Hashable {
-    sha512_hash: String,
-    orig_sha512_hash: String,
+    pub sha512_hash: Option<String>,
+    pub orig_sha512_hash: Option<String>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]

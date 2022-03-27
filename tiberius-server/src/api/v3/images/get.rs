@@ -13,5 +13,8 @@ pub async fn get_image_data(
 ) -> TiberiusResult<SafeJsonResponse> {
     let mut client = state.get_db_client().await?;
     let image = Image::get_id(&mut client, image as i64).await?;
-    Ok(SafeJsonResponse::safe_serialize(image)?)
+    match image {
+        Some(image) => Ok(SafeJsonResponse::safe_serialize(&image)?),
+        None => Err(TiberiusError::PageNotFound("image".to_string())),
+    }
 }

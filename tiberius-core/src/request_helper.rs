@@ -5,7 +5,7 @@ use either::Either;
 use rocket::http::uri::Reference;
 use rocket::{form::FromForm, http::ContentType, Request, State};
 use sqlx::{pool::PoolConnection, Pool, Postgres};
-use tiberius_models::{ApiKey, Client, Image};
+use tiberius_models::{ApiKey, Client, Image, DirectSafeSerialize, SafeSerialize};
 
 use crate::state::Flash;
 use crate::{
@@ -188,23 +188,14 @@ pub struct JsonResponse {
     pub headers: rocket::http::Header<'static>,
 }
 
-/// This trait must only be implemented if *ALL* fields of a struct can be pushed into the public API as a response
-pub trait SafeSerialize {
-    type Target: serde::Serialize;
-
-    fn into_safe(&self) -> Self::Target;
-}
-
-pub trait DirectSafeSerialize: serde::Serialize {}
-
 impl JsonResponse {
-    fn safe_serialize<T: SafeSerialize>(v: &T, headers: rocket::http::Header<'static>) -> TiberiusResult<Self> {
+    pub fn safe_serialize<T: SafeSerialize>(v: &T, headers: rocket::http::Header<'static>) -> TiberiusResult<Self> {
         Ok(JsonResponse {
             content: serde_json::to_value(v.into_safe())?,
             headers,
         })
     }
-    fn direct_safe_serialize<T: DirectSafeSerialize>(v: &T, headers: rocket::http::Header<'static>) -> TiberiusResult<Self> {
+    pub fn direct_safe_serialize<T: DirectSafeSerialize>(v: &T, headers: rocket::http::Header<'static>) -> TiberiusResult<Self> {
         Ok(JsonResponse {
             content: serde_json::to_value(&v)?,
             headers,
@@ -219,12 +210,12 @@ pub struct HlJsonResponse {
 }
 
 impl HlJsonResponse {
-    fn safe_serialize<T: SafeSerialize>(v: &T) -> TiberiusResult<Self> {
+    pub fn safe_serialize<T: SafeSerialize>(v: &T) -> TiberiusResult<Self> {
         Ok(HlJsonResponse {
             content: serde_json::to_value(v.into_safe())?,
         })
     }
-    fn direct_safe_serialize<T: DirectSafeSerialize>(v: &T) -> TiberiusResult<Self> {
+    pub fn direct_safe_serialize<T: DirectSafeSerialize>(v: &T) -> TiberiusResult<Self> {
         Ok(HlJsonResponse {
             content: serde_json::to_value(&v)?,
         })
@@ -238,12 +229,12 @@ pub struct SafeJsonResponse {
 }
 
 impl SafeJsonResponse {
-    fn safe_serialize<T: SafeSerialize>(v: &T) -> TiberiusResult<Self> {
+    pub fn safe_serialize<T: SafeSerialize>(v: &T) -> TiberiusResult<Self> {
         Ok(SafeJsonResponse {
             content: serde_json::to_value(v.into_safe())?,
         })
     }
-    fn direct_safe_serialize<T: DirectSafeSerialize>(v: &T) -> TiberiusResult<Self> {
+    pub fn direct_safe_serialize<T: DirectSafeSerialize>(v: &T) -> TiberiusResult<Self> {
         Ok(SafeJsonResponse {
             content: serde_json::to_value(&v)?,
         })

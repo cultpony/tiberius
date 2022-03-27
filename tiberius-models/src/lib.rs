@@ -299,3 +299,12 @@ pub struct BadgeAwards {
     pub reason: Option<String>,
     pub badge_name: Option<String>,
 }
+
+/// This trait must only be implemented if *ALL* fields of a struct can be pushed into the public API as a response
+pub trait SafeSerialize {
+    type Target: serde::Serialize;
+
+    fn into_safe(&self) -> Self::Target;
+}
+
+pub trait DirectSafeSerialize: serde::Serialize {}

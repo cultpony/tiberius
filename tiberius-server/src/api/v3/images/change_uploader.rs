@@ -52,7 +52,7 @@ pub async fn change_image_uploader(
     rstate: TiberiusRequestState<'_, Authenticated>,
     image: u64,
     change_uploader: Form<ChangeUploader>,
-) -> TiberiusResult<TiberiusResponse> {
+) -> TiberiusResult<TiberiusResponse<()>> {
     let mut client = state.get_db_client().await?;
     let verify_acl = verify_acl(
         state,
@@ -94,8 +94,8 @@ pub async fn change_image_uploader(
     }
     image.user_id = Some(new_uploader.id);
     //TODO: issue reindex to philomena if necessary
-    image.save(&mut client).await?;
-    Ok(TiberiusResponse::SafeJson(SafeJsonResponse::safe_serialize(image)?))
+    let image = image.save(&mut client).await?;
+    Ok(TiberiusResponse::SafeJson(SafeJsonResponse::safe_serialize(&image)?))
 }
 
 #[cfg(test)]

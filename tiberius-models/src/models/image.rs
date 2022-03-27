@@ -19,7 +19,7 @@ use tracing::trace;
 use crate::pluggables::{Hashable, Representations, Intensities, ImageInteractionMetadata, ImageFileMetadata, ImageUrls};
 use crate::{
     tantivy_bool_text_field, tantivy_date_field, tantivy_raw_text_field, tantivy_text_field,
-    tantivy_u64_field, Client, ImageFeature, ImageTag, PhilomenaModelError, Tag,
+    tantivy_u64_field, Client, ImageFeature, ImageTag, PhilomenaModelError, Tag, SafeSerialize, DirectSafeSerialize,
 };
 #[cfg(feature = "verify-db")]
 use crate::VerifiableTable;
@@ -281,18 +281,44 @@ pub struct APIImage {
     #[serde(flatten)]
     pub hash: Hashable,
     #[serde(flatten)]
-    pub urls: ImageUrls,
+    pub urls: Option<ImageUrls>,
     #[serde(flatten)]
-    pub image_file_metadata: ImageFileMetadata,
+    pub image_file_metadata: Option<ImageFileMetadata>,
     #[serde(flatten)]
-    pub image_interaction_metadata: ImageInteractionMetadata,
+    pub image_interaction_metadata: Option<ImageInteractionMetadata>,
     pub first_seen_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    pub name: String,
-    pub uploader_id: u64,
-    pub uploader: String,
+    pub name: Option<String>,
+    pub uploader_id: Option<u64>,
+    pub uploader: Option<String>,
     pub description: String,
+}
+
+impl DirectSafeSerialize for APIImage {}
+
+impl SafeSerialize for Image {
+    type Target = APIImage;
+
+    fn into_safe(&self) -> Self::Target {
+        APIImage {
+            id: self.id as u64,
+            hash: Hashable {
+                sha512_hash: self.image_sha512_hash.clone(),
+                orig_sha512_hash: self.image_orig_sha512_hash.clone(),
+            },
+            urls: None,
+            image_file_metadata: None,
+            image_interaction_metadata: None,
+            first_seen_at: DateTime::from_utc(self.first_seen_at, Utc),
+            created_at: DateTime::from_utc(self.created_at, Utc),
+            updated_at: DateTime::from_utc(self.updated_at, Utc),
+            name: self.image_name.clone(),
+            uploader_id: self.user_id.map(|x| x as u64),
+            uploader: None,
+            description: self.description.clone(),
+        }
+    }
 }
 
 #[derive(sqlx::FromRow, Clone, serde::Serialize, serde::Deserialize, Debug)]
