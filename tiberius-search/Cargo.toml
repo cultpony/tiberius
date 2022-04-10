@@ -3,7 +3,7 @@ name = "tiberius-search"
 version = "0.1.0"
 authors = ["cultpony <67918945+cultpony@users.noreply.github.com>"]
 edition = "2021"
-license = "AGPL-3.0"
+license = "Proprietary"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

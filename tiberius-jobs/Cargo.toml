@@ -2,7 +2,7 @@
 name = "tiberius-jobs"
 version = "0.1.0"
 edition = "2021"
-license = "AGPL-3.0"
+license = "Proprietary"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -43,18 +43,19 @@ tracing = "0.1.29"
 url = { version = "2.2", features = ["serde"] }
 uuid = "0.8.1"
 
+
 [features]
 default = ["all-jobs"]
 all-jobs = ["cleanup-jobs", "online-jobs", "reindex-jobs", "processing-jobs"]
-stable-jobs = ["cleanup-jobs"]
+stable-jobs = ["cleanup-jobs", "job_refresh_channels"]
 
 cleanup-jobs = ["job_cleanup_sessions"]
-online-jobs = ["job_picarto_tv"]
+online-jobs = ["job_refresh_channels"]
 reindex-jobs = ["job_reindex_images", "job_reindex_tags"]
 processing-jobs = ["job_process_image"]
 
 job_cleanup_sessions = []
-job_picarto_tv = []
+job_refresh_channels = []
 job_process_image = ["job_reindex_images"]
 job_reindex_images = []
 job_reindex_tags = []

@@ -1,8 +1,11 @@
+use std::io::Write;
 use std::ops::DerefMut;
+use std::str::FromStr;
 
 use crate::{Client, PhilomenaModelError, Tag};
 use chrono::NaiveDateTime;
-use sqlx::query_as;
+use itertools::Itertools;
+use sqlx::{query_as, Postgres};
 use tracing::trace;
 
 #[derive(sqlx::FromRow, Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -21,7 +24,7 @@ pub struct Channel {
     pub last_live_at: Option<NaiveDateTime>,
     pub watcher_ids: Vec<i32>,
     pub watcher_count: i32,
-    pub r#type: String,
+    pub r#type: ChannelType,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
     pub associated_artist_tag_id: Option<i32>,
@@ -34,6 +37,36 @@ pub struct Channel {
     pub thumbnail_url: Option<String>,
 }
 
+#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, Debug, sqlx::Type)]
+pub enum ChannelType {
+    PicartoChannel,
+    PiczelChannel,
+    TwitchChannel,
+}
+
+impl ToString for ChannelType {
+    fn to_string(&self) -> String {
+        match self {
+            ChannelType::PicartoChannel => "PicartoChannel",
+            ChannelType::PiczelChannel => "PiczelChannel",
+            ChannelType::TwitchChannel => "TwitchChannel",
+        }.to_string()
+    }
+}
+
+impl FromStr for ChannelType {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "PicartoChannel" => Self::PicartoChannel,
+            "PiczelChannel" => Self::PiczelChannel,
+            "TwitchChannel" => Self::TwitchChannel,
+            v => anyhow::bail!("Invalid channel type: {:?}", v)
+        })
+    }
+}
+
 impl Channel {
     pub async fn get_frontpage_channels<'a>(
         client: &mut Client,
@@ -41,7 +74,13 @@ impl Channel {
         trace!("loading frontpage channels");
         Ok(query_as!(
             Channel,
-            "SELECT * FROM channels WHERE nsfw = false AND last_fetched_at is not null"
+            "SELECT id, short_name, title, description, channel_image,
+                tags, viewers, nsfw, is_live, last_fetched_at, next_check_at,
+                last_live_at, watcher_ids, watcher_count, type as \"type: ChannelType\",
+                created_at, updated_at, associated_artist_tag_id, viewer_minutes_today,
+                viewer_minutes_thisweek, viewer_minutes_thismonth, total_viewer_minutes,
+                banner_image, remote_Stream_id, thumbnail_url
+                FROM channels WHERE nsfw = false AND last_fetched_at is not null"
         )
         .fetch_all(client.db().await?.deref_mut())
         .await?)
@@ -56,14 +95,24 @@ impl Channel {
             Some(channel_type) => {
                 query_as!(
                     Channel,
-                    "SELECT * FROM channels WHERE type = $1",
+                    "SELECT id, short_name, title, description, channel_image,
+                    tags, viewers, nsfw, is_live, last_fetched_at, next_check_at,
+                    last_live_at, watcher_ids, watcher_count, type as \"type: ChannelType\",
+                    created_at, updated_at, associated_artist_tag_id, viewer_minutes_today,
+                    viewer_minutes_thisweek, viewer_minutes_thismonth, total_viewer_minutes,
+                    banner_image, remote_Stream_id, thumbnail_url FROM channels WHERE type = $1",
                     channel_type
                 )
                 .fetch_all(client.db().await?.deref_mut())
                 .await?
             }
             None => {
-                query_as!(Channel, "SELECT * FROM channels",)
+                query_as!(Channel, "SELECT id, short_name, title, description, channel_image,
+                tags, viewers, nsfw, is_live, last_fetched_at, next_check_at,
+                last_live_at, watcher_ids, watcher_count, type as \"type: ChannelType\",
+                created_at, updated_at, associated_artist_tag_id, viewer_minutes_today,
+                viewer_minutes_thisweek, viewer_minutes_thismonth, total_viewer_minutes,
+                banner_image, remote_Stream_id, thumbnail_url FROM channels",)
                     .fetch_all(client.db().await?.deref_mut())
                     .await?
             }
@@ -129,7 +178,7 @@ impl Channel {
             self.last_live_at,
             &self.watcher_ids,
             self.watcher_count,
-            self.r#type,
+            self.r#type.to_string(),
             self.associated_artist_tag_id,
             self.viewer_minutes_today,
             self.viewer_minutes_thisweek,

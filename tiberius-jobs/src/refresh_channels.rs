@@ -81,6 +81,18 @@ async fn refresh_channel(
     client: &mut Client,
     chan: &mut Channel,
 ) -> TiberiusResult<()> {
+    match chan.r#type {
+        tiberius_models::ChannelType::PicartoChannel => refresh_picarto_channel(config, client, chan).await,
+        tiberius_models::ChannelType::PiczelChannel => todo!(),
+        tiberius_models::ChannelType::TwitchChannel => todo!(),
+    }
+}
+
+async fn refresh_picarto_channel(
+    config: &Configuration,
+    client: &mut Client,
+    chan: &mut Channel,
+) -> TiberiusResult<()> {
     let http_client = http_client(config)?;
     let url = format!(
         "https://api.picarto.tv/api/v1/channel/name/{}",

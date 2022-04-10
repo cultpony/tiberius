@@ -10,8 +10,8 @@ extern crate tracing;
 
 #[cfg(feature = "job_cleanup_sessions")]
 pub mod cleanup_sessions;
-#[cfg(feature = "job_picarto_tv")]
-pub mod picarto_tv;
+#[cfg(feature = "job_refresh_channels")]
+pub mod refresh_channels;
 #[cfg(feature = "job_process_image")]
 pub mod process_image;
 #[cfg(feature = "job_reindex_images")]
@@ -38,8 +38,8 @@ pub struct SharedCtx {
 
 pub fn registry() -> TiberiusResult<JobRegistry> {
     Ok(JobRegistry::new(&[
-        #[cfg(feature = "job_picarto_tv")]
-        picarto_tv::run_job,
+        #[cfg(feature = "job_refresh_channels")]
+        refresh_channels::run_job,
         #[cfg(feature = "job_cleanup_sessions")]
         cleanup_sessions::run_job,
         #[cfg(feature = "job_reindex_images")]
@@ -72,7 +72,7 @@ pub fn job_err_handler(name: &str, err: Box<dyn Error + Send + 'static>) {
 pub async fn scheduler(db: DBPool, config: Configuration) -> ! {
     let mut sched = JobScheduler::new();
 
-    #[cfg(feature = "job_picarto_tv")]
+    #[cfg(feature = "job_refresh_channels")]
     {
         let db = db.clone();
         sched
@@ -80,9 +80,9 @@ pub async fn scheduler(db: DBPool, config: Configuration) -> ! {
                 Job::new("0 0/10 * * * * *", move |uuid, l| {
                     info!("Starting picarto_tv job on scheduler UUID {}", uuid);
                     let db = db.clone();
-                    let config = picarto_tv::PicartoConfig::default();
+                    let config = refresh_channels::PicartoConfig::default();
                     tokio::spawn(async move {
-                        let mut jb: sqlxmq::JobBuilder = picarto_tv::run_job.builder();
+                        let mut jb: sqlxmq::JobBuilder = refresh_channels::run_job.builder();
                         jb.set_json(&config)
                             .expect("could not serialize job config")
                             .spawn(&db)
