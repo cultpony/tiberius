@@ -22,7 +22,7 @@ clap = { version = "3.0", features = ["derive"] }
 csp = "0.1.0"
 either = { version = "1.6.1", features = ["serde"] }
 envy = "0.4"
-flexi_logger = { version = "0.19", features = ["trc"] }
+flexi_logger = { version = "0.22", features = ["trc"] }
 hex = "0.4.3"
 human_bytes = "0.3.0"
 image = "0.23.14"
