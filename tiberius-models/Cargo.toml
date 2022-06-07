@@ -30,7 +30,7 @@ tiberius-search = { path = "../tiberius-search" }
 tokio = { version = "1.10" }
 url = { version = "2.2", features = ["serde"] }
 ring = { version = "0.16.20", features = ["std"] }
-totp-rs = "0.6.4"
+totp-rs = "2.0.0"
 anyhow = "1.0"
 rocket = { version = "0.5.0-rc.1", features = ["secrets", "uuid", "json", "msgpack", "tls"] }
 tiberius-common-html = { path = "../tiberius-common-html" }
