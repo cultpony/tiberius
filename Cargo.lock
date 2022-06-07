@@ -606,7 +606,7 @@ dependencies = [
  "async-trait",
  "lazy_static 1.4.0",
  "parking_lot",
- "regex 1.5.4",
+ "regex 1.5.6",
  "rhai",
  "ritelinked",
  "serde",
@@ -795,7 +795,7 @@ dependencies = [
  "encode_unicode",
  "lazy_static 1.4.0",
  "libc",
- "regex 1.5.4",
+ "regex 1.5.6",
  "termios",
  "winapi 0.3.9",
 ]
@@ -946,7 +946,7 @@ dependencies = [
  "oorandom",
  "plotters",
  "rayon",
- "regex 1.5.4",
+ "regex 1.5.6",
  "serde",
  "serde_cbor",
  "serde_derive",
@@ -1492,7 +1492,7 @@ dependencies = [
  "lazy_static 1.4.0",
  "log",
  "notify",
- "regex 1.5.4",
+ "regex 1.5.6",
  "rustversion",
  "serde",
  "serde_derive",
@@ -2342,7 +2342,7 @@ checksum = "919a16773ebf2de27e95fc58460110932e55bb0780e23aa51fa5a6b59c9e2b3d"
 dependencies = [
  "lazy-regex-proc_macros",
  "once_cell",
- "regex 1.5.4",
+ "regex 1.5.6",
 ]
 
 [[package]]
@@ -2353,7 +2353,7 @@ checksum = "5fbe6bf0a04af51c07976625d5007e75ed9b8b955befc21c77b3947733496e36"
 dependencies = [
  "proc-macro2",
  "quote",
- "regex 1.5.4",
+ "regex 1.5.6",
  "syn",
 ]
 
@@ -3378,7 +3378,7 @@ dependencies = [
  "petgraph",
  "prost",
  "prost-types",
- "regex 1.5.4",
+ "regex 1.5.6",
  "tempfile",
  "which",
 ]
@@ -3615,13 +3615,13 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.5.4"
+version = "1.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d07a8629359eb56f1e2fb1652bb04212c072a87ba68546a04065d525673ac461"
+checksum = "d83f127d94bdbcda4c8cc2e50f6f84f4b611f69c902699ca385a39c3a75f9ff1"
 dependencies = [
  "aho-corasick 0.7.18",
  "memchr 2.4.1",
- "regex-syntax 0.6.25",
+ "regex-syntax 0.6.26",
 ]
 
 [[package]]
@@ -3630,7 +3630,7 @@ version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c230d73fb8d8c1b9c0b3135c5142a8acee3a0558fb8db5cf1cb65f8d7862132"
 dependencies = [
- "regex-syntax 0.6.25",
+ "regex-syntax 0.6.26",
 ]
 
 [[package]]
@@ -3647,9 +3647,9 @@ checksum = "8e931c58b93d86f080c734bfd2bce7dd0079ae2331235818133c8be7f422e20e"
 
 [[package]]
 name = "regex-syntax"
-version = "0.6.25"
+version = "0.6.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f497285884f3fcff424ffc933e56d7cbca511def0c9831a7f9b5f6153e3cc89b"
+checksum = "49b3de9ec5dc0a3417da371aab17d729997c15010e7fd24ff707773a33bddb64"
 
 [[package]]
 name = "remove_dir_all"
@@ -4738,7 +4738,7 @@ dependencies = [
  "once_cell",
  "ownedbytes",
  "rayon",
- "regex 1.5.4",
+ "regex 1.5.6",
  "rust-stemmers",
  "serde",
  "serde_json",
@@ -4937,7 +4937,7 @@ dependencies = [
  "new_mime_guess",
  "openssl",
  "rand 0.8.4",
- "regex 1.5.4",
+ "regex 1.5.6",
  "reqwest",
  "ring",
  "rocket 0.5.0-rc.1",
@@ -4975,7 +4975,7 @@ dependencies = [
  "maud",
  "new_mime_guess",
  "rand 0.8.4",
- "regex 1.5.4",
+ "regex 1.5.6",
  "reqwest",
  "ring",
  "rocket 0.5.0-rc.1",
@@ -5081,7 +5081,7 @@ dependencies = [
  "new_mime_guess",
  "pulldown-cmark",
  "rand 0.8.4",
- "regex 1.5.4",
+ "regex 1.5.6",
  "reqwest",
  "ring",
  "rocket 0.5.0-rc.1",
@@ -5479,7 +5479,7 @@ dependencies = [
  "ansi_term",
  "lazy_static 1.4.0",
  "matchers",
- "regex 1.5.4",
+ "regex 1.5.6",
  "sharded-slab",
  "smallvec",
  "thread_local 1.1.4",
