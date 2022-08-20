@@ -27,6 +27,7 @@ use tiberius_dependencies::{
 use tiberius_models::{ApiKey, Client, Conversation, Filter, Notification, SiteNotice, User};
 use tokio::sync::Mutex;
 
+use crate::acl::{verify_acl, ACLActionSite, ACLObject};
 use crate::{
     app::DBPool,
     assets::{AssetLoader, SiteConfig},
@@ -226,7 +227,7 @@ where
             .ok_or_else(|| (StatusCode::UNAUTHORIZED, "Access Denied"))
             .map_err(|e| e.into_response())?;
         let headers = req.headers().clone();
-        Ok(Self {
+        let rstate = Self {
             cookie_jar: req
                 .extract()
                 .await
@@ -260,7 +261,14 @@ where
                 .map_err(|e: (StatusCode, &'static str)| e.into_response())?,
 
             cache_filter: OnceCell::new(),
-        })
+        };
+        let state = req.extensions().get::<TiberiusState>().unwrap();
+        if state.config().enable_lock_down {
+            if !verify_acl(state, &rstate, ACLObject::Site, ACLActionSite::Use).await.unwrap_or(false) {
+                return Err(TiberiusError::AccessDenied.into_response());
+            }
+        }
+        Ok(rstate)
     }
 }
 
@@ -282,7 +290,7 @@ where
             req.extract()
                 .await
                 .map_err(|e: (StatusCode, &'static str)| e.into_response())?;
-        let state = req.extensions().get::<TiberiusState>().unwrap();
+        let state = req.extensions().get::<TiberiusState>().unwrap().clone();
         let session: Session<Unauthenticated> = if allow_unauthenticated {
             db_session
                 .get_session()
@@ -308,7 +316,7 @@ where
             }
         };
         let headers = req.headers().clone();
-        Ok(Self {
+        let rstate = Self {
             cookie_jar: req.extract().await.map_err(|e| {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Could not load cookies").into_response()
             })?,
@@ -337,7 +345,17 @@ where
                 .map_err(|e: (StatusCode, &'static str)| e.into_response())?,
 
             cache_filter: OnceCell::new(),
-        })
+        };
+        if state.config().enable_lock_down {
+            let uri = state.url_directions.login_page.clone();
+            if req.uri() != &uri {
+                // TODO: we should handle errors here but for the ACL it doesn't matter that much
+                if !verify_acl(&state, &rstate, ACLObject::Site, ACLActionSite::Use).await.unwrap_or(false) {
+                    return Err(TiberiusError::AccessDenied.into_response());
+                }
+            }
+        }
+        Ok(rstate)
     }
 }
 
