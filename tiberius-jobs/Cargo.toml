@@ -11,38 +11,36 @@ async-std = { version = "1.9", features = ["attributes", "tokio1"] }
 async-trait = "0.1.50"
 base64 = "0.13"
 bcrypt = "0.10.0"
-chrono = "0.4.19"
+chrono = "0.4.20"
 csp = "0.1.0"
 either = { version = "1.6.1", features = ["serde"] }
-envy = "0.4"
-hex = "0.4.3"
 image = "0.23"
 itertools = "0.10.1"
 lazy_static = "1.4"
-maud = { git = "https://github.com/mbr/maud", branch = "mbr/rocket-0.5", features = ["rocket"] }
+maud = { version = "*", features = ["axum"] }
 new_mime_guess = "3.0"
 rand = "0.8.3"
 regex = "1.5.4"
 reqwest = { version = "0.11", features = ["json", "socks", "cookies"] }
 ring = { version = "0.16.20", features = ["std"] }
-rocket = { version = "0.5.0-rc.1", features = ["secrets", "uuid", "json", "msgpack"] }
-rust-embed = { version = "6.1", features = ["compression"] }
 securefmt = "0.1.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_derive = "1.0"
 serde_json = "1.0"
 sha2 = "0.9.5"
-sqlx = { version = "0.5.10", features = ["postgres", "chrono", "time", "macros", "json", "runtime-tokio-rustls", "offline", "migrate"] }
-sqlxmq = { git = "https://github.com/cultpony/sqlxmq.git", default-features = false, features = ["runtime-tokio-rustls"] }
+sqlx = { version = "0.6", features = ["postgres", "chrono", "time", "macros", "json", "runtime-tokio-rustls", "offline", "migrate"] }
+sqlxmq = { version = "0.4", default-features = false, features = ["runtime-tokio-rustls"] }
 thiserror = "1.0.30"
 tiberius-core = { path = "../tiberius-core" }
 tiberius-models = { path = "../tiberius-models" }
+tiberius-dependencies = { path = "../tiberius-dependencies" }
 tokio = { version = "1.10", features = ["full"] }
 tokio-cron-scheduler = "0.2.1"
 tracing = "0.1.29"
 url = { version = "2.2", features = ["serde"] }
-uuid = "0.8.1"
-
+uuid = "1"
+sentry = { version = "0.27.0", features = ["tracing", "anyhow", "tower", "panic", "contexts"] }
+futures-util = "0.3.21"
 
 [features]
 default = ["all-jobs"]

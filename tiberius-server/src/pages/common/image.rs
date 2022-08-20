@@ -1,14 +1,24 @@
-use std::{borrow::Cow, path::PathBuf};
+use std::{borrow::Cow, fmt::Display, path::PathBuf};
 
+use axum::http::Uri;
+use axum_extra::routing::TypedPath;
+use chrono::Datelike;
+use itertools::Itertools;
 use maud::{html, Markup, Render};
-use rocket::http::uri::Origin;
-use rocket::Request;
-use tiberius_core::error::TiberiusResult;
-use tiberius_core::session::{SessionMode, Unauthenticated};
-use tiberius_core::state::{TiberiusRequestState, TiberiusState};
-use tiberius_models::{Client, Image, ImageThumbType, ImageThumbUrl, User};
+use tiberius_core::{
+    error::TiberiusResult,
+    session::{SessionMode, Unauthenticated},
+    state::{TiberiusRequestState, TiberiusState},
+};
+use tiberius_models::{
+    Client, Image, ImageSortBy, ImageThumbType, ImageThumbUrl, SortDirection, User,
+};
 
-use crate::pages::common::pagination::PaginationCtl;
+use crate::pages::{
+    common::{frontmatter::CSSWidth, pagination::PaginationCtl},
+    images::PathShowImage,
+    PathImageGetFull, PathImageThumbGet, PathImageThumbGetSimple,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub enum ImageSize {
@@ -82,13 +92,13 @@ impl ToString for ImageBlockHeader {
 }
 
 pub async fn image_block_default_sort<
-    S: Into<String>,
-    S1: Into<String>,
-    S5: Into<String>,
-    S6: Into<String>,
+    S: Into<String> + std::fmt::Debug,
+    S1: Into<String> + std::fmt::Debug,
+    S5: Into<String> + std::fmt::Debug,
+    S6: Into<String> + std::fmt::Debug,
 >(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, Unauthenticated>,
+    rstate: &TiberiusRequestState<Unauthenticated>,
     client: &mut Client,
     header: ImageBlockHeader,
     query: S,
@@ -98,7 +108,7 @@ pub async fn image_block_default_sort<
     page_size: u64,
     filter_title: S1,
 ) -> TiberiusResult<Markup> {
-    image_block::<S, &str, &str, S1, S5, S6>(
+    image_block::<S, S1, S5, S6>(
         state,
         rstate,
         client,
@@ -106,8 +116,7 @@ pub async fn image_block_default_sort<
         query,
         aquery,
         anquery,
-        None,
-        None,
+        ImageSortBy::CreatedAt(SortDirection::Descending),
         page,
         page_size,
         filter_title,
@@ -116,30 +125,30 @@ pub async fn image_block_default_sort<
 }
 
 pub async fn image_block<
-    S1: Into<String>,
-    S2: Into<String>,
-    S3: Into<String>,
-    S4: Into<String>,
-    S5: Into<String>,
-    S6: Into<String>,
+    S1: Into<String> + std::fmt::Debug,
+    S4: Into<String> + std::fmt::Debug,
+    S5: Into<String> + std::fmt::Debug,
+    S6: Into<String> + std::fmt::Debug,
 >(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, Unauthenticated>,
+    rstate: &TiberiusRequestState<Unauthenticated>,
     client: &mut Client,
     header: ImageBlockHeader,
     query: S1,
     aquery: Vec<S5>,
     anquery: Vec<S6>,
-    sort_by: Option<S2>,
-    order_by: Option<S3>,
+    sort_by: ImageSortBy,
     page: u64,
     page_size: u64,
     filter_title: S4,
 ) -> TiberiusResult<Markup> {
-    let (total, images) = Image::search(
-        client, query, aquery, anquery, sort_by, order_by, page, page_size,
-    )
-    .await?;
+    let (total, mut images) =
+        Image::search(client, query, aquery, anquery, sort_by, page, page_size).await?;
+    images.reverse();
+    info!(
+        "Got {total} images: {:?}",
+        images.iter().map(|x| x.id).collect_vec()
+    );
     let pagination = PaginationCtl::new(
         0,
         25,
@@ -149,12 +158,6 @@ pub async fn image_block<
         "image",
         filter_title,
     )?;
-    assert!(
-        total as usize == images.len(),
-        "image index out of step with database, index had {} images, got {}",
-        total,
-        images.len()
-    );
     Ok(html! {
         .block #imagelist-container {
             section.block__header.page__header.flex {
@@ -174,7 +177,7 @@ pub async fn image_block<
 
             .block__content.js-resizable-media-container {
                 @for image in images {
-                    (image_box(state, rstate, client, image, ImageSize::Medium, HeaderSize::ThumbSmall).await?)
+                    (image_box(state, rstate, client, image, ImageSize::Medium, HeaderSize::ThumbSmall, DisplaySize::Normal).await?)
                 }
             }
 
@@ -200,83 +203,173 @@ pub async fn image_block<
 
 pub async fn image_thumb_urls(image: &Image) -> TiberiusResult<ImageThumbUrl> {
     Ok(ImageThumbUrl {
-        full: PathBuf::from(
-            uri!(crate::pages::files::image_full_get(
-                id = image.id as u64,
-                _filename = image.filename()
-            ))
-            .to_string(),
-        ),
-        large: PathBuf::from(
-            uri!(crate::pages::files::image_thumb_get_simple(
-                id = image.id as u64,
-                thumbtype = "full",
-                _filename = image.filetypef("full")
-            ))
-            .to_string(),
-        ),
-        rendered: PathBuf::from(
-            uri!(crate::pages::files::image_thumb_get_simple(
-                id = image.id as u64,
-                thumbtype = "rendered",
-                _filename = image.filetypef("rendered")
-            ))
-            .to_string(),
-        ),
-        tall: PathBuf::from(
-            uri!(crate::pages::files::image_thumb_get_simple(
-                id = image.id as u64,
-                thumbtype = "tall",
-                _filename = image.filetypef("tall")
-            ))
-            .to_string(),
-        ),
-        medium: PathBuf::from(
-            uri!(crate::pages::files::image_thumb_get_simple(
-                id = image.id as u64,
-                thumbtype = "medium",
-                _filename = image.filetypef("medium")
-            ))
-            .to_string(),
-        ),
-        small: PathBuf::from(
-            uri!(crate::pages::files::image_thumb_get_simple(
-                id = image.id as u64,
-                thumbtype = "small",
-                _filename = image.filetypef("small")
-            ))
-            .to_string(),
-        ),
-        thumb: PathBuf::from(
-            uri!(crate::pages::files::image_thumb_get_simple(
-                id = image.id as u64,
-                thumbtype = "thumb",
-                _filename = image.filetypef("thumb")
-            ))
-            .to_string(),
-        ),
-        thumb_small: PathBuf::from(
-            uri!(crate::pages::files::image_thumb_get_simple(
-                id = image.id as u64,
-                thumbtype = "thumb_small",
-                _filename = image.filetypef("thumb_small")
-            ))
-            .to_string(),
-        ),
-        thumb_tiny: PathBuf::from(
-            uri!(crate::pages::files::image_thumb_get_simple(
-                id = image.id as u64,
-                thumbtype = "thumb_tiny",
-                _filename = image.filetypef("thumb_tiny")
-            ))
-            .to_string(),
-        ),
+        full: Uri::builder()
+            .path_and_query(
+                PathBuf::from(
+                    PathImageGetFull {
+                        filename: image.filename(),
+                        year: image.created_at.year() as u16,
+                        month: image.created_at.month() as u8,
+                        day: image.created_at.day() as u8,
+                    }
+                    .to_uri()
+                    .to_string(),
+                )
+                .to_string_lossy()
+                .to_string(),
+            )
+            .build()
+            .unwrap(),
+        large: Uri::builder()
+            .path_and_query(
+                PathBuf::from(
+                    PathImageThumbGet {
+                        id: image.id as u64,
+                        filename: image.filetypef("full"),
+                        year: image.created_at.year() as u16,
+                        month: image.created_at.month() as u8,
+                        day: image.created_at.day() as u8,
+                    }
+                    .to_uri()
+                    .to_string(),
+                )
+                .to_string_lossy()
+                .to_string(),
+            )
+            .build()
+            .unwrap(),
+        rendered: Uri::builder()
+            .path_and_query(
+                PathBuf::from(
+                    PathImageThumbGet {
+                        id: image.id as u64,
+                        filename: image.filetypef("rendered"),
+                        year: image.created_at.year() as u16,
+                        month: image.created_at.month() as u8,
+                        day: image.created_at.day() as u8,
+                    }
+                    .to_uri()
+                    .to_string(),
+                )
+                .to_string_lossy()
+                .to_string(),
+            )
+            .build()
+            .unwrap(),
+        tall: Uri::builder()
+            .path_and_query(
+                PathBuf::from(
+                    PathImageThumbGet {
+                        id: image.id as u64,
+                        filename: image.filetypef("tall"),
+                        year: image.created_at.year() as u16,
+                        month: image.created_at.month() as u8,
+                        day: image.created_at.day() as u8,
+                    }
+                    .to_uri()
+                    .to_string(),
+                )
+                .to_string_lossy()
+                .to_string(),
+            )
+            .build()
+            .unwrap(),
+        medium: Uri::builder()
+            .path_and_query(
+                PathBuf::from(
+                    PathImageThumbGet {
+                        id: image.id as u64,
+                        filename: image.filetypef("medium"),
+                        year: image.created_at.year() as u16,
+                        month: image.created_at.month() as u8,
+                        day: image.created_at.day() as u8,
+                    }
+                    .to_uri()
+                    .to_string(),
+                )
+                .to_string_lossy()
+                .to_string(),
+            )
+            .build()
+            .unwrap(),
+        small: Uri::builder()
+            .path_and_query(
+                PathBuf::from(
+                    PathImageThumbGet {
+                        id: image.id as u64,
+                        filename: image.filetypef("small"),
+                        year: image.created_at.year() as u16,
+                        month: image.created_at.month() as u8,
+                        day: image.created_at.day() as u8,
+                    }
+                    .to_uri()
+                    .to_string(),
+                )
+                .to_string_lossy()
+                .to_string(),
+            )
+            .build()
+            .unwrap(),
+        thumb: Uri::builder()
+            .path_and_query(
+                PathBuf::from(
+                    PathImageThumbGet {
+                        id: image.id as u64,
+                        filename: image.filetypef("thumb"),
+                        year: image.created_at.year() as u16,
+                        month: image.created_at.month() as u8,
+                        day: image.created_at.day() as u8,
+                    }
+                    .to_uri()
+                    .to_string(),
+                )
+                .to_string_lossy()
+                .to_string(),
+            )
+            .build()
+            .unwrap(),
+        thumb_small: Uri::builder()
+            .path_and_query(
+                PathBuf::from(
+                    PathImageThumbGet {
+                        id: image.id as u64,
+                        filename: image.filetypef("thumb_small"),
+                        year: image.created_at.year() as u16,
+                        month: image.created_at.month() as u8,
+                        day: image.created_at.day() as u8,
+                    }
+                    .to_uri()
+                    .to_string(),
+                )
+                .to_string_lossy()
+                .to_string(),
+            )
+            .build()
+            .unwrap(),
+        thumb_tiny: Uri::builder()
+            .path_and_query(
+                PathBuf::from(
+                    PathImageThumbGet {
+                        id: image.id as u64,
+                        filename: image.filetypef("thumb_tiny"),
+                        year: image.created_at.year() as u16,
+                        month: image.created_at.month() as u8,
+                        day: image.created_at.day() as u8,
+                    }
+                    .to_uri()
+                    .to_string(),
+                )
+                .to_string_lossy()
+                .to_string(),
+            )
+            .build()
+            .unwrap(),
     })
 }
 
 pub async fn show_vote_counts(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, Unauthenticated>,
+    rstate: &TiberiusRequestState<Unauthenticated>,
 ) -> bool {
     //TODO: read setting from site + user
     true
@@ -284,7 +377,7 @@ pub async fn show_vote_counts(
 
 pub async fn uploader(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, Unauthenticated>,
+    rstate: &TiberiusRequestState<Unauthenticated>,
     image: &Image,
 ) -> TiberiusResult<Markup> {
     Ok(html! {
@@ -297,7 +390,7 @@ pub async fn uploader(
 
 pub async fn user_attribution(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, Unauthenticated>,
+    rstate: &TiberiusRequestState<Unauthenticated>,
     user: Option<&User>,
 ) -> TiberiusResult<Markup> {
     Ok(html! {
@@ -310,13 +403,35 @@ pub async fn user_attribution(
     })
 }
 
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub enum DisplaySize {
+    Normal,
+    Featured,
+}
+
+impl DisplaySize {
+    pub fn to_width(&self) -> CSSWidth {
+        match self {
+            DisplaySize::Normal => CSSWidth::Pixels(248),
+            DisplaySize::Featured => CSSWidth::Pixels(326),
+        }
+    }
+}
+
+impl Display for DisplaySize {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.to_width().to_string())
+    }
+}
+
 pub async fn image_box<'a>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, Unauthenticated>,
+    rstate: &TiberiusRequestState<Unauthenticated>,
     client: &mut Client,
     image: Image,
     image_size: ImageSize,
     header_size: HeaderSize,
+    display_size: DisplaySize,
 ) -> TiberiusResult<Markup> {
     let size_class = match image_size {
         ImageSize::Large => "media-box__content--large",
@@ -332,17 +447,17 @@ pub async fn image_box<'a>(
             span.fave-span title="Fave!" {
                 i.fa.fa-star {}
             }
+            " "
             span.favorites title="Favorites" data-image-id=(image.id) { (image.faves_count) }
         }
         a.interaction--upvote href="#" rel="nofollow" data-image-id=(image.id) {
             i.fa.fa-arrow-up title="Yay!" {}
-        }
-        span.score title="Score" data-image-id=(image.id) { (image.score) }
-        a.interaction--downvote href="#" rel="nofollow" data-image-id=(image.id) {
-            i.fa.fa-arrow-down title="Neigh!" {}
+            " "
+            span.score title="Score" data-image-id=(image.id) { (image.score) }
         }
         a.interaction--comments href=(format!("/{}#comments", image.id)) title="Comments" {
             i.fa.fa-comments {}
+            " "
             span.comments-count data-image-id=(image.id) { (image.comments_count) }
         }
         a.interaction--hide href="#" rel="nofollow" data-image-id=(image.id) {
@@ -351,11 +466,11 @@ pub async fn image_box<'a>(
     };
     debug!("showing image {} to page", image.id);
     Ok(html! {
-        .media-box data-image-id=(image.id) {
+        .media-box data-image-id=(image.id) style=(format!("width: {display_size};")) {
             .media-box__header.media-box__header--link-row.(header_class) data-image-id=(image.id) {
                 (interactions)
             }
-            .media-box__content.flex.flex--centered.flex--centered-distributed.(size_class) {
+            .media-box__content.flex.flex--centered.flex--centered-distributed.(size_class) style=(format!("width: {display_size}; height: {display_size};")) {
                 (image_container(state, rstate, client, image, image_size.into()).await?)
             }
         }
@@ -364,12 +479,15 @@ pub async fn image_box<'a>(
 
 pub async fn image_container<'a>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, Unauthenticated>,
+    rstate: &TiberiusRequestState<Unauthenticated>,
     client: &mut Client,
     image: Image,
     image_size: ImageThumbType,
 ) -> TiberiusResult<Markup> {
-    let link = uri!(crate::pages::images::show_image(image.id as u64));
+    let link = PathShowImage {
+        image: image.id as u64,
+    }
+    .to_uri();
     if image.duplicate_id.is_some() {
         return Ok(html! { .media-box__overlay { strong { "Marked duplicate" } } });
     }
@@ -381,17 +499,19 @@ pub async fn image_container<'a>(
             "Deleted: " (image.deletion_reason.unwrap_or("Unknown".to_string()))
         } } });
     }
-    Ok(
-        RenderIntent::from_image(state, rstate, client, image, image_size)
-            .await?
-            .render(link)?,
-    )
+    Ok(html! {
+        div.image-container.thumb {
+            (RenderIntent::from_image(state, rstate, client, image, image_size)
+                .await?
+                .render(link)?)
+        }
+    })
 }
 
 impl RenderIntent {
     pub async fn from_image(
         state: &TiberiusState,
-        rstate: &TiberiusRequestState<'_, Unauthenticated>,
+        rstate: &TiberiusRequestState<Unauthenticated>,
         client: &mut Client,
         image: Image,
         size: ImageThumbType,
@@ -418,22 +538,70 @@ impl RenderIntent {
                 _ => false,
             };
         let filtered = image.filter_or_spoiler_hits(client).await?;
+        let static_host = state.config.static_host(Some(&rstate));
+        fn apply_static_host(uri: Uri, host: Option<&String>) -> Uri {
+            let host = match host {
+                None => return uri,
+                Some(host) => host.clone(),
+            };
+            let base = Uri::try_from(host).unwrap();
+            let authority = base.authority().unwrap();
+            let path_and_query = uri.path_and_query().unwrap();
+            Uri::builder()
+                .scheme(base.scheme().unwrap().clone())
+                .authority(authority.clone())
+                .path_and_query(path_and_query.clone())
+                .build()
+                .expect("was already valid")
+        }
         Ok(if filtered && vid {
             RenderIntent::FilteredVideo { hover_text: alt }
         } else if filtered && !vid {
             RenderIntent::FilteredImage { hover_text: alt }
         } else if hidpi && !(gif || vid) {
-            let small_url = uri!(crate::pages::files::image_thumb_get_simple(
-                image.id as u64,
-                ImageThumbType::Small.to_string(),
-                format!("{}.webm", image.id)
-            ))
+            let small_url = apply_static_host(
+                Uri::builder()
+                    .path_and_query(
+                        PathBuf::from(
+                            PathImageThumbGet {
+                                id: image.id as u64,
+                                filename: image.filetypef("small"),
+                                year: image.created_at.year() as u16,
+                                month: image.created_at.month() as u8,
+                                day: image.created_at.day() as u8,
+                            }
+                            .to_uri()
+                            .to_string(),
+                        )
+                        .to_string_lossy()
+                        .to_string(),
+                    )
+                    .build()
+                    .unwrap(),
+                Some(&static_host),
+            )
             .to_string();
-            let medium_url = uri!(crate::pages::files::image_thumb_get_simple(
-                image.id as u64,
-                ImageThumbType::Medium.to_string(),
-                format!("{}.webm", image.id)
-            ))
+            let medium_url = apply_static_host(
+                Uri::builder()
+                    .path_and_query(
+                        PathBuf::from(
+                            PathImageThumbGet {
+                                id: image.id as u64,
+                                filename: image.filetypef("medium"),
+                                year: image.created_at.year() as u16,
+                                month: image.created_at.month() as u8,
+                                day: image.created_at.day() as u8,
+                            }
+                            .to_uri()
+                            .to_string(),
+                        )
+                        .to_string_lossy()
+                        .to_string(),
+                    )
+                    .build()
+                    .unwrap(),
+                Some(&static_host),
+            )
             .to_string();
             RenderIntent::HiDpi {
                 small_url,
@@ -441,17 +609,49 @@ impl RenderIntent {
                 hover_text: alt,
             }
         } else if !vid || use_gif {
-            let small_url = uri!(crate::pages::files::image_thumb_get_simple(
-                image.id as u64,
-                ImageThumbType::Small.to_string(),
-                format!("{}.webm", image.id)
-            ))
+            let small_url = apply_static_host(
+                Uri::builder()
+                    .path_and_query(
+                        PathBuf::from(
+                            PathImageThumbGet {
+                                id: image.id as u64,
+                                filename: image.filetypef("small"),
+                                year: image.created_at.year() as u16,
+                                month: image.created_at.month() as u8,
+                                day: image.created_at.day() as u8,
+                            }
+                            .to_uri()
+                            .to_string(),
+                        )
+                        .to_string_lossy()
+                        .to_string(),
+                    )
+                    .build()
+                    .unwrap(),
+                Some(&static_host),
+            )
             .to_string();
-            let medium_url = uri!(crate::pages::files::image_thumb_get_simple(
-                image.id as u64,
-                ImageThumbType::Medium.to_string(),
-                format!("{}.webm", image.id)
-            ))
+            let medium_url = apply_static_host(
+                Uri::builder()
+                    .path_and_query(
+                        PathBuf::from(
+                            PathImageThumbGet {
+                                id: image.id as u64,
+                                filename: image.filetypef("medium"),
+                                year: image.created_at.year() as u16,
+                                month: image.created_at.month() as u8,
+                                day: image.created_at.day() as u8,
+                            }
+                            .to_uri()
+                            .to_string(),
+                        )
+                        .to_string_lossy()
+                        .to_string(),
+                    )
+                    .build()
+                    .unwrap(),
+                Some(&static_host),
+            )
             .to_string();
             RenderIntent::Image {
                 small_url,
@@ -460,17 +660,33 @@ impl RenderIntent {
                 webm,
             }
         } else {
-            let path: Origin = uri!(crate::pages::files::image_thumb_get_simple(
-                image.id as u64,
-                size.to_string(),
-                format!("{}.webm", image.id)
-            ));
+            let path = apply_static_host(
+                Uri::builder()
+                    .path_and_query(
+                        PathBuf::from(
+                            PathImageThumbGet {
+                                id: image.id as u64,
+                                filename: image.filetypef(size.to_string()),
+                                year: image.created_at.year() as u16,
+                                month: image.created_at.month() as u8,
+                                day: image.created_at.day() as u8,
+                            }
+                            .to_uri()
+                            .to_string(),
+                        )
+                        .to_string_lossy()
+                        .to_string(),
+                    )
+                    .build()
+                    .unwrap(),
+                Some(&static_host),
+            )
+            .to_string();
+            let mp4_path = path.clone().to_string().replacen(".webm", ".mp4", 1);
+            let webm_path = path.clone().to_string();
             RenderIntent::Video {
-                webm: path.to_string(),
-                mp4: path
-                    .map_path(|x| x.as_str().replace(".webm", ".mp4"))
-                    .expect("invalid path in webm/mp4-pathgen")
-                    .to_string(),
+                webm: webm_path,
+                mp4: mp4_path,
                 hover_text: alt,
             }
         })
@@ -507,7 +723,7 @@ impl RenderIntent {
                     }
                 }
             }
-            v => todo!(" other image features like {:?}", v),
+            v => html! {}, //todo!(" other image features like {:?}", v),
         })
     }
 }

@@ -54,6 +54,14 @@ mod test {
             r#"<p><span class="spoiler">spoilerino</span></p>"#,
             render_markdown("[spoiler]spoilerino[/spoiler]")
         );
+        assert_eq!(
+            r#"<p><span class="spoiler"> spoilerino </span></p>"#,
+            render_markdown("|| spoilerino ||")
+        );
+        assert_eq!(
+            r#"<p><span class="spoiler">spoilerino</span></p>"#,
+            render_markdown("||spoilerino||")
+        );
     }
 
     #[test]

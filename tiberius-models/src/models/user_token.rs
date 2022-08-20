@@ -2,6 +2,7 @@ use std::ops::DerefMut;
 
 use chrono::NaiveDateTime;
 use sqlx::query_as;
+use tiberius_dependencies::hex;
 use tracing::trace;
 
 use crate::{Client, PhilomenaModelError};

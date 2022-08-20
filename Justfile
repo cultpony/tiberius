@@ -12,6 +12,9 @@ hack_step_b := hack_step + excluded_features_step_b
 run: build
   cargo run --no-default-features --features=stable-release -- server -z
 
+run-release: build
+  cargo run --release --no-default-features --features=stable-release -- server -z
+
 sqlx-prep:
   cargo sqlx prepare --merged
 
@@ -21,8 +24,11 @@ build:
 build-release:
   cargo build --release --no-default-features --features=stable-release
 
-build-release-docker: sqlx-prep
-  docker run -it --rm -v $PWD:/app rust:1.57-buster /bin/bash /app/docker-build.sh
+build-release-ubuntu: sqlx-prepare
+  cross build --release
+
+sqlx-prepare:
+  cargo sqlx prepare --merged
 
 fullbuild: fullcheck
   cargo hack build {{hack_step_a}}
@@ -56,3 +62,6 @@ fulltest: fullcheck
 
 devdb:
   docker-compose up -d postgres
+
+audit:
+  cargo audit --ignore RUSTSEC-2020-0071 --ignore RUSTSEC-2022-0006 --ignore RUSTSEC-2022-0013 --ignore RUSTSEC-2021-0127

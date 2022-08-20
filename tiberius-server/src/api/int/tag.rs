@@ -1,8 +1,16 @@
-use rocket::{serde::json::Json, State};
-use tiberius_core::error::TiberiusResult;
-use tiberius_core::session::{SessionMode, Unauthenticated};
-use tiberius_core::state::{TiberiusRequestState, TiberiusState};
-use tiberius_models::{Client, Tag};
+use async_trait::async_trait;
+use axum::{
+    extract::{FromRequest, Query, RequestParts},
+    Extension, Json,
+};
+use axum_extra::routing::TypedPath;
+use serde::Deserialize;
+use tiberius_core::{
+    error::{TiberiusError, TiberiusResult},
+    session::{SessionMode, Unauthenticated},
+    state::{TiberiusRequestState, TiberiusState},
+};
+use tiberius_models::{Client, Tag, TagLike};
 
 #[derive(serde::Deserialize)]
 pub struct TagFetchQuery {
@@ -20,13 +28,44 @@ pub struct ApiResponse {
     tags: Vec<TagApiResponse>,
 }
 
-#[get("/tags/fetch?<ids>")]
-pub async fn fetch(
-    state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, Unauthenticated>,
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/tags/fetch")]
+pub struct PathTagsFetch {}
+
+#[derive(Deserialize)]
+pub struct QueryTagsFetch {
     ids: Vec<i64>,
+}
+
+#[async_trait]
+impl<B> FromRequest<B> for QueryTagsFetch
+where
+    B: Send,
+{
+    type Rejection = TiberiusError;
+
+    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
+        let query = req.uri().query();
+        let query = match query {
+            Some(q) => q,
+            None => {
+                return Err(TiberiusError::Other(
+                    "Missing required query parameter 'ids[]'".to_string(),
+                ))
+            }
+        };
+        Ok(serde_qs::from_str(query)?)
+    }
+}
+
+#[instrument(level = "trace")]
+pub async fn fetch(
+    _: PathTagsFetch,
+    Extension(state): Extension<TiberiusState>,
+    rstate: TiberiusRequestState<Unauthenticated>,
+    QueryTagsFetch { ids }: QueryTagsFetch,
 ) -> TiberiusResult<Json<ApiResponse>> {
-    let mut client = state.get_db_client().await?;
+    let mut client = state.get_db_client();
     let site_config = state.site_config();
     let tags = Tag::get_many(&mut client, ids).await?;
     let tags: Vec<TagApiResponse> = tags
@@ -45,5 +84,5 @@ pub async fn fetch(
         })
         .collect();
     let tags = ApiResponse { tags };
-    Ok(Json::from(tags))
+    Ok(Json(tags))
 }

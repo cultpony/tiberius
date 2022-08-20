@@ -1,7 +1,17 @@
-use rocket::http::ContentType;
-use rocket::{http::Status, response::Responder, Response};
-use std::io::Cursor;
+use axum::{headers::HeaderMapExt, http::HeaderMap};
+use std::{io::Cursor, str::ParseBoolError};
 use thiserror::Error;
+use tiberius_dependencies::{
+    axum,
+    axum::{
+        body::BoxBody,
+        headers::ContentType,
+        response::{IntoResponse, Response},
+    },
+    http::StatusCode,
+    mime::FromStrError,
+    totp_rs,
+};
 
 #[derive(Debug, Error)]
 pub enum TiberiusError {
@@ -19,8 +29,8 @@ pub enum TiberiusError {
     RingUnspec(#[from] ring::error::Unspecified),
     #[error("Ring: Key Rejected: {0}")]
     RingKR(#[from] ring::error::KeyRejected),
-    #[error("Envy Error: {0}")]
-    Envy(#[from] envy::Error),
+    //#[error("Envy Error: {0}")]
+    //Envy(#[from] envy::Error),
     #[error("Serde: JSON: {0}")]
     SerdeJson(#[from] serde_json::Error),
     #[error("Paseto: {0}")]
@@ -37,18 +47,12 @@ pub enum TiberiusError {
     RouteNotFound(String),
     #[error("The page located under {0:?} could not be found, have you tried looking in Celestia's secret stash?")]
     PageNotFound(String),
-    #[error("Something went wrong trying to redirect you with a flash")]
-    FlashRedirect(rocket::response::Flash<rocket::response::Redirect>),
-    #[error("Something went wrong trying to redirect you")]
-    Redirect(rocket::response::Redirect),
     #[error("Could not join thread: {0}")]
     JoinError(#[from] tokio::task::JoinError),
     #[error("Could not parse URL: {0}")]
     Url(#[from] url::ParseError),
     #[error("Search Index Error: {0}")]
     TantivyTopLevel(#[from] tiberius_models::TantivyError),
-    #[error("Web Engine Error: {0}")]
-    Rocket(#[from] rocket::Error),
     #[error("BCrypt Error: {0}")]
     Bcrypt(#[from] bcrypt::BcryptError),
     #[error("Error in Time: {0}")]
@@ -57,10 +61,6 @@ pub enum TiberiusError {
     StripPathPrefix(#[from] std::path::StripPrefixError),
     #[error("Could not process image: {0}")]
     ImageError(#[from] image::ImageError),
-    #[error("Database Error in ACL Engine: {0}")]
-    CasbinSqlError(#[from] sqlx_adapter::Error),
-    #[error("Error in ACL Engine: {0}")]
-    CasbinError(#[from] sqlx_adapter::casbin::Error),
     #[error("Access has been denied")]
     AccessDenied,
     #[error("Configuration Variable Unset: {0}")]
@@ -81,47 +81,71 @@ pub enum TiberiusError {
     ObjectNotFound(String, String),
     #[error(transparent)]
     Internal(#[from] anyhow::Error),
+    #[error("Requested Session from Static Handler")]
+    StaticSession,
+    #[error("Required Database but found None")]
+    RequestMissingDatabase,
+    #[error("TOTP Error: {0:?}")]
+    TotpUrlError(totp_rs::TotpUrlError),
+    #[error("Invalid Log Level {0:?}")]
+    InvalidLogLevel(String),
+    #[error("Could not read request: {0:?}")]
+    MultipartError(#[from] axum::extract::multipart::MultipartError),
+    #[error("Could not parse field: {0:?}")]
+    ParseBool(#[from] ParseBoolError),
+    #[error("Could not parse value from string: {0:?}")]
+    FromStr(#[from] FromStrError),
+    #[error("Could not persist temporary file: {0:?}")]
+    PersistError(#[from] tiberius_dependencies::tempfile::PersistError),
+    #[error("General HTTP Format Error: {0:?}")]
+    HttpError(#[from] tiberius_dependencies::http::Error),
+    #[error("Serde QS Error: {0:?}")]
+    SerdeQsError(#[from] tiberius_dependencies::serde_qs::Error),
+    #[error("Session Errored out: {0:?}")]
+    SessionError(#[from] tiberius_dependencies::axum_database_sessions::SessionError),
+    #[error("Error return from Cache Initializer: {0:?}")]
+    CacheError(String),
+    #[error("Could not parse string as integer: {0:?}")]
+    PareInt(#[from] std::num::ParseIntError),
+
+    #[error("ACL Error: {0:?}")]
+    ACLError(#[from] tiberius_dependencies::casbin::Error),
 }
 
 pub type TiberiusResult<T> = std::result::Result<T, TiberiusError>;
 
-impl<'r> Responder<'r, 'static> for TiberiusError {
-    fn respond_to(self, r: &'r rocket::Request<'_>) -> rocket::response::Result<'static> {
+impl axum::response::IntoResponse for TiberiusError {
+    fn into_response(self) -> Response {
         match self {
-            Self::FlashRedirect(v) => return v.respond_to(r),
-            Self::Redirect(v) => return v.respond_to(r),
-            Self::AccessDenied => {
+            TiberiusError::AccessDenied => {
                 let c = maud::html! {
                     b { (format!("{}", self.to_string())) };
                 };
                 let c: String = c.into_string();
-                return Ok(Response::build()
-                    .status(Status::Forbidden)
-                    .header(ContentType::HTML)
-                    .sized_body(c.bytes().len(), Cursor::new(c))
-                    .finalize());
+                let mut hm = HeaderMap::new();
+                hm.typed_insert(ContentType::html());
+                (StatusCode::FORBIDDEN, hm, c).into_response()
             }
-            _ => (),
+            _ => {
+                #[cfg(debug_assert)]
+                let c = maud::html! {
+                    "Internal Error"
+                    br;
+                    b { pre { (format!("{}", self.to_string())) } };
+                };
+                #[cfg(not(debug_assert))]
+                let c = {
+                    error!("Error presented to user: {:?}", self);
+                    maud::html! {
+                        "Internal Error"
+                        br;
+                    }
+                };
+                let c: String = c.into_string();
+                let mut hm = HeaderMap::new();
+                hm.typed_insert(ContentType::html());
+                (StatusCode::FORBIDDEN, hm, c).into_response()
+            }
         }
-        #[cfg(debug_assert)]
-        let c = maud::html! {
-            "Internal Error"
-            br;
-            b { pre { (format!("{}", self.to_string())) } };
-        };
-        #[cfg(not(debug_assert))]
-        let c = {
-            error!("Error presented to user: {:?}", self);
-            maud::html! {
-                "Internal Error"
-                br;
-            }
-        };
-        let c: String = c.into_string();
-        Ok(Response::build()
-            .status(Status::InternalServerError)
-            .header(ContentType::HTML)
-            .sized_body(c.bytes().len(), Cursor::new(c))
-            .finalize())
     }
 }

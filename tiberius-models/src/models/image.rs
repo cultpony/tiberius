@@ -1,277 +1,55 @@
-use std::fmt::Display;
-use std::fs::File;
-use std::io::BufReader;
-use std::sync::Arc;
-use std::{ops::DerefMut, path::PathBuf, pin::Pin};
+use std::{
+    fmt::Display,
+    fs::File,
+    io::BufReader,
+    ops::{DerefMut, Range},
+    path::PathBuf,
+    pin::Pin,
+    sync::Arc,
+};
 
-use async_std::prelude::*;
-use async_std::sync::RwLock;
+use async_std::{prelude::*, sync::RwLock};
 use async_trait::async_trait;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use futures::TryStreamExt;
-use ipnetwork::IpNetwork;
 use itertools::Itertools;
-use sqlx::{postgres::PgRow, query_as, Executor, FromRow, PgPool};
-use tantivy::IndexWriter;
-use tiberius_search::Queryable;
+use sqlx::{
+    postgres::PgRow, query, query_as, types::ipnetwork::IpNetwork, Executor, FromRow, PgPool,
+};
+use tantivy::{
+    collector::{Collector, TopDocs},
+    Document, IndexWriter,
+};
+use tiberius_dependencies::http::{
+    uri::{Authority, Scheme},
+    Uri,
+};
+use tiberius_search::{Queryable, SortIndicator};
 use tracing::trace;
 
-use crate::pluggables::{Hashable, Representations, Intensities, ImageInteractionMetadata, ImageFileMetadata, ImageUrls};
 use crate::{
+    comment::Comment,
+    pluggables::{
+        Hashable, ImageFileMetadata, ImageInteractionMetadata, ImageUrls, Intensities,
+        Representations,
+    },
     tantivy_bool_text_field, tantivy_date_field, tantivy_raw_text_field, tantivy_text_field,
-    tantivy_u64_field, Client, ImageFeature, ImageTag, PhilomenaModelError, Tag, SafeSerialize, DirectSafeSerialize,
+    tantivy_u64_field, Client, DirectSafeSerialize, ImageFeature, ImageTag, PhilomenaModelError,
+    SafeSerialize, SortDirection, Tag, TagLike, TagView,
 };
-#[cfg(feature = "verify-db")]
-use crate::VerifiableTable;
 
-pub struct VerifierImage {
-    pool: PgPool,
-    client: Client,
-    start_id: u64,
-    end_id: u64,
-    subbatching: u64,
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub struct ImageID(u64);
+
+impl Into<i64> for ImageID {
+    fn into(self) -> i64 {
+        self.0 as i64
+    }
 }
 
-#[cfg(feature = "verify-db")]
-#[async_trait]
-impl VerifiableTable for VerifierImage {
-    async fn verify(&mut self) -> Result<(), PhilomenaModelError> {
-        tracing::warn!("Verifying consistency of image database");
-        let mut images =
-            Image::get_all(self.pool.clone(), Some(self.start_id), Some(self.end_id)).await?;
-        let mut images_scanned: u64 = 0;
-        let size = Image::count(&mut self.client, Some(self.start_id), Some(self.end_id)).await?;
-        tracing::warn!("Got image stream (expecting {} items), scanning...", size);
-
-        let (tag_scanner_send, tag_scanner_recv) = async_std::channel::bounded(32);
-        let (user_scanner_send, user_scanner_recv) = async_std::channel::bounded(32);
-        let (image_scanner_send, image_scanner_recv) = async_std::channel::bounded(32);
-        let tag_scanner = {
-            let client = self.client.clone_new_conn(&mut self.pool).await?;
-            tokio::spawn(async {
-                let recv: async_std::channel::Receiver<Vec<i64>> = tag_scanner_recv;
-                let mut client = client;
-                loop {
-                    let ids = recv.recv().await;
-                    let ids = match ids {
-                        Ok(v) => v,
-                        Err(_) => {
-                            tracing::warn!("tag scanner closing...");
-                            return;
-                        }
-                    };
-                    let ids = query_as!(
-                        ImageTag,
-                        "SELECT * FROM image_taggings WHERE image_id = ANY($1)",
-                        &ids
-                    )
-                    .fetch_all(client.db().await.unwrap().deref_mut())
-                    .await
-                    .unwrap();
-                    let tags: Vec<i64> = ids
-                        .iter()
-                        .map(|x| &x.tag_id)
-                        .map(|x| *x as i64)
-                        .sorted()
-                        .unique()
-                        .collect();
-                    let tags = Tag::get_many(&mut client, tags).await;
-                    let tags = match tags {
-                        Ok(v) => v,
-                        Err(v) => {
-                            tracing::error!("Error while processing tag batch: {:?}", v);
-                            return;
-                        }
-                    };
-                    let tags: Vec<i64> = tags.iter().map(|x| x.id as i64).collect();
-                    let missing_tags: Vec<&ImageTag> =
-                        ids.iter().filter(|x| !tags.contains(&x.tag_id)).collect();
-                    if !missing_tags.is_empty() {
-                        tracing::warn!(
-                            "Following tags ({}) not found in database: ",
-                            missing_tags.len()
-                        );
-                        for tag in missing_tags {
-                            tracing::error!(" - Image {} missing ({:?})", tag.image_id, tag.tag_id);
-                        }
-                    }
-                }
-            })
-        };
-        let image_scanner = {
-            let client = self.client.clone_new_conn(&mut self.pool).await?;
-            tokio::spawn(async {
-                let recv: async_std::channel::Receiver<Vec<i32>> = image_scanner_recv;
-                let mut client = client;
-                loop {
-                    let ids = recv.recv().await;
-                    let ids = match ids {
-                        Ok(v) => v,
-                        Err(_) => {
-                            tracing::warn!("image scanner closing...");
-                            return;
-                        }
-                    };
-                    let images = query_as!(Image, "SELECT * FROM images WHERE id = ANY($1)", &ids)
-                        .fetch_all(client.db().await.unwrap().deref_mut())
-                        .await
-                        .unwrap();
-                    let images: Vec<i64> = images
-                        .iter()
-                        .map(|x| &x.id)
-                        .map(|x| *x as i64)
-                        .sorted()
-                        .unique()
-                        .collect();
-                    let images = Image::get_many(&mut client, images).await;
-                    let images = match images {
-                        Ok(v) => v,
-                        Err(v) => {
-                            tracing::error!("Error while processing image batch: {:?}", v);
-                            return;
-                        }
-                    };
-                    let images: Vec<i64> = images.iter().map(|x| x.id as i64).collect();
-                    let missing_images: Vec<&i32> = ids
-                        .iter()
-                        .filter(|x| !images.contains(&(**x as i64)))
-                        .collect();
-                    if !missing_images.is_empty() {
-                        tracing::warn!(
-                            "Following images ({}) not found in database: ",
-                            missing_images.len()
-                        );
-                        for image in missing_images {
-                            tracing::error!(" - Image {} missing", image);
-                        }
-                    }
-                }
-            })
-        };
-        let user_scanner = {
-            let client = self.client.clone_new_conn(&mut self.pool).await?;
-            tokio::spawn(async {
-                let recv: async_std::channel::Receiver<Vec<(i64, Vec<i32>)>> = user_scanner_recv;
-                let client = client;
-                loop {
-                    let ids = recv.recv().await;
-                    let ids = match ids {
-                        Ok(v) => v,
-                        Err(_) => {
-                            tracing::warn!("user scanner closing...");
-                            return;
-                        }
-                    };
-                    struct UserIdOnly {
-                        id: i32,
-                    }
-                    let sub_ids: Vec<i32> = ids.iter().map(|x| x.1.clone()).flatten().collect();
-                    let users = query_as!(
-                        UserIdOnly,
-                        "SELECT id FROM users WHERE id = ANY($1)",
-                        &sub_ids
-                    )
-                    .fetch_all(client.db().await.unwrap().deref_mut())
-                    .await
-                    .unwrap();
-                    let users: Vec<i32> = users.iter().map(|x| x.id).sorted().unique().collect();
-                    let missing_users: Vec<(&i64, Vec<&i32>)> = ids
-                        .iter()
-                        .map(|(i, us)| {
-                            let us: Vec<&i32> = us.iter().filter(|x| !users.contains(*x)).collect();
-                            (i, us)
-                        })
-                        .filter(|x| !x.1.is_empty())
-                        .collect();
-                    if !missing_users.is_empty() {
-                        tracing::warn!(
-                            "Following users ({}) not found in database: ",
-                            missing_users.len()
-                        );
-                        for user in missing_users {
-                            tracing::error!(" - Image {} missing users {:?}", user.0, user.1);
-                        }
-                    }
-                }
-            })
-        };
-        use progressing::Baring;
-        let mut progress = progressing::bernoulli::Bar::with_goal(size as usize).timed();
-        let mut tag_batches = Vec::new();
-        let mut image_batches = Vec::new();
-        let mut user_batches = Vec::new();
-        while let Some(image) = images.try_next().await? {
-            images_scanned += 1;
-            progress.add(1);
-            if progress.has_progressed_significantly() {
-                progress.remember_significant_progress();
-                tracing::info!("{}", progress);
-            }
-            let image: Image = Image::from_row(&image)?;
-            let mut users = image.watcher_ids;
-            if let Some(user_id) = image.user_id {
-                users.push(user_id);
-            }
-            if let Some(deleted_by_id) = image.deleted_by_id {
-                users.push(deleted_by_id);
-            }
-            user_batches.push((image.id as i64, users));
-            if let Some(duplicate_id) = image.duplicate_id {
-                image_batches.push(duplicate_id);
-            }
-            tag_batches.push(image.id as i64);
-
-            if tag_batches.len() > self.subbatching as usize {
-                tag_scanner_send
-                    .send(tag_batches.clone())
-                    .await
-                    .expect("could not send tag batch");
-                tag_batches = Vec::new();
-            }
-            if image_batches.len() > self.subbatching as usize {
-                image_scanner_send
-                    .send(image_batches.clone())
-                    .await
-                    .expect("could not send image batch");
-                image_batches = Vec::new();
-            }
-            if user_batches.len() > self.subbatching as usize {
-                user_scanner_send
-                    .send(user_batches.clone())
-                    .await
-                    .expect("could not send user batch");
-                user_batches = Vec::new();
-            }
-        }
-        if tag_batches.len() > 0 {
-            tag_scanner_send
-                .send(tag_batches.clone())
-                .await
-                .expect("could not send final tag batch");
-        }
-
-        if image_batches.len() > 0 {
-            image_scanner_send
-                .send(image_batches.clone())
-                .await
-                .expect("could not send final image batch");
-        }
-
-        if user_batches.len() > 0 {
-            user_scanner_send
-                .send(user_batches.clone())
-                .await
-                .expect("could not send final user batch");
-        }
-        tracing::warn!("Waiting for remaining data batches to be verified");
-        image_scanner_send.close();
-        tag_scanner_send.close();
-        user_scanner_send.close();
-        image_scanner.await.unwrap();
-        tag_scanner.await.unwrap();
-        user_scanner.await.unwrap();
-        tracing::warn!("Scanned {} images (expected {})", images_scanned, size);
-        Ok(())
+impl Into<u64> for ImageID {
+    fn into(self) -> u64 {
+        self.0 as u64
     }
 }
 
@@ -449,27 +227,130 @@ pub struct ImageWithTags {
     pub tags: Vec<Tag>,
 }
 
+#[derive(sqlx::FromRow, Clone, serde::Serialize, serde::Deserialize, Debug)]
+pub struct ImageMeta {
+    pub id: i32,
+    pub views: i64,
+}
+
+impl ImageMeta {
+    pub fn views_to_text(s: Option<ImageMeta>) -> String {
+        match s {
+            Some(ImageMeta { views, .. }) => match views {
+                0 => "0".to_string(),
+                1 => "1".to_string(),
+                v => format!("{v}"),
+            },
+            None => "0".to_string(),
+        }
+    }
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize, Debug)]
+pub struct ImageTagView {
+    id: i32,
+    tag_ids: Vec<i32>,
+    tag_names: Vec<String>,
+    tag_namespaces: Vec<Option<String>>,
+    tag_name_in_namespaces: Vec<Option<String>>,
+    tag_categories: Vec<Option<String>>,
+    tag_slugs: Vec<Option<String>>,
+    tag_descriptions: Vec<Option<String>>,
+    tag_images_counts: Vec<i32>,
+}
+
+impl ImageTagView {
+    pub fn get_tags(&self) -> Vec<TagView> {
+        self.tag_ids
+            .iter()
+            .zip(self.tag_names.iter())
+            .zip(self.tag_namespaces.iter())
+            .zip(self.tag_name_in_namespaces.iter())
+            .zip(self.tag_categories.iter())
+            .zip(self.tag_slugs.iter())
+            .zip(self.tag_descriptions.iter())
+            .zip(self.tag_images_counts.iter())
+            .map(
+                |(
+                    (
+                        (
+                            (
+                                (((id, tag_name), tag_namespace), tag_name_in_namespace),
+                                tag_category,
+                            ),
+                            tag_slug,
+                        ),
+                        tag_description,
+                    ),
+                    tag_images_count,
+                )| {
+                    TagView {
+                        id: *id as u64,
+                        name: tag_name.clone(),
+                        namespace: tag_namespace.clone(),
+                        name_in_namespace: tag_name_in_namespace.clone(),
+                        category: tag_category.clone(),
+                        slug: tag_slug.clone(),
+                        description: tag_description.clone(),
+                        images_count: tag_images_count.clone(),
+                    }
+                },
+            )
+            .collect_vec()
+    }
+}
+
 impl Image {
-    #[cfg(feature = "verify-db")]
-    pub fn verifier(
-        client: Client,
-        pool: PgPool,
-        start_id: u64,
-        end_id: u64,
-        subbatching: u64,
-    ) -> Box<dyn VerifiableTable> {
-        Box::new(VerifierImage {
-            client,
-            pool,
-            start_id,
-            end_id,
-            subbatching,
-        })
+    pub fn id(&self) -> ImageID {
+        ImageID(self.id as u64)
+    }
+    pub async fn get_quick_tags(
+        &self,
+        client: &mut Client,
+    ) -> Result<Option<ImageTagView>, PhilomenaModelError> {
+        #[derive(sqlx::FromRow, Clone, Debug)]
+        struct ImageTagViewInternal {
+            id: Option<i32>,
+            tag_ids: Option<Vec<i32>>,
+            tag_names: Option<Vec<String>>,
+            tag_namespaces: Option<Vec<Option<String>>>,
+            tag_name_in_namespaces: Option<Vec<Option<String>>>,
+            tag_categories: Option<Vec<Option<String>>>,
+            tag_slugs: Option<Vec<Option<String>>>,
+            tag_descriptions: Option<Vec<Option<String>>>,
+            tag_images_counts: Option<Vec<i32>>,
+        }
+        let r: Option<ImageTagViewInternal> =
+            sqlx::query_as("SELECT * FROM image_tags WHERE id = $1")
+                .bind(self.id)
+                .fetch_optional(client)
+                .await?;
+        let r = match r {
+            Some(v) => v,
+            None => return Ok(None),
+        };
+        let r = ImageTagView {
+            id: match r.id {
+                None => return Ok(None),
+                Some(v) => v,
+            },
+            tag_ids: r.tag_ids.unwrap_or_default(),
+            tag_names: r.tag_names.unwrap_or_default(),
+            tag_namespaces: r.tag_namespaces.unwrap_or_default(),
+            tag_name_in_namespaces: r.tag_name_in_namespaces.unwrap_or_default(),
+            tag_categories: r.tag_categories.unwrap_or_default(),
+            tag_slugs: r.tag_slugs.unwrap_or_default(),
+            tag_descriptions: r.tag_descriptions.unwrap_or_default(),
+            tag_images_counts: r.tag_images_counts.unwrap_or_default(),
+        };
+        Ok(Some(r))
     }
     pub async fn upload(self, client: &mut Client) -> Result<Image, PhilomenaModelError> {
+        #[cfg(not(test))]
         assert!(self.id == 0, "New images must have ID == 0");
         // Some sanity asserts here, then store in DB
-        todo!()
+        // TODO: implement this properly???
+        self.insert_new(client).await
     }
     pub fn filename(&self) -> String {
         format!(
@@ -478,6 +359,51 @@ impl Image {
             self.image_format.as_ref().unwrap_or(&"png".to_string())
         )
     }
+
+    async fn update_fnc(
+        &mut self,
+        fnc: &String,
+        client: &mut Client,
+    ) -> Result<(), PhilomenaModelError> {
+        self.file_name_cache = Some(fnc.clone());
+        sqlx::query!(
+            "UPDATE images SET file_name_cache = $1 WHERE id = $2",
+            fnc,
+            self.id
+        )
+        .execute(client)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn long_filename(
+        &mut self,
+        client: &mut Client,
+    ) -> Result<String, PhilomenaModelError> {
+        Ok(match None::<String> {
+            Some(fnc) => format!(
+                "{fnc}.{}",
+                self.image_format.as_ref().unwrap_or(&"png".to_string())
+            ),
+            None => {
+                let id = self.id.to_string();
+                let tag_line = self.tags(client).await?;
+                let mut tag_line = tag_line
+                    .iter()
+                    .sorted()
+                    .map(|x| x.path_full_name())
+                    .join("_");
+                tag_line.truncate(151);
+                let res = format!(
+                    "{id}__{tag_line}.{}",
+                    self.image_format.as_ref().unwrap_or(&"png".to_string())
+                );
+                self.update_fnc(&res, client).await?;
+                res
+            }
+        })
+    }
+
     pub fn filetypef<S: Display>(&self, s: S) -> String {
         format!(
             "{}.{}",
@@ -486,14 +412,81 @@ impl Image {
         )
     }
     pub async fn tags(&self, client: &mut Client) -> Result<Vec<Tag>, PhilomenaModelError> {
-        Ok(query_as!(
-            crate::Tag,
-            "SELECT * FROM tags WHERE id IN (SELECT tag_id FROM image_taggings WHERE image_id = $1)",
+        let cta = client.cache_tag_assoc.clone();
+        Ok(cta.get_or_try_insert_with(
+            self.id(),
+            query_as!(
+                crate::Tag,
+                //"SELECT * FROM tags WHERE id IN (SELECT tag_id FROM image_taggings WHERE image_id = $1)",
+                // join is more optimal tbh
+                "SELECT t.* FROM tags t JOIN image_taggings it ON it.tag_id = t.id WHERE it.image_id = $1",
+                self.id as i64,
+            )
+            .fetch_all(client)
+        ).await?)
+    }
+
+    #[cfg(test)]
+    pub async fn add_tag<S: AsRef<str>>(
+        &self,
+        tag: S,
+        client: &mut Client,
+    ) -> Result<(), PhilomenaModelError> {
+        let tag = Tag::create_for_test(client, tag).await?;
+        sqlx::query!(
+            "INSERT INTO image_taggings (image_id, tag_id) VALUES ($1, $2)",
             self.id as i64,
+            tag.id as i64
         )
-        .fetch_all(client)
+        .execute(client)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn increment_views(&self, client: &mut Client) -> Result<(), PhilomenaModelError> {
+        query!(
+            "UPDATE images_metadata SET views = views + 1 WHERE id = $1",
+            self.id
+        )
+        .execute(client)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn metadata(
+        &self,
+        client: &mut Client,
+    ) -> Result<Option<ImageMeta>, PhilomenaModelError> {
+        Ok(query_as!(
+            ImageMeta,
+            "SELECT * FROM images_metadata WHERE id = $1",
+            self.id,
+        )
+        .fetch_optional(client)
         .await?)
     }
+
+    /// Updates the row caches of the image
+    /// and returns true if the image needs to be updated in the database
+    pub async fn update_cache_lines(
+        &mut self,
+        client: &mut Client,
+    ) -> Result<bool, PhilomenaModelError> {
+        let tags = self.tags(client).await?;
+        let tag_cacheline = Tag::create_cache_tagline(&tags);
+        if self.tag_list_cache.as_ref() != Some(&tag_cacheline) {
+            debug!(
+                "Updating tag cachline on image {} with {} from {:?}",
+                self.id, tag_cacheline, self.tag_list_cache
+            );
+            self.tag_list_cache = Some(tag_cacheline);
+            Ok(true)
+        } else {
+            debug!("Tag Cacheline Update requested but not stale");
+            Ok(false)
+        }
+    }
+
     pub async fn openf(&self, base_dir: &PathBuf) -> Result<BufReader<File>, PhilomenaModelError> {
         let path = self.pathf(base_dir).await?;
         Ok(BufReader::new(File::open(path)?))
@@ -608,7 +601,7 @@ impl Image {
             self.hides_count,
             self.image_duration,
         )
-        .fetch_one(client.db().await?.deref_mut())
+        .fetch_one(&mut client.clone())
         .await?;
         self.id = id.id;
         for tag in self.tag_ids {
@@ -620,13 +613,19 @@ impl Image {
                 self.id as i64,
                 tag as i64
             )
-            .execute(client.db().await?.deref_mut())
+            .execute(&mut client.clone())
             .await?;
         }
         Ok(Image::get(client, self.id as i64)
             .await?
             .expect("we just uploaded this"))
     }
+
+    pub async fn source_change_count(&self) -> u64 {
+        // TODO: determine actual source change count
+        1
+    }
+
     pub async fn thumbnail_path(
         &self,
         thumb_type: ImageThumbType,
@@ -697,7 +696,7 @@ impl Image {
             self.updated_at,
             self.first_seen_at,
         )
-        .fetch_one(client.db().await?.deref_mut())
+        .fetch_one(&mut client.clone())
         .await?;
         self.id = id.id;
         for tag in self.tag_ids {
@@ -708,7 +707,7 @@ impl Image {
                 self.id as i64,
                 tag as i64
             )
-            .execute(client.db().await?.deref_mut())
+            .execute(&mut client.clone())
             .await?;
         }
         Ok(Image::get(client, self.id as i64)
@@ -729,16 +728,18 @@ impl Image {
             "SELECT * FROM image_taggings WHERE image_id = $1",
             self.id as i64,
         )
-        .fetch_all(client.db().await?.deref_mut())
+        .fetch_all(client)
         .await?)
     }
+    #[instrument(skip(client))]
     pub async fn get(client: &mut Client, id: i64) -> Result<Option<Self>, PhilomenaModelError> {
         Ok(
             query_as!(Image, "SELECT * FROM images WHERE id = $1", (id as i32),)
-                .fetch_optional(client.db().await?.deref_mut())
+                .fetch_optional(client)
                 .await?,
         )
     }
+    #[instrument(skip(client))]
     pub async fn count(
         client: &mut Client,
         start_id: Option<u64>,
@@ -754,7 +755,7 @@ impl Image {
                 start_id as i64,
                 end_id as i64
             )
-            .fetch_one(client.db().await?.deref_mut())
+            .fetch_one(client)
             .await?
             .cnt
             .unwrap_or_default() as u64),
@@ -763,7 +764,7 @@ impl Image {
                 "SELECT COUNT(*) AS cnt FROM images WHERE id > $1",
                 start_id as i64
             )
-            .fetch_one(client.db().await?.deref_mut())
+            .fetch_one(client)
             .await?
             .cnt
             .unwrap_or_default() as u64),
@@ -772,37 +773,74 @@ impl Image {
                 "SELECT COUNT(*) AS cnt FROM images WHERE id <= $1",
                 end_id as i64
             )
-            .fetch_one(client.db().await?.deref_mut())
+            .fetch_one(client)
             .await?
             .cnt
             .unwrap_or_default() as u64),
             (None, None) => Ok(query_as!(Count, "SELECT COUNT(*) AS cnt FROM images")
-                .fetch_one(client.db().await?.deref_mut())
+                .fetch_one(client)
                 .await?
                 .cnt
                 .unwrap_or_default() as u64),
         }
     }
+    #[instrument(skip(client))]
     pub async fn get_many(
         client: &mut Client,
         ids: Vec<i64>,
+        sort_by: ImageSortBy,
     ) -> Result<Vec<Self>, PhilomenaModelError> {
         let ids: Vec<i32> = ids.iter().map(|x| *x as i32).collect();
+        if sort_by.random() {
+            Ok(query_as!(
+                Image,
+                "SELECT * FROM images WHERE id = ANY($1) LIMIT 100",
+                &ids,
+            )
+            .fetch_all(client)
+            .await?)
+        } else if sort_by.invert_sort() {
+            Ok(query_as!(
+                Image,
+                "SELECT * FROM images WHERE id = ANY($1) ORDER BY $2 ASC LIMIT 100",
+                &ids,
+                sort_by.to_sql(),
+            )
+            .fetch_all(client)
+            .await?)
+        } else {
+            Ok(query_as!(
+                Image,
+                "SELECT * FROM images WHERE id = ANY($1) ORDER BY $2 DESC LIMIT 100",
+                &ids,
+                sort_by.to_sql(),
+            )
+            .fetch_all(client)
+            .await?)
+        }
+    }
+    #[instrument(skip(client))]
+    pub async fn get_range(
+        client: &mut Client,
+        range: Range<u64>,
+    ) -> Result<Vec<Self>, PhilomenaModelError> {
         Ok(query_as!(
             Image,
-            "SELECT * FROM images WHERE id = ANY($1) LIMIT 100",
-            &ids
+            "SELECT * FROM images WHERE id BETWEEN $1 and $2 LIMIT 100",
+            range.start as i32,
+            range.end as i32
         )
-        .fetch_all(client.db().await?.deref_mut())
+        .fetch_all(client)
         .await?)
     }
+    #[instrument(skip(client))]
     pub async fn get_id(client: &mut Client, id: i64) -> Result<Option<Self>, PhilomenaModelError> {
         Ok(query_as!(
             Image,
             "SELECT * FROM images WHERE id = $1 LIMIT 1",
             id as i32
         )
-        .fetch_optional(client.db().await?.deref_mut())
+        .fetch_optional(client)
         .await?)
     }
     pub async fn get_all(
@@ -813,27 +851,28 @@ impl Image {
     {
         match (start_id, end_id) {
             (Some(start_id), Some(end_id)) => Ok(pool.fetch(sqlx::query!(
-                "SELECT * FROM images WHERE id BETWEEN $1 AND $2",
+                "SELECT * FROM images WHERE id BETWEEN $1 AND $2 ORDER BY id",
                 start_id as i64,
                 end_id as i64
             ))),
             (Some(start_id), None) => Ok(pool.fetch(sqlx::query!(
-                "SELECT * FROM images WHERE id > $1",
+                "SELECT * FROM images WHERE id > $1 ORDER BY id",
                 start_id as i64
             ))),
             (None, Some(end_id)) => Ok(pool.fetch(sqlx::query!(
-                "SELECT * FROM images WHERE id <= $1",
+                "SELECT * FROM images WHERE id <= $1 ORDER BY id",
                 end_id as i64
             ))),
-            (None, None) => Ok(pool.fetch(sqlx::query!("SELECT * FROM images"))),
+            (None, None) => Ok(pool.fetch(sqlx::query!("SELECT * FROM images ORDER BY id"))),
         }
     }
+
     pub async fn get_featured(client: &mut Client) -> Result<Option<Self>, PhilomenaModelError> {
         let feature: Option<ImageFeature> = sqlx::query_as!(
             ImageFeature,
-            "SELECT * FROM image_features ORDER BY created_at LIMIT 1"
+            "SELECT * FROM image_features ORDER BY created_at DESC LIMIT 1"
         )
-        .fetch_optional(client.db().await?.deref_mut())
+        .fetch_optional(&mut client.clone())
         .await?;
         if let Some(feature) = feature {
             Ok(Self::get_id(client, feature.image_id).await?)
@@ -841,19 +880,17 @@ impl Image {
             Ok(None)
         }
     }
+    #[instrument(skip(client))]
     pub async fn search<
-        S1: Into<String>,
-        S2: Into<String>,
-        S3: Into<String>,
-        S4: Into<String>,
-        S5: Into<String>,
+        S1: Into<String> + std::fmt::Debug,
+        S4: Into<String> + std::fmt::Debug,
+        S5: Into<String> + std::fmt::Debug,
     >(
         client: &mut Client,
         query: S1,
         aqueries: Vec<S4>,
         anqueries: Vec<S5>,
-        _sort_by: Option<S2>,
-        _order_by: Option<S3>,
+        sort_by: ImageSortBy,
         page: u64,
         page_size: u64,
     ) -> Result<(u64, Vec<Self>), PhilomenaModelError> {
@@ -866,12 +903,13 @@ impl Image {
             anqueries,
             page_size as usize,
             (page * page_size) as usize,
+            sort_by,
         );
-        let (total, ids) = match ids {
+        let (total, ids): (usize, Vec<i64>) = match ids {
             Ok((total, v)) => (total, v.iter().map(|x| x.1 as i64).collect()),
             Err(e) => return Err(PhilomenaModelError::Searcher(e)),
         };
-        Ok((total as u64, Self::get_many(client, ids).await?))
+        Ok((total as u64, Self::get_many(client, ids, sort_by).await?))
     }
     pub fn hidden(&self, _client: &mut Client) -> Result<bool, PhilomenaModelError> {
         //TODO: check if hidden properly, trust staff for now
@@ -897,6 +935,63 @@ impl Image {
             tags
         ))
     }
+
+    pub async fn comments(&self, client: &mut Client) -> Result<Vec<Comment>, PhilomenaModelError> {
+        Ok(query_as!(
+            Comment,
+            "SELECT * FROM comments WHERE image_id = $1 ORDER BY created_at DESC",
+            self.id
+        )
+        .fetch_all(client)
+        .await?)
+    }
+}
+
+impl ImageSortBy {
+    pub const fn to_sql(&self) -> &'static str {
+        match self {
+            ImageSortBy::Random => "",
+            ImageSortBy::ID(_) => "id",
+            ImageSortBy::CreatedAt(_) => "created_at",
+            ImageSortBy::Score(_) => "score",
+            // TODO: compute wilson score and allow sorting by
+            ImageSortBy::WilsonScore(_) => "score",
+        }
+    }
+}
+
+impl SortIndicator for ImageSortBy {
+    fn field(&self) -> &'static str {
+        match self {
+            ImageSortBy::Random => "id",
+            ImageSortBy::ID(_) => "id",
+            ImageSortBy::CreatedAt(_) => "created_at_ts",
+            ImageSortBy::Score(_) => "score",
+            // TODO: compute wilson score and allow sorting by
+            ImageSortBy::WilsonScore(_) => "score",
+        }
+    }
+
+    fn invert_sort(&self) -> bool {
+        let dir = match self {
+            ImageSortBy::Random => return false,
+            ImageSortBy::ID(dir) => dir,
+            ImageSortBy::CreatedAt(dir) => dir,
+            ImageSortBy::Score(dir) => dir,
+            ImageSortBy::WilsonScore(dir) => dir,
+        };
+        match dir {
+            SortDirection::Ascending => true,
+            SortDirection::Descending => false,
+        }
+    }
+
+    fn random(&self) -> bool {
+        match self {
+            ImageSortBy::Random => true,
+            _ => false,
+        }
+    }
 }
 
 #[async_trait::async_trait]
@@ -904,6 +999,7 @@ impl Queryable for Image {
     type Group = String;
     type DBClient = Client;
     type IndexError = PhilomenaModelError;
+    type SortIndicator = ImageSortBy;
 
     fn identifier(&self) -> u64 {
         self.id as u64
@@ -919,6 +1015,7 @@ impl Queryable for Image {
         let mut builder = Schema::builder();
         tantivy_date_field!(builder, created_at);
         tantivy_u64_field!(builder, id);
+        tantivy_u64_field!(builder, score);
         tantivy_raw_text_field!(builder, tag);
         tantivy_text_field!(builder, description);
         tantivy_bool_text_field!(builder, processed);
@@ -932,14 +1029,34 @@ impl Queryable for Image {
         client: &mut Self::DBClient,
     ) -> std::result::Result<(), Self::IndexError> {
         let mut client = client.clone();
+        let doc = self.get_doc(&mut client, false).await?;
+        //debug!("Sending {:?} to index", doc);
+        writer.write().await.add_document(doc)?;
+        Ok(())
+    }
+
+    async fn get_doc(
+        &self,
+        client: &mut Self::DBClient,
+        omit_index_only: bool,
+    ) -> std::result::Result<Document, Self::IndexError> {
         let mut doc = tantivy::Document::new();
         let schema = Self::schema();
         doc.add_date(
             schema.get_field("created_at").unwrap(),
-            &chrono::DateTime::<chrono::Utc>::from_utc(self.created_at, chrono::Utc),
+            tantivy::DateTime::from_unix_timestamp(
+                chrono::DateTime::<chrono::Utc>::from_utc(self.created_at, chrono::Utc).timestamp(),
+            ),
+        );
+        doc.add_u64(
+            schema.get_field("created_at_ts").unwrap(),
+            chrono::DateTime::<chrono::Utc>::from_utc(self.created_at, chrono::Utc).timestamp()
+                as u64,
         );
         doc.add_u64(schema.get_field("id").unwrap(), self.id as u64);
-        doc.add_text(schema.get_field("description").unwrap(), &self.description);
+        if !omit_index_only {
+            doc.add_text(schema.get_field("description").unwrap(), &self.description);
+        }
         doc.add_text(
             schema.get_field("processed").unwrap(),
             self.processed.to_string(),
@@ -949,12 +1066,28 @@ impl Queryable for Image {
             self.deleted_by_id.is_some().to_string(),
         );
         let tag_field = schema.get_field("tag").unwrap();
-        for tag in self.tags(&mut client).await? {
+        for tag in self.tags(client).await? {
             doc.add_text(tag_field, tag.full_name());
         }
-        //debug!("Sending {:?} to index", doc);
-        writer.write().await.add_document(doc);
-        Ok(())
+        Ok(doc)
+    }
+
+    async fn get_from_index(
+        reader: crate::IndexReader,
+        id: u64,
+    ) -> std::result::Result<Option<Document>, Self::IndexError> {
+        let term =
+            tantivy::Term::from_field_u64(Self::schema().get_field("id").unwrap(), id as u64);
+        let coll = tantivy::collector::TopDocs::with_limit(1).and_offset(0);
+        let query = tantivy::query::TermQuery::new(term, tantivy::schema::IndexRecordOption::Basic);
+        let res = reader.searcher().search(&query, &coll)?;
+        let res = res.get(0);
+        let res = match res {
+            Some(res) => res.1,
+            None => return Ok(None),
+        };
+        let doc = reader.searcher().doc(res)?;
+        Ok(Some(doc))
     }
 
     async fn delete_from_index(
@@ -985,15 +1118,119 @@ pub enum ImageThumbType {
 
 #[derive(serde::Serialize)]
 pub struct ImageThumbUrl {
-    pub rendered: PathBuf,
-    pub full: PathBuf,
-    pub tall: PathBuf,
-    pub large: PathBuf,
-    pub medium: PathBuf,
-    pub small: PathBuf,
-    pub thumb: PathBuf,
-    pub thumb_small: PathBuf,
-    pub thumb_tiny: PathBuf,
+    #[serde(with = "tiberius_dependencies::http_serde::uri")]
+    pub rendered: Uri,
+    #[serde(with = "tiberius_dependencies::http_serde::uri")]
+    pub full: Uri,
+    #[serde(with = "tiberius_dependencies::http_serde::uri")]
+    pub tall: Uri,
+    #[serde(with = "tiberius_dependencies::http_serde::uri")]
+    pub large: Uri,
+    #[serde(with = "tiberius_dependencies::http_serde::uri")]
+    pub medium: Uri,
+    #[serde(with = "tiberius_dependencies::http_serde::uri")]
+    pub small: Uri,
+    #[serde(with = "tiberius_dependencies::http_serde::uri")]
+    pub thumb: Uri,
+    #[serde(with = "tiberius_dependencies::http_serde::uri")]
+    pub thumb_small: Uri,
+    #[serde(with = "tiberius_dependencies::http_serde::uri")]
+    pub thumb_tiny: Uri,
+}
+
+impl ImageThumbUrl {
+    pub fn with_host(self, host: Option<String>) -> Self {
+        let host = match host {
+            None => return self,
+            Some(host) => host,
+        };
+        let base = Uri::try_from(host).unwrap();
+        let host = base.authority().unwrap();
+        let scheme = base.scheme().unwrap();
+        Self {
+            rendered: {
+                Uri::builder()
+                    .scheme(scheme.clone())
+                    .authority(host.clone())
+                    .path_and_query(self.rendered.path_and_query().unwrap().clone())
+                    .build()
+                    .expect("was already valid URI")
+            },
+            full: {
+                Uri::builder()
+                    .scheme(scheme.clone())
+                    .authority(host.clone())
+                    .path_and_query(self.full.path_and_query().unwrap().clone())
+                    .build()
+                    .expect("was already valid URI")
+            },
+            tall: {
+                Uri::builder()
+                    .scheme(scheme.clone())
+                    .authority(host.clone())
+                    .path_and_query(self.tall.path_and_query().unwrap().clone())
+                    .build()
+                    .expect("was already valid URI")
+            },
+            large: {
+                Uri::builder()
+                    .scheme(scheme.clone())
+                    .authority(host.clone())
+                    .path_and_query(self.large.path_and_query().unwrap().clone())
+                    .build()
+                    .expect("was already valid URI")
+            },
+            medium: {
+                Uri::builder()
+                    .scheme(scheme.clone())
+                    .authority(host.clone())
+                    .path_and_query(self.medium.path_and_query().unwrap().clone())
+                    .build()
+                    .expect("was already valid URI")
+            },
+            small: {
+                Uri::builder()
+                    .scheme(scheme.clone())
+                    .authority(host.clone())
+                    .path_and_query(self.small.path_and_query().unwrap().clone())
+                    .build()
+                    .expect("was already valid URI")
+            },
+            thumb: {
+                Uri::builder()
+                    .scheme(scheme.clone())
+                    .authority(host.clone())
+                    .path_and_query(self.thumb.path_and_query().unwrap().clone())
+                    .build()
+                    .expect("was already valid URI")
+            },
+            thumb_small: {
+                Uri::builder()
+                    .scheme(scheme.clone())
+                    .authority(host.clone())
+                    .path_and_query(self.thumb_small.path_and_query().unwrap().clone())
+                    .build()
+                    .expect("was already valid URI")
+            },
+            thumb_tiny: {
+                Uri::builder()
+                    .scheme(scheme.clone())
+                    .authority(host.clone())
+                    .path_and_query(self.thumb_tiny.path_and_query().unwrap().clone())
+                    .build()
+                    .expect("was already valid URI")
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ImageSortBy {
+    Random,
+    ID(SortDirection),
+    CreatedAt(SortDirection),
+    Score(SortDirection),
+    WilsonScore(SortDirection),
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -1082,5 +1319,23 @@ impl ToString for ImageThumbType {
             ThumbTiny => "thumb_tiny",
         }
         .to_string()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    /// Test Philo Compat based on image 4020561 image file
+    #[sqlx_database_tester::test(pool(variable = "pool", migrations = "../migrations"))]
+    async fn test_long_filename_ex4020561() -> Result<(), PhilomenaModelError> {
+        let mut client = Client::new(pool, None);
+        let mut image = Image::new_test_image(&mut client).await?;
+        image.add_tag("artist:test_artist", &mut client).await?;
+
+        assert_eq!(
+            "1__artist-colon-test_artist.png",
+            image.long_filename(&mut client).await?
+        );
+        Ok(())
     }
 }

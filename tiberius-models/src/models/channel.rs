@@ -1,6 +1,4 @@
-use std::io::Write;
-use std::ops::DerefMut;
-use std::str::FromStr;
+use std::{io::Write, ops::DerefMut, str::FromStr};
 
 use crate::{Client, PhilomenaModelError, Tag};
 use chrono::NaiveDateTime;
@@ -50,7 +48,8 @@ impl ToString for ChannelType {
             ChannelType::PicartoChannel => "PicartoChannel",
             ChannelType::PiczelChannel => "PiczelChannel",
             ChannelType::TwitchChannel => "TwitchChannel",
-        }.to_string()
+        }
+        .to_string()
     }
 }
 
@@ -62,7 +61,7 @@ impl FromStr for ChannelType {
             "PicartoChannel" => Self::PicartoChannel,
             "PiczelChannel" => Self::PiczelChannel,
             "TwitchChannel" => Self::TwitchChannel,
-            v => anyhow::bail!("Invalid channel type: {:?}", v)
+            v => anyhow::bail!("Invalid channel type: {:?}", v),
         })
     }
 }
@@ -107,14 +106,17 @@ impl Channel {
                 .await?
             }
             None => {
-                query_as!(Channel, "SELECT id, short_name, title, description, channel_image,
+                query_as!(
+                    Channel,
+                    "SELECT id, short_name, title, description, channel_image,
                 tags, viewers, nsfw, is_live, last_fetched_at, next_check_at,
                 last_live_at, watcher_ids, watcher_count, type as \"type: ChannelType\",
                 created_at, updated_at, associated_artist_tag_id, viewer_minutes_today,
                 viewer_minutes_thisweek, viewer_minutes_thismonth, total_viewer_minutes,
-                banner_image, remote_Stream_id, thumbnail_url FROM channels",)
-                    .fetch_all(client.db().await?.deref_mut())
-                    .await?
+                banner_image, remote_Stream_id, thumbnail_url FROM channels",
+                )
+                .fetch_all(client.db().await?.deref_mut())
+                .await?
             }
         })
     }

@@ -1,7 +1,13 @@
-use rocket::response::content::Json;
+use axum::Json;
+use axum_extra::routing::TypedPath;
+use serde::Deserialize;
 use tiberius_core::error::TiberiusResult;
 
-#[get("/oembed")]
-pub async fn fetch() -> TiberiusResult<Json<()>> {
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/oembed")]
+pub struct PathOembed {}
+
+#[instrument(level = "trace")]
+pub async fn fetch(_: PathOembed) -> TiberiusResult<Json<()>> {
     todo!()
 }

@@ -8,24 +8,24 @@
 compile_error!("Cannot enable \"stable-release\" and \"full-release\" features at the same time");
 
 #[macro_use]
-extern crate rocket;
-
-#[macro_use]
 extern crate tracing;
 
 use std::{path::Path, str::FromStr};
 
 use clap::{AppSettings, StructOpt};
+use tiberius_dependencies::sentry;
 use tracing::{debug, info};
 
-use rocket::yansi::Paint;
 use sqlx::Postgres;
-use tiberius_core::app::DBPool;
-use tiberius_core::config::Configuration;
-use tiberius_core::error::{TiberiusError, TiberiusResult};
-use tiberius_core::session::PostgresSessionStore;
-use tiberius_core::state::TiberiusState;
-use tiberius_core::{package_full, package_name, package_version, CSPHeader};
+use tiberius_core::{
+    app::DBPool,
+    config::Configuration,
+    error::{TiberiusError, TiberiusResult},
+    package_full, package_name, package_version,
+    session::PostgresSessionStore,
+    state::TiberiusState,
+    CSPHeader,
+};
 
 mod api;
 mod cli;
@@ -36,8 +36,30 @@ mod tests;
 
 const MAX_IMAGE_DIMENSION: u32 = 2_000_000u32;
 
+#[macro_export]
+macro_rules! set_scope_tx {
+    ($scope_ident:expr) => {
+        tiberius_dependencies::sentry::configure_scope(|scope| {
+            scope.set_transaction(Some($scope_ident))
+        });
+    };
+}
+
+#[macro_export]
+macro_rules! set_scope_user {
+    ($scope_user:expr) => {
+        tiberius_dependencies::sentry::configure_scope(|scope| {
+            scope.set_user($scope_user);
+        })
+    };
+}
+
 fn main() -> TiberiusResult<()> {
-    crate::init::logging();
+    if let Err(e) = kankyo::load(false) {
+        info!("couldn't load .env file: {}, this is probably fine", e);
+    }
+    let app = cli::AppCli::parse();
+    crate::init::logging(&app.config);
     use tokio::runtime::Builder;
     let runtime = Builder::new_multi_thread()
         .worker_threads(16)
@@ -48,11 +70,30 @@ fn main() -> TiberiusResult<()> {
             let id = ATOMIC_ID.fetch_add(1, Ordering::SeqCst);
             format!("tiberius-{}", id)
         })
+        .thread_stack_size(64 * 1024 * 1024)
         .enable_all()
         .build()
         .unwrap();
-    let app = cli::AppCli::parse();
+    let guard_url = app.config.sentry_url.clone();
+    let guard = match guard_url {
+        Some(guard_url) => {
+            let opts = sentry::ClientOptions {
+                release: sentry::release_name!(),
+                traces_sample_rate: 1.0,
+                auto_session_tracking: false,
+                session_mode: sentry::SessionMode::Request,
+                ..Default::default()
+            };
+            info!("Starting with sentry tracing");
+            Some(sentry::init((guard_url, opts)))
+        }
+        None => {
+            info!("Starting without tracing");
+            None
+        }
+    };
     use cli::Command;
+    let global_config = app.config.clone();
     match app.command {
         Command::Server(config) => {
             info!("Starting {}", package_full());
@@ -60,22 +101,20 @@ fn main() -> TiberiusResult<()> {
             if !job_runner {
                 warn!("Running without job scheduler and job runner");
             }
+            let scheduler = !config.no_scheduler;
+            if !scheduler {
+                warn!("Running without job scheduler, worker only mode");
+            }
             runtime.block_on(async move {
                 tokio::spawn(async move {
-                    crate::cli::server::server_start(job_runner).await
+                    crate::cli::server::server_start(scheduler, job_runner, global_config).await
                 })
                 .await
             })??;
             runtime.shutdown_timeout(std::time::Duration::from_secs(10));
+            drop(guard);
             Ok(())
-        },
-        #[cfg(feature = "verify-db")]
-        Command::VerifyDb(config) => {
-            runtime.block_on(async move {
-                crate::cli::verify_db::verify_db(matches).await
-            })?;
-            Ok(())
-        },
+        }
         Command::GenKeys(config) => {
             let base_path = std::path::PathBuf::from_str(&config.key_directory)?;
             if !base_path.exists() {
@@ -106,16 +145,24 @@ fn main() -> TiberiusResult<()> {
             }
             warn!("Keys generated, you are ready to roll.");
             error!("MAKE BACKUPS OF THE {} DIRECTORY", base_path.display());
+            drop(guard);
             Ok(())
-        },
+        }
         Command::GrantAcl(config) => {
-            runtime.block_on(async move {
-                crate::cli::grant_acl::grant_acl(&config).await
-            })?;
+            //runtime.block_on(async move { crate::cli::grant_acl::grant_acl(&config, global_config).await })?;
+            drop(guard);
             Ok(())
-        },
+        }
         Command::ListUsers(config) => {
+            drop(guard);
             todo!()
+        }
+        Command::RunJob(runjob) => {
+            runtime.block_on(async move {
+                crate::cli::run_job::run_job(runjob, global_config).await
+            })?;
+            drop(guard);
+            Ok(())
         }
     }
 }

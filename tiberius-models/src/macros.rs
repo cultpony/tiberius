@@ -3,9 +3,11 @@ macro_rules! tantivy_raw_text_field {
     ($builder:ident, $name:ident) => {
         $builder.add_text_field(
             stringify!($name),
-            TextOptions::default()
-                .set_stored()
-                .set_indexing_options(TextFieldIndexing::default().set_tokenizer("raw")),
+            TextOptions::default().set_stored().set_indexing_options(
+                TextFieldIndexing::default()
+                    .set_tokenizer("raw")
+                    .set_index_option(IndexRecordOption::WithFreqs),
+            ),
         )
     };
 }
@@ -50,7 +52,10 @@ macro_rules! tantivy_u64_field {
     ($builder:ident, $name:ident) => {
         $builder.add_u64_field(
             stringify!($name),
-            IntOptions::default().set_indexed().set_stored(),
+            NumericOptions::default()
+                .set_indexed()
+                .set_stored()
+                .set_fast(Cardinality::SingleValue),
         )
     };
 }
@@ -60,7 +65,17 @@ macro_rules! tantivy_date_field {
     ($builder:ident, $name:ident) => {
         $builder.add_date_field(
             stringify!($name),
-            IntOptions::default().set_indexed().set_stored(),
+            NumericOptions::default()
+                .set_indexed()
+                .set_stored()
+                .set_fast(Cardinality::SingleValue),
+        );
+        $builder.add_u64_field(
+            concat!(stringify!($name), "_ts"),
+            NumericOptions::default()
+                .set_indexed()
+                .set_stored()
+                .set_fast(Cardinality::SingleValue),
         )
     };
 }

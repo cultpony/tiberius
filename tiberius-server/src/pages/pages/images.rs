@@ -1,63 +1,231 @@
-use std::str::FromStr;
+use std::{io::Seek, str::FromStr};
 
 use async_std::path::PathBuf;
+use async_trait::async_trait;
+use axum::{
+    body::HttpBody,
+    extract::{ContentLengthLimit, FromRequest, Multipart, Query, RequestParts},
+    http::Uri,
+    Extension, Router,
+};
+use axum_extra::routing::{RouterExt, TypedPath};
+use chrono::{DateTime, Utc};
+use itertools::Itertools;
 use maud::{html, Markup, PreEscaped};
-use rocket::form::Form;
-use rocket::fs::TempFile;
-use rocket::response::Redirect;
-use rocket::State;
+use serde::{Deserialize, Serialize};
 use sha2::Digest;
-use tiberius_core::app::PageTitle;
-use tiberius_core::error::TiberiusResult;
-use tiberius_core::request_helper::{HtmlResponse, RedirectResponse, TiberiusResponse};
-use tiberius_core::session::{SessionMode, Unauthenticated, Authenticated};
-use tiberius_core::state::{Flash, TiberiusRequestState, TiberiusState};
-use tiberius_models::Image;
-use tokio::task::spawn_blocking;
-use tracing::debug;
+use tempfile::NamedTempFile;
+use tiberius_core::{
+    acl::*,
+    app::PageTitle,
+    error::{TiberiusError, TiberiusResult},
+    path_and_query,
+    request_helper::{HtmlResponse, RedirectResponse, TiberiusResponse},
+    session::{Authenticated, SessionMode, Unauthenticated},
+    state::{TiberiusRequestState, TiberiusState},
+    PathQuery,
+};
+use tiberius_dependencies::{axum_flash::Flash, mime, sentry};
+use tiberius_models::{comment::Comment, Image, ImageMeta};
+use tokio::{
+    fs::File,
+    io::{AsyncWriteExt, BufWriter},
+    task::spawn_blocking,
+};
+use tracing::{debug, Instrument};
 
-use crate::pages::common::frontmatter::{image_clientside_data, quick_tag_table, tag_editor};
-use crate::pages::common::human_date;
-use crate::pages::common::image::{image_thumb_urls, show_vote_counts};
-use crate::MAX_IMAGE_DIMENSION;
+use crate::{
+    pages::{
+        activity::PathActivityIndex,
+        common::{
+            comment::{comment_form, comment_view, single_comment},
+            frontmatter::{image_clientside_data, quick_tag_table, tag_editor},
+            human_date,
+            image::{image_thumb_urls, show_vote_counts},
+            renderer::{textile::render_textile, textile_extensions},
+            tag::tag_markup,
+        },
+        tags::{PathTagsByNameShowTag, PathTagsShowTag},
+        PathImageGetFull, PathImageGetShort, PathImageThumbGetSimple,
+    },
+    set_scope_tx, set_scope_user, MAX_IMAGE_DIMENSION,
+};
+use axum::{response::Redirect, Form};
 
-#[get("/embed/<image>/<flag>")]
-pub async fn embed_image(flag: Option<&str>, image: u64) -> TiberiusResult<()> {
+pub fn image_pages(r: Router) -> Router {
+    r.typed_get(show_image)
+        .typed_get(beta_show_image)
+        .typed_get(specific_show_image)
+        .typed_get(get_image_comment)
+}
+
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/images/random")]
+pub struct PathRandomImage;
+
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/images/:image/related")]
+pub struct PathRelatedImage {
+    image: u64,
+}
+
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/images/:image/navigate")]
+pub struct PathNavigateImage {
+    image: u64,
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct QueryNavigateImage {
+    rel: NavigateRelation,
+    #[serde(flatten)]
+    search_query: Option<QuerySearchQuery>,
+}
+
+impl PathQuery for QueryNavigateImage {}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+pub enum NavigateRelation {
+    #[serde(rename = "next")]
+    Next,
+    #[serde(rename = "find")]
+    Find,
+    #[serde(rename = "prev")]
+    Prev,
+}
+
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/embed/:image/:flag")]
+pub struct PathEmbedImage {
+    image: u64,
+    flag: String,
+}
+
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/embed/:image")]
+pub struct PathEmbedImageNoFlag {
+    image: u64,
+}
+
+pub async fn embed_image_no_flag(_: PathEmbedImageNoFlag) -> TiberiusResult<()> {
     todo!()
 }
 
-#[get("/<image>")]
-pub async fn show_image(
-    state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, Unauthenticated>,
-    image: u64,
+pub async fn embed_image(_: PathEmbedImage) -> TiberiusResult<()> {
+    todo!()
+}
+
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/beta/:image")]
+pub struct PathBetaShowImage {
+    pub image: u64,
+}
+
+pub async fn beta_show_image(
+    PathBetaShowImage { image }: PathBetaShowImage,
+    query_search: Query<QuerySearchQuery>,
+    Extension(state): Extension<TiberiusState>,
+    rstate: TiberiusRequestState<Unauthenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
-    let mut client = state.get_db_client().await?;
+    show_image(
+        PathShowImage { image },
+        query_search,
+        Extension(state),
+        rstate,
+    )
+    .await
+}
+
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/image/:image")]
+pub struct PathShowImageSpecific {
+    pub image: u64,
+}
+
+pub async fn specific_show_image(
+    PathShowImageSpecific { image }: PathShowImageSpecific,
+    query_search: Query<QuerySearchQuery>,
+    Extension(state): Extension<TiberiusState>,
+    rstate: TiberiusRequestState<Unauthenticated>,
+) -> TiberiusResult<TiberiusResponse<()>> {
+    show_image(
+        PathShowImage { image },
+        query_search,
+        Extension(state),
+        rstate,
+    )
+    .await
+}
+
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/:image")]
+pub struct PathShowImage {
+    pub image: u64,
+}
+
+#[derive(serde::Deserialize, serde::Serialize, Clone)]
+pub struct QuerySearchQuery {
+    #[serde(rename = "q")]
+    pub query: Option<String>,
+}
+
+impl PathQuery for QuerySearchQuery {}
+
+pub async fn show_image(
+    PathShowImage { image }: PathShowImage,
+    Query(query_search): Query<QuerySearchQuery>,
+    Extension(state): Extension<TiberiusState>,
+    mut rstate: TiberiusRequestState<Unauthenticated>,
+) -> TiberiusResult<TiberiusResponse<()>> {
+    set_scope_tx!("GET /:image");
+    set_scope_user!(rstate.session().raw_user().map(|x| sentry::User {
+        id: Some(x.to_string()),
+        ..Default::default()
+    }));
+    let mut client = state.get_db_client();
     let image = Image::get_id(&mut client, image as i64).await?;
-    let image = match image {
+    let mut image = match image {
         Some(image) => image,
         None => {
-            return Ok(TiberiusResponse::Redirect(RedirectResponse {
-                redirect: Flash::warning("Image not found")
-                    .into_resp(Redirect::to(uri!(crate::pages::activity::index))),
-            }))
+            rstate.flash_mut().warning("Image not found");
+            return Ok(TiberiusResponse::Redirect(Redirect::to(
+                PathActivityIndex {}.to_uri().to_string().as_str(),
+            )));
         }
     };
+    let allow_merge_duplicate: bool = verify_acl(
+        &state,
+        &rstate,
+        ACLObject::Image,
+        ACLActionImage::MergeDuplicate,
+    )
+    .await?;
+    let allow_count_view: bool = verify_acl(
+        &state,
+        &rstate,
+        ACLObject::Image,
+        ACLActionImage::IncrementView,
+    )
+    .await?;
+    if allow_count_view {
+        image.increment_views(&mut client).await?;
+    }
+    let image_meta = image.metadata(&mut client).await?;
     let image_size = human_bytes::human_bytes(image.image_size.unwrap_or(0));
     let image_meta = html! {
         .block.block__header {
             .flex.flex--wrap.image-metabar.center--layout id=(format!("image_meta_{}", image.id)) {
                 .stretched-mobile-links {
-                    a.js-prev href="//TODO:" title="Previous Image (j)" {
+                    a.js-prev href=(path_and_query(PathNavigateImage{image: image.id as u64}, Some(&QueryNavigateImage{ rel: NavigateRelation::Prev, search_query: Some(query_search.clone())}))?) title="Previous Image (j)" {
                         i.fa.fa-chevron-left {}
                     }
-                    a.js-up href="//TODO:" title="Find this image in the global image list (i)" {
+                    a.js-up href=(path_and_query(PathNavigateImage{image: image.id as u64}, Some(&QueryNavigateImage{ rel: NavigateRelation::Find, search_query: Some(query_search.clone())}))?) title="Find this image in the global image list (i)" {
                         i.fa.fa-chevron-up {}
                     }
-                    a.js-next href="//TODO:" title="Next image (k)" {
+                    a.js-next href=(path_and_query(PathNavigateImage{image: image.id as u64}, Some(&QueryNavigateImage{ rel: NavigateRelation::Next, search_query: Some(query_search.clone())}))?) title="Next image (k)" {
                         i.fa.fa-chevron-right {}
                     }
-                    a.js-rand href="//TODO:" title="Random (r)" {
+                    a.js-rand href=(path_and_query(PathRandomImage{}, Some(&query_search))?) title="Random (r)" {
                         i.fa.fa-random {}
                     }
                 }
@@ -71,7 +239,7 @@ pub async fn show_image(
                         }
                     }
                     a.interaction--upvote href="#" rel="nofollow" data-image-id=(image.id) {
-                        @if show_vote_counts(state, &rstate).await {
+                        @if show_vote_counts(&state, &rstate).await {
                             span.upvotes title="Upvotes" data-image-id=(image.id) { (image.upvotes_count) " " }
                         }
                         span.upvote-span title="Yay!" {
@@ -82,6 +250,12 @@ pub async fn show_image(
                         i.fa.fa-comments {}
                         span.comments_count data-image-id=(image.id) { " " (image.comments_count) }
                     }
+
+                    span title="Views" style="padding-left: 12px; padding-right: 12px;" {
+                        i.fa.fa-eye {}
+                        span.views_count data-image-id=(image.id) { " " (ImageMeta::views_to_text(image_meta)) }
+                    }
+
                     a.interaction--hide href="#" rel="nofollow" data-image-id=(image.id) {
                         span.hide-span title="Hide" {
                             i.fa.fa-eye-slash {}
@@ -98,10 +272,10 @@ pub async fn show_image(
                     }
                 }
                 .stretched-mobile-links {
-                    a href="TODO://view" rel="nofollow" title="View (tags in filename)" {
+                    a href=(PathImageGetFull::from_image(&mut image, &mut client).await?.to_uri()) rel="nofollow" title="View (tags in filename)" {
                         i.fa.fa-eye { " View" }
                     }
-                    a href="TODO://vs" rel="nofollow" title="View (no tags in filename)" {
+                    a href=(PathImageGetShort::from(&image)) rel="nofollow" title="View (no tags in filename)" {
                         i.fa.fa-eye { " VS" }
                     }
                     a href="TODO://download" rel="nofollow" title="Download (tags in filename)" {
@@ -113,14 +287,14 @@ pub async fn show_image(
                 }
             }
             .image-metabar.flex.flex--wrap.block__header--user-credit.center-layout #extrameta {
-                div {
+                div title=(DateTime::<Utc>::from_utc(image.created_at, Utc).to_rfc3339()) {
                     "Uploaded "
                     (human_date(image.created_at))
                 }
 
                 (PreEscaped("&nbsp;"))
 
-                span.image-size {
+                span.image-size title=(format!("{} pixels", image.image_width.unwrap_or(0) * image.image_height.unwrap_or(0))) {
                     (PreEscaped("&nbsp;"))
                     (image.image_width.unwrap_or(0))
                     "x"
@@ -141,21 +315,27 @@ pub async fn show_image(
 
                 (PreEscaped("&nbsp;"))
 
-                span title=(image_size) { (image_size) }
+                span title=(format!("{} bytes", image.image_size.unwrap_or(0))) { (image_size) }
+
+                (PreEscaped("&nbsp;"))
+                // TODO: put this into the CSS
+                //span style="margin-left: 1em;" title="This is a rough estimation of how many times this image was shown" { b { (ImageMeta::views_to_text(image_meta)) } }
             }
         }
     };
     //TODO: compute this
     let use_fullsize = true;
     let scaled_value: f32 = 1.0;
-    let data_uris = image_thumb_urls(&image).await?;
+    let data_uris = image_thumb_urls(&image)
+        .await?
+        .with_host(Some(state.config().static_host(Some(&rstate))));
     let data_uris = serde_json::to_string(&data_uris)?;
-    let thumb_url = uri!(crate::pages::files::image_thumb_get_simple(
-        id = image.id as u64,
-        thumbtype = "full",
-        _filename = image.filename()
-    ));
-    let thumb_url = thumb_url.to_string();
+    let thumb_url = PathImageThumbGetSimple {
+        id: image.id as u64,
+        thumbtype: "full".to_string(),
+        filename: image.filename(),
+    };
+    let thumb_url = thumb_url.to_uri().to_string();
     let image_target = html! {
         .block.block--fixed.block--warning.block--no-margin.image-filtered.hidden {
             strong {
@@ -192,7 +372,7 @@ pub async fn show_image(
             }
         }
     };
-    let image_target = image_clientside_data(state, &rstate, &image, image_target).await?;
+    let image_target = image_clientside_data(&state, &rstate, &image, image_target).await?;
     let image_page = html! {
         .center--layout--flex {
             @if image.thumbnails_generated {
@@ -222,20 +402,71 @@ pub async fn show_image(
     let advert_box = html! {
         // TODO: implement adverts
     };
-    let description = html! {};
-    let description_form = html! {};
-    let tags = html! {};
-    let source = html! {};
-    let options = html! {};
-    let comment_view = html! {};
-    let comment_form = html! {};
-    let comments = html! {
-        h4 {
-            //TODO: show ban reason
-            (comment_form)
+    let description = html! {
+        div {
+            // todo: add description edit form
+            p {
+                "Description";
+                .image-description__text {
+                    (render_textile(&image.description))
+                }
+            }
         }
-        #comments data-current-url=(uri!(show_image(image = image.id as u64))) data-loaded="true" {
-            (comment_view)
+    };
+    let description_form = html! {};
+    let tag_data = image
+        .get_quick_tags(&mut client)
+        .await?
+        .expect("no quicktag view available");
+    let tag_data = tag_data.get_tags();
+    let tags = html! {
+        div.tagsauce {
+            div.block {}
+            div.tag-list {
+                @for tag in tag_data.iter().sorted() {
+                    (tag_markup(tag))
+                }
+            }
+        }
+    };
+    let source = html! {
+        .block {
+            // TODO: source change form
+            .flex.flex--wrap id="image-source" {
+                p {
+                    a.button.button--separate-right id="edit-source" data-click-focus="#source-field" data-click-hide="#image-source" data-click-show="#source-form" title="Edit source" accessKey="s" {
+                        i.fas.fa-edit {
+                            "Source: "
+                        }
+                    }
+                }
+                p {
+                    @if let Some(source_url) = image.source_url.as_ref() {
+                        a.js-source-link href=(source_url) {
+                            strong { (source_url) }
+                        }
+                    } @else {
+                        em { "not provided yet" }
+                    }
+
+                    @if image.source_change_count().await > 1 {
+                        a.button.button--link.button--separate-left href=(PathChangeImageSource{image: image.id as u64}.to_uri()) title="Source history" {
+                            i.fa.fa-history {
+                                "History (" (image.source_change_count().await) ")"
+                            }
+                        }
+                    }
+                    // TODO: source staff tools
+                }
+            }
+        }
+    };
+    let options = html! {};
+    let comments = html! {
+        h4 { "Comments" }
+        //(comment_form(&mut client, rstate.user(&state).await?, &image).await?)
+        #comments data-current-url=(PathShowImage{ image: image.id as u64}.to_uri()) data-loaded="true" {
+            (comment_view(&state, &mut client, &image).await?)
         }
     };
     let body = html! {
@@ -255,7 +486,7 @@ pub async fn show_image(
     };
     //TODO: set image title correctly
     let app = crate::pages::common::frontmatter::app(
-        state,
+        &state,
         &rstate,
         Some(PageTitle::from("Image")),
         &mut client,
@@ -268,24 +499,21 @@ pub async fn show_image(
     }))
 }
 
-#[cfg(not(feature = "process-images"))]
-pub async fn upload_image(
-    state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, Authenticated>,
-) -> TiberiusResult<TiberiusResponse<()>> {
-    unimplemented!()
-}
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/images/new")]
+pub struct PathUploadImagePage {}
 
-#[cfg(feature = "process-images")]
-#[get("/images/new")]
 pub async fn upload_image(
-    state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, Authenticated>,
+    Extension(state): Extension<TiberiusState>,
+    rstate: TiberiusRequestState<Authenticated>,
+    _: PathUploadImagePage,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     use tiberius_core::session::Authenticated;
 
-    let mut client = state.get_db_client().await?;
-    let user = rstate.session.read().await.get_user(&mut client).await?;
+    use crate::pages::blog::PathBlogPage;
+
+    let mut client = state.get_db_client();
+    let user = rstate.session().get_user(&mut client).await?;
     let image_form_image = html! {
         .image-other {
             #js-image-upload-previews {
@@ -323,7 +551,7 @@ pub async fn upload_image(
             p { "You can mouse over tags below to view a description, and click to add. Short tag names can be used and will expand to full." }
 
             .block.js-tagtable data-target="[name=\"image.tag_input\"]" {
-                (quick_tag_table(state))
+                (quick_tag_table(&state))
             }
         }
     };
@@ -356,7 +584,7 @@ pub async fn upload_image(
     };
 
     let body = html! {
-        form action=(uri!(new_image())) enctype="multipart/form-data" method="post" {
+        form action=(PathImageUpload{}.to_uri()) enctype="multipart/form-data" method="post" {
             @match user {
                 None  => {
                     p {
@@ -371,7 +599,7 @@ pub async fn upload_image(
                     .dnp-warning {
                         h4 {
                             "Read the ";
-                            a href=(uri!(crate::pages::blog::show(page = "rules"))) { " site rules " }
+                            a href=(PathBlogPage{ page: "rules".to_string() }.to_uri()) { " site rules " }
                             " and check our ";
                             a href="// TODO: dnp list link" { " do-not-post list" }
                         }
@@ -384,7 +612,7 @@ pub async fn upload_image(
                     p {
                         strong {
                             "Please check it isn't already here with "
-                            a href=(uri!(crate::pages::images::search_reverse_page)) {
+                            a href=(PathSearchReverse{}.to_uri()) {
                                 " reverse search "
                             }
                         }
@@ -405,7 +633,7 @@ pub async fn upload_image(
         }
     };
     let app = crate::pages::common::frontmatter::app(
-        state,
+        &state,
         &rstate.into(),
         Some(PageTitle::from("Image")),
         &mut client,
@@ -418,147 +646,128 @@ pub async fn upload_image(
     }))
 }
 
-#[derive(rocket::FromForm, Debug)]
-pub struct ImageUpload<'a> {
+#[derive(Debug)]
+pub struct ImageUpload {
     pub anonymous: bool,
     pub source_url: Option<String>,
     pub tag_input: String,
     pub description: Option<String>,
     pub scraper_url: Option<String>,
-    pub image: TempFile<'a>,
+    pub image: NamedTempFile,
+    pub content_type: mime::Mime,
 }
 
-#[derive(rocket::FromForm, Debug)]
-pub struct ImageUploadWrapper<'a> {
-    pub image: ImageUpload<'a>,
+#[async_trait]
+impl<B> FromRequest<B> for ImageUpload
+where
+    B: Send,
+{
+    type Rejection = TiberiusError;
+
+    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
+        let state = req.extensions().get::<TiberiusState>().unwrap().clone();
+        let limit = state.config().upload_max_size;
+        let multipart = todo!();
+        Ok(spool_multipart(multipart, limit).await?)
+    }
 }
+
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/image")]
+pub struct PathImageUpload {}
 
 #[cfg(feature = "process-images")]
-#[post("/image", data = "<image>")]
 pub async fn new_image(
-    mut image: Form<ImageUploadWrapper<'_>>,
-    state: &State<TiberiusState>,
+    Extension(state): Extension<TiberiusState>,
+    mut rstate: TiberiusRequestState<Authenticated>,
+    _: PathImageUpload,
+    image_metadata: ImageUpload,
 ) -> TiberiusResult<TiberiusResponse<()>> {
-    let image = &mut image.image;
-    tracing::debug!("got image: {:?}", image);
-    let image_path = image.image.path();
-    let image_path = match image_path {
-        None => {
-            return Ok(RedirectResponse::new(
-                uri!(upload_image),
-                Some(Flash::Error(
-                    "We encountered an error during upload: Image vanished from disk".to_string(),
-                )),
-            ))
-        }
-        Some(v) => v,
-    };
-    let content_type = image.image.content_type();
+    use axum::Extension;
+    use tempfile::PersistError;
+    use tiberius_dependencies::hex;
+
+    tracing::debug!("got image: {:?}", image_metadata);
+    let image_path = image_metadata.image.path();
+    let content_type = image_metadata.content_type.clone();
     debug!("Got image content_type: {:?}", content_type);
-    let content_type = content_type
-        .map(|x| &x.0)
-        .map(|x| format!("{}/{}", x.top(), x.sub()));
-    let ext = match content_type.as_ref().map(|x| x.as_str()) {
-        None => {
-            return Ok(RedirectResponse::new(
-                uri!(upload_image),
-                Some(Flash::Error(
-                    "Couldn't tell what you uploaded, sorry!".to_string(),
-                )),
-            ))
-        }
+    let content_type = content_type.to_string();
+    let ext = match content_type.as_str() {
         // Images
-        Some("image/png") => ".png",
-        Some("image/gif") => ".gif",
-        Some("image/bmp") => ".bmp",
-        Some("image/jpeg") => ".jpg",
-        Some("image/webp") => ".webp",
-        Some("image/avif") => ".avif",
-        Some("image/svg+xml") => {
-            return Ok(RedirectResponse::new(
-                uri!(upload_image),
-                Some(Flash::Error(
-                    "We don't support SVG uploads yet.".to_string(),
-                )),
-            ))
+        "image/png" => ".png",
+        "image/gif" => ".gif",
+        "image/bmp" => ".bmp",
+        "image/jpeg" => ".jpg",
+        "image/webp" => ".webp",
+        "image/avif" => ".avif",
+        "image/svg+xml" => {
+            rstate
+                .flash_mut()
+                .error("We don't support SVG uploads yet.");
+            return Ok(TiberiusResponse::Redirect(Redirect::to(
+                PathUploadImagePage {}.to_uri().to_string().as_str(),
+            )));
         }
-        Some("image/x-icon") => ".ico",
-        Some("image/tiff") => ".tiff",
+        "image/x-icon" => ".ico",
+        "image/tiff" => ".tiff",
         // Audio
-        Some("audio/flac") => {
-            return Ok(RedirectResponse::new(
-                uri!(upload_image),
-                Some(Flash::Error(
-                    "We don't support audio uploads yet.".to_string(),
-                )),
-            ))
+        "audio/flac" => {
+            rstate.flash_mut().error("We don't audio uploads yet.");
+            return Ok(TiberiusResponse::Redirect(Redirect::to(
+                PathUploadImagePage {}.to_uri().to_string().as_str(),
+            )));
         }
-        Some("audio/wav") => {
-            return Ok(RedirectResponse::new(
-                uri!(upload_image),
-                Some(Flash::Error(
-                    "We don't support audio uploads yet.".to_string(),
-                )),
-            ))
+        "audio/wav" => {
+            rstate.flash_mut().error("We don't audio uploads yet.");
+            return Ok(TiberiusResponse::Redirect(Redirect::to(
+                PathUploadImagePage {}.to_uri().to_string().as_str(),
+            )));
         }
-        Some("audio/aac") => {
-            return Ok(RedirectResponse::new(
-                uri!(upload_image),
-                Some(Flash::Error(
-                    "We don't support audio uploads yet.".to_string(),
-                )),
-            ))
+        "audio/aac" => {
+            rstate.flash_mut().error("We don't audio uploads yet.");
+            return Ok(TiberiusResponse::Redirect(Redirect::to(
+                PathUploadImagePage {}.to_uri().to_string().as_str(),
+            )));
         }
-        Some("audio/webm") => {
-            return Ok(RedirectResponse::new(
-                uri!(upload_image),
-                Some(Flash::Error(
-                    "We don't support audio uploads yet.".to_string(),
-                )),
-            ))
+        "audio/webm" => {
+            rstate.flash_mut().error("We don't audio uploads yet.");
+            return Ok(TiberiusResponse::Redirect(Redirect::to(
+                PathUploadImagePage {}.to_uri().to_string().as_str(),
+            )));
         }
         // Video,
-        Some("video/ogg") => {
-            return Ok(RedirectResponse::new(
-                uri!(upload_image),
-                Some(Flash::Error(
-                    "We don't support video uploads yet.".to_string(),
-                )),
-            ))
+        "video/ogg" => {
+            rstate.flash_mut().error("We don't video uploads yet.");
+            return Ok(TiberiusResponse::Redirect(Redirect::to(
+                PathUploadImagePage {}.to_uri().to_string().as_str(),
+            )));
         }
-        Some("video/webm") => {
-            return Ok(RedirectResponse::new(
-                uri!(upload_image),
-                Some(Flash::Error(
-                    "We don't support video uploads yet.".to_string(),
-                )),
-            ))
+        "video/webm" => {
+            rstate.flash_mut().error("We don't video uploads yet.");
+            return Ok(TiberiusResponse::Redirect(Redirect::to(
+                PathUploadImagePage {}.to_uri().to_string().as_str(),
+            )));
         }
-        Some("video/mpeg") => {
-            return Ok(RedirectResponse::new(
-                uri!(upload_image),
-                Some(Flash::Error(
-                    "We don't support video uploads yet.".to_string(),
-                )),
-            ))
+        "video/mpeg" => {
+            rstate.flash_mut().error("We don't video uploads yet.");
+            return Ok(TiberiusResponse::Redirect(Redirect::to(
+                PathUploadImagePage {}.to_uri().to_string().as_str(),
+            )));
         }
-        Some("video/mp4") => {
-            return Ok(RedirectResponse::new(
-                uri!(upload_image),
-                Some(Flash::Error(
-                    "We don't support video uploads yet.".to_string(),
-                )),
-            ))
+        "video/mp4" => {
+            rstate.flash_mut().error("We don't video uploads yet.");
+            return Ok(TiberiusResponse::Redirect(Redirect::to(
+                PathUploadImagePage {}.to_uri().to_string().as_str(),
+            )));
         }
         // Other
-        Some(q) => {
-            return Ok(RedirectResponse::new(
-                uri!(upload_image),
-                Some(Flash::Error(format!(
-                    "We can't process images of the type {}",
-                    q
-                ))),
-            ))
+        q => {
+            rstate
+                .flash_mut()
+                .error(format!("We can't process images of the type {}", q));
+            return Ok(TiberiusResponse::Redirect(Redirect::to(
+                PathUploadImagePage {}.to_uri().to_string().as_str(),
+            )));
         }
     };
     {
@@ -567,15 +776,20 @@ pub async fn new_image(
             Ok(v) => {
                 debug!("Image metadata: {:?}", v);
                 if v.0 > MAX_IMAGE_DIMENSION || v.1 > MAX_IMAGE_DIMENSION {
-                    return Ok(RedirectResponse::new(uri!(upload_image), Some(Flash::Error(format!("We can't process image: It's too large, the image is {}x{} but we only support up to {}x{}", v.0, v.1, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION)))));
+                    rstate.flash_mut().error(format!("We can't process image: It's too large, the image is {}x{} but we only support up to {}x{}", v.0, v.1, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION));
+                    return Ok(TiberiusResponse::Redirect(Redirect::to(
+                        PathUploadImagePage {}.to_uri().to_string().as_str(),
+                    )));
                 }
                 debug!("Image within max dimensions, proceeding");
             }
             Err(e) => {
-                return Ok(RedirectResponse::new(
-                    uri!(upload_image),
-                    Some(Flash::Error(format!("We can't process image: {}", e))),
-                ));
+                rstate
+                    .flash_mut()
+                    .error(format!("We can't process image: {}", e));
+                return Ok(TiberiusResponse::Redirect(Redirect::to(
+                    PathUploadImagePage {}.to_uri().to_string().as_str(),
+                )));
             }
         }
     }
@@ -595,7 +809,10 @@ pub async fn new_image(
     };
     let config = state.config();
     let unixts = chrono::Utc::now();
-    let mut subdir = config.data_root.clone().expect("require configured data root directory");
+    let mut subdir = config
+        .data_root
+        .clone()
+        .expect("require configured data root directory");
     subdir.push("images");
     if !subdir.exists() {
         std::fs::create_dir(&subdir)?;
@@ -610,14 +827,13 @@ pub async fn new_image(
     let new_path = subdir;
     if new_path.exists() {
         //TODO: handle existing uploads instead of ignoring it
-        error!("implement handling already uploaded images");
+        todo!("implement handling already uploaded images");
     } else {
         debug!("persisting file to {}", new_path.display());
-        image.image.copy_to(&new_path).await?;
-    }
+        todo!("persist file via image_metadata.image.persist_noclobber(&new_path)?");
+    };
     // reprocess image to ensure it's not only valid but in a good base format with good compat in all devices
     {
-        let content_type = content_type.expect("at this point we must know the content mime type");
         match content_type.as_str() {
             "image/svg+xml" => {
                 let mut nfile = new_path.clone();
@@ -648,7 +864,7 @@ pub async fn new_image(
             }
         }
     }
-    let tags: Vec<(String, Option<String>)> = image
+    let tags: Vec<(String, Option<String>)> = image_metadata
         .tag_input
         .split(',')
         .map(|x| x.trim())
@@ -659,25 +875,36 @@ pub async fn new_image(
                 .unwrap_or((x.to_string(), None))
         })
         .collect();
-    let mut client = state.get_db_client().await?;
+    let mut client = state.get_db_client();
     //TODO: create missing tags automatically
     //TODO: rewrite image from scratch to discard metadata
     let tags = tiberius_models::Tag::get_many_by_name(&mut client, tags, true).await?;
     let tags = tags.into_iter().map(|x| x.id).collect();
     let canon_path = new_path.clone();
-    let canon_path = canon_path.strip_prefix(&config.data_root.as_ref().expect("require static data root"))?;
+    let canon_path =
+        canon_path.strip_prefix(&config.data_root.as_ref().expect("require static data root"))?;
     let canon_path = canon_path.strip_prefix("images")?;
     //image.image.persist_to(new_path);
     let image = Image {
         image: Some(canon_path.to_string_lossy().to_string()),
-        image_name: image.image.name().map(|x| format!("{}{}", x, ext)),
-        image_mime_type: image.image.content_type().map(|x| x.to_string()),
+        image_name: image_metadata
+            .image
+            .path()
+            .file_name()
+            .map(|x| x.to_string_lossy().to_string()),
+        image_mime_type: Some(image_metadata.content_type.to_string()),
         //TODO: store IP of user
         //TODO: store fingerprint of user
-        anonymous: Some(image.anonymous),
-        source_url: image.scraper_url.clone().or(image.source_url.clone()),
+        anonymous: Some(image_metadata.anonymous),
+        source_url: image_metadata
+            .scraper_url
+            .clone()
+            .or(image_metadata.source_url.clone()),
         tag_ids: tags,
-        description: image.description.clone().unwrap_or_else(String::new),
+        description: image_metadata
+            .description
+            .clone()
+            .unwrap_or_else(String::new),
         ..Default::default()
     };
     let image = image.insert_new(&mut client).await?;
@@ -693,29 +920,166 @@ pub async fn new_image(
         )
         .await?;
     }
-    return Ok(RedirectResponse::new(
-        uri!(show_image(image = image.id as u64)),
-        Some(Flash::Info(
-            "We are processing your image, it might take a few minutes".to_string(),
-        )),
-    ));
+
+    rstate
+        .flash_mut()
+        .info("We are processing your image, it might take a few minutes");
+    return Ok(TiberiusResponse::Redirect(Redirect::to(
+        PathShowImage {
+            image: image.id as u64,
+        }
+        .to_uri()
+        .to_string()
+        .as_str(),
+    )));
 }
 
-#[get("/search")]
-pub async fn search_empty() -> TiberiusResult<HtmlResponse> {
-    Ok(search("".to_string(), None, None).await?)
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/image/:image/source_changes")]
+pub struct PathChangeImageSource {
+    image: u64,
 }
 
-#[get("/search/reverse")]
-pub async fn search_reverse_page() -> TiberiusResult<HtmlResponse> {
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/search")]
+pub struct PathSearchEmpty {}
+
+pub async fn search_empty(_: PathSearchEmpty) -> TiberiusResult<HtmlResponse> {
+    Ok(search(
+        PathSearchEmpty {},
+        Query(QuerySearch {
+            search: "".to_string(),
+            order: None,
+            direction: None,
+        }),
+    )
+    .await?)
+}
+
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/search/reverse")]
+pub struct PathSearchReverse {}
+
+pub async fn search_reverse_page(_: PathSearchReverse) -> TiberiusResult<HtmlResponse> {
     todo!()
 }
 
-#[get("/search?<_search>&<_order>&<_direction>")]
-pub async fn search(
-    _search: String,
-    _order: Option<String>,
-    _direction: Option<String>,
-) -> TiberiusResult<HtmlResponse> {
+#[derive(Deserialize, Serialize)]
+pub struct QuerySearch {
+    search: String,
+    order: Option<String>,
+    direction: Option<String>,
+}
+
+impl QuerySearch {
+    pub fn get_qs(&self) -> TiberiusResult<String> {
+        Ok(serde_qs::to_string(&self)?)
+    }
+}
+
+pub struct PathQuerySearch {
+    pub search: String,
+    pub order: Option<String>,
+    pub direction: Option<String>,
+}
+
+impl PathQuerySearch {
+    pub fn to_uri(self) -> TiberiusResult<Uri> {
+        let path = PathSearchEmpty {}.to_uri().path().to_string();
+        let query = QuerySearch {
+            search: self.search,
+            order: self.order,
+            direction: self.direction,
+        }
+        .get_qs()?;
+        Ok(Uri::builder()
+            .path_and_query(format!("{path}?{query}"))
+            .build()?)
+    }
+}
+
+pub async fn search(_: PathSearchEmpty, query: Query<QuerySearch>) -> TiberiusResult<HtmlResponse> {
     todo!()
+}
+
+/// Spools a multipart of image upload type onto the disk
+///
+/// If the upload exceeds the limit number of bytes, an error is returned
+pub async fn spool_multipart(mut multipart: Multipart, limit: u64) -> TiberiusResult<ImageUpload> {
+    let tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new()?;
+    let mut upload: ImageUpload = ImageUpload {
+        anonymous: false,
+        source_url: None,
+        tag_input: String::new(),
+        description: None,
+        scraper_url: None,
+        image: tmpfile,
+        content_type: mime::TEXT_PLAIN,
+    };
+
+    while let Some(mut field) = multipart.next_field().await? {
+        let name = field.name().unwrap().to_string();
+        match name.as_str() {
+            "anonymous" => upload.anonymous = field.text().await?.parse()?,
+            "source_url" => upload.source_url = Some(field.text().await?),
+            "tag_input" => upload.tag_input = field.text().await?,
+            "description" => upload.description = Some(field.text().await?),
+            "scraper_url" => upload.scraper_url = Some(field.text().await?),
+            "image" => {
+                let file: &mut std::fs::File = upload.image.as_file_mut();
+                // clone so we can use tokio and a buffered writer
+                let file = file.try_clone()?;
+                // truncate the file in case we have someone reusing fields
+                file.set_len(0)?;
+                let mut file = BufWriter::new(tokio::fs::File::from_std(file));
+                while let Some(chunk) = field.chunk().await? {
+                    // TODO: limit write size
+                    file.write(&chunk).await?;
+                }
+                file.flush().await?;
+                upload.content_type =
+                    mime::Mime::from_str(field.content_type().unwrap_or("plain/text"))?;
+                drop(file);
+            }
+            // TODO: do something about extra fields
+            _ => (),
+        }
+    }
+    Ok(upload)
+}
+
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/images/:image_id/comments/:comment_id")]
+pub struct PathImageComment {
+    image_id: i64,
+    comment_id: i64,
+}
+
+pub async fn get_image_comment(
+    PathImageComment {
+        image_id,
+        comment_id,
+    }: PathImageComment,
+    Extension(state): Extension<TiberiusState>,
+) -> TiberiusResult<TiberiusResponse<()>> {
+    let comment = Comment::get_by_id(&mut state.get_db_client(), comment_id).await?;
+    if let Some(comment) = comment {
+        if comment.image_id() != Some(image_id) {
+            Err(TiberiusError::ObjectNotFound(
+                "Comment".to_string(),
+                comment_id.to_string(),
+            ))
+        } else {
+            Ok(TiberiusResponse::Html(
+                single_comment(&state, &mut state.get_db_client(), &comment)
+                    .await?
+                    .into(),
+            ))
+        }
+    } else {
+        Err(TiberiusError::ObjectNotFound(
+            "Comment".to_string(),
+            comment_id.to_string(),
+        ))
+    }
 }

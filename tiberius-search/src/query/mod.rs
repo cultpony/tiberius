@@ -1,7 +1,8 @@
-use std::fmt::Display;
-use std::ops::Bound;
-use std::ops::Range;
-use std::str::FromStr;
+use std::{
+    fmt::Display,
+    ops::{Bound, Range},
+    str::FromStr,
+};
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum Query {
@@ -145,9 +146,7 @@ pub enum QueryError {
 }
 
 use either::Either;
-use lazy_regex::lazy_regex;
-use lazy_regex::Lazy;
-use lazy_regex::Regex;
+use lazy_regex::{lazy_regex, Lazy, Regex};
 #[cfg(feature = "search-with-tantivy")]
 use tantivy::schema::FieldType;
 #[cfg(feature = "search-with-tantivy")]
@@ -156,9 +155,10 @@ use tantivy::schema::IndexRecordOption;
 use tantivy::Term;
 use tracing::info;
 
-use crate::tokenizer::fold::FoldState;
-use crate::tokenizer::fold::FoldStateVec;
-use crate::tokenizer::parse;
+use crate::tokenizer::{
+    fold::{FoldState, FoldStateVec},
+    parse,
+};
 
 static ATTRCOMP_REX: Lazy<Regex> = lazy_regex!(r#"^([\w_]+)\.(\w{0,4}):(.+)$"#);
 
@@ -556,16 +556,17 @@ impl Query {
                             chrono::Utc::now(),
                             chrono_english::Dialect::Uk,
                         )?;
-                        let strval_term = Term::from_field_date(field, &strval);
+                        let strval = tantivy::DateTime::from_unix_timestamp(strval.timestamp());
+                        let strval_term = Term::from_field_date(field, strval.clone());
                         match cmp {
                             Comparator::Equal => Box::new(TermQuery::new(
-                                tantivy::Term::from_field_date(field, &strval),
+                                tantivy::Term::from_field_date(field, strval.clone()),
                                 IndexRecordOption::Basic,
                             )),
                             Comparator::NotEqual => Box::new(BooleanQuery::new(vec![(
                                 Occur::MustNot,
                                 Box::new(TermQuery::new(
-                                    tantivy::Term::from_field_date(field, &strval),
+                                    tantivy::Term::from_field_date(field, strval.clone()),
                                     IndexRecordOption::Basic,
                                 )),
                             )])),

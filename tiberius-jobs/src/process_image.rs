@@ -1,13 +1,9 @@
 use image::GenericImageView;
-use rocket::futures::TryStreamExt;
-use rocket::Request;
 use sqlx::{FromRow, Pool, Postgres};
 use sqlxmq::{job, Checkpoint, CurrentJob};
-use tiberius_core::config::Configuration;
-use tiberius_core::error::TiberiusResult;
-use tiberius_core::state::TiberiusState;
-use tiberius_models::{Channel, Client, Image};
-use tiberius_models::{ImageThumbType, Queryable};
+use tiberius_core::{config::Configuration, error::TiberiusResult, state::TiberiusState};
+use tiberius_dependencies::hex;
+use tiberius_models::{Channel, Client, Image, ImageThumbType, Queryable};
 
 use crate::SharedCtx;
 
@@ -24,8 +20,8 @@ pub async fn process_image<'a, E: sqlx::Executor<'a, Database = sqlx::Postgres>>
     Ok(())
 }
 
-#[instrument]
-#[sqlxmq::job(retries = 30000, backoff_secs = 10)]
+#[instrument(level = "trace")]
+#[sqlxmq::job(retries = 3, backoff_secs = 10)]
 pub(crate) async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
     info!("Job {}: Processing image", current_job.id());
     let start = std::time::Instant::now();
@@ -48,7 +44,11 @@ pub(crate) async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> Tib
         current_job.id(),
         img.id
     );
-    let dataroot = sctx.config.data_root.clone().expect("require configured data root directory");
+    let dataroot = sctx
+        .config
+        .data_root
+        .clone()
+        .expect("require configured data root directory");
     //TODO: improve error handling here
     {
         let path = dataroot.join("images").join(img.image.clone().unwrap());

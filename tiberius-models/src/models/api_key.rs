@@ -2,8 +2,7 @@ use std::ops::DerefMut;
 
 use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
 use ring::rand::SecureRandom;
-use sqlx::query;
-use sqlx::{query_as, types::Uuid};
+use sqlx::{query, query_as, types::Uuid};
 use std::convert::TryInto;
 
 use crate::{Client, PhilomenaModelError, User};
@@ -26,11 +25,13 @@ impl ApiKey {
             ring::rand::SystemRandom::new().fill(&mut data)?;
             base64::encode(data)
         };
-        Ok(ApiKey{
+        Ok(ApiKey {
             id,
             user_id: user.id(),
             private: key_data,
-            valid_until: Utc::now().checked_add_signed(chrono::Duration::weeks(52 * 5)).expect("should not overflow"),
+            valid_until: Utc::now()
+                .checked_add_signed(chrono::Duration::weeks(52 * 5))
+                .expect("should not overflow"),
             created_at: Utc::now(),
             updated_at: Utc::now(),
         })
@@ -82,7 +83,7 @@ impl ApiKey {
     }
     pub async fn insert(self, client: &mut Client) -> Result<Uuid, PhilomenaModelError> {
         struct UuidW {
-            id: Uuid
+            id: Uuid,
         }
         let uuid = query_as!(
             UuidW,
@@ -104,7 +105,9 @@ impl ApiKey {
             UuidW,
             "DELETE FROM user_api_keys WHERE id = $1 RETURNING id",
             self.id,
-        ).fetch_one(client).await?;
+        )
+        .fetch_one(client)
+        .await?;
         Ok(id.id)
     }
     pub async fn user(&self, client: &mut Client) -> Result<Option<User>, PhilomenaModelError> {

@@ -1,18 +1,17 @@
-use std::ops::DerefMut;
-use std::pin::Pin;
-use std::sync::Arc;
+use std::{cmp::Ordering, ops::DerefMut, pin::Pin, sync::Arc};
 
 use async_std::sync::RwLock;
-use chrono::NaiveDateTime;
+use chrono::{NaiveDate, NaiveDateTime, Utc};
 use futures::Stream;
-use sqlx::postgres::PgRow;
-use sqlx::{query_as, Executor, PgPool};
-use tantivy::IndexWriter;
-use tiberius_search::Queryable;
+use itertools::Itertools;
+use sqlx::{postgres::PgRow, query_as, Executor, PgPool};
+use tantivy::{Document, IndexWriter};
+use tiberius_search::{Queryable, SortIndicator};
 
 use crate::{
-    doc_add_, tantivy_date_field, tantivy_indexed_text_field, tantivy_raw_text_field,
-    tantivy_text_field, tantivy_u64_field, Client, PhilomenaModelError,
+    doc_add_, slug::sluggify, tantivy_date_field, tantivy_indexed_text_field,
+    tantivy_raw_text_field, tantivy_text_field, tantivy_u64_field, Client, PhilomenaModelError,
+    SortDirection,
 };
 
 #[derive(sqlx::FromRow, Debug, Clone)]
@@ -35,12 +34,209 @@ pub struct Tag {
     pub mod_notes: Option<String>,
 }
 
-impl Tag {
-    pub fn full_name(&self) -> String {
+/// A reduced version of tag often obtained from views or queries
+#[derive(Clone, Debug)]
+pub struct TagView {
+    pub id: u64,
+    pub name: String,
+    pub namespace: Option<String>,
+    pub name_in_namespace: Option<String>,
+    pub category: Option<String>,
+    pub slug: Option<String>,
+    pub description: Option<String>,
+    pub images_count: i32,
+}
+
+impl Into<TagView> for Tag {
+    fn into(self) -> TagView {
+        TagView {
+            id: self.id as u64,
+            name: self.name,
+            namespace: self.namespace,
+            name_in_namespace: self.name_in_namespace,
+            category: self.category,
+            slug: Some(self.slug),
+            description: self.description,
+            images_count: self.images_count,
+        }
+    }
+}
+
+pub trait TagLike: Ord {
+    fn full_name(&self) -> String;
+
+    fn path_full_name(&self) -> String {
+        let full_name = self.full_name();
+        sluggify(full_name)
+    }
+}
+
+impl TagLike for Tag {
+    fn full_name(&self) -> String {
         match &self.namespace {
-            Some(namespace) => format!("{}:{}", namespace, self.name),
+            Some(namespace) => match &self.name_in_namespace {
+                Some(name_in_namespace) => format!("{}:{}", namespace, name_in_namespace),
+                None => todo!(),
+            },
             None => self.name.clone(),
         }
+    }
+}
+
+impl Default for Tag {
+    fn default() -> Self {
+        Self {
+            id: i32::MAX,
+            name: Default::default(),
+            slug: Default::default(),
+            description: None,
+            short_description: None,
+            namespace: None,
+            name_in_namespace: None,
+            images_count: 0,
+            image: Default::default(),
+            image_format: Default::default(),
+            image_mime_type: Default::default(),
+            aliased_tag_id: Default::default(),
+            created_at: Utc::now().naive_utc(),
+            updated_at: Utc::now().naive_utc(),
+            category: None,
+            mod_notes: None,
+        }
+    }
+}
+
+fn category_priority(cat: &str) -> i8 {
+    match cat {
+        "error" => 0,
+        "rating" => 1,
+        "origin" => 2,
+        "character" => 3,
+        "oc" => 4,
+        "species" => 5,
+        "content-fanmade" => 6,
+        "content-official" => 7,
+        "spoiler" => 8,
+        _ => i8::MAX,
+    }
+}
+
+impl PartialEq for Tag {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+            && self.name == other.name
+            && self.slug == other.slug
+            && self.description == other.description
+            && self.short_description == other.short_description
+            && self.namespace == other.namespace
+            && self.name_in_namespace == other.name_in_namespace
+            && self.image == other.image
+            && self.image_format == other.image_format
+            && self.image_mime_type == other.image_mime_type
+            && self.aliased_tag_id == other.aliased_tag_id
+            && self.category == other.category
+            && self.mod_notes == other.mod_notes
+    }
+}
+
+impl Eq for Tag {}
+impl Ord for Tag {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
+
+impl PartialOrd for Tag {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let (scat, ocat) = match (self.category.as_ref(), other.category.as_ref()) {
+            (None, None) => return Some(self.full_name().cmp(&other.full_name())),
+            (None, Some(_)) => return Some(Ordering::Greater),
+            (Some(_), None) => return Some(Ordering::Less),
+            (Some(v), Some(w)) => (v, w),
+        };
+        if scat == ocat {
+            return Some(self.full_name().cmp(&other.full_name()));
+        }
+        let scat = category_priority(&*scat);
+        let ocat = category_priority(&*ocat);
+        match scat.cmp(&ocat) {
+            Ordering::Less => return Some(Ordering::Less),
+            Ordering::Equal => return Some(self.full_name().cmp(&other.full_name())),
+            Ordering::Greater => return Some(Ordering::Greater),
+        }
+    }
+}
+
+impl PartialEq for TagView {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+            && self.name == other.name
+            && self.slug == other.slug
+            && self.description == other.description
+            && self.namespace == other.namespace
+            && self.name_in_namespace == other.name_in_namespace
+            && self.category == other.category
+    }
+}
+
+impl Eq for TagView {}
+impl Ord for TagView {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
+
+impl PartialOrd for TagView {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let (scat, ocat) = match (self.category.as_ref(), other.category.as_ref()) {
+            (None, None) => return Some(self.full_name().cmp(&other.full_name())),
+            (None, Some(_)) => return Some(Ordering::Greater),
+            (Some(_), None) => return Some(Ordering::Less),
+            (Some(v), Some(w)) => (v, w),
+        };
+        if scat == ocat {
+            return Some(self.full_name().cmp(&other.full_name()));
+        }
+        let scat = category_priority(&*scat);
+        let ocat = category_priority(&*ocat);
+        match scat.cmp(&ocat) {
+            Ordering::Less => return Some(Ordering::Less),
+            Ordering::Equal => return Some(self.full_name().cmp(&other.full_name())),
+            Ordering::Greater => return Some(Ordering::Greater),
+        }
+    }
+}
+
+impl TagLike for TagView {
+    fn full_name(&self) -> String {
+        match &self.namespace {
+            Some(namespace) => match &self.name_in_namespace {
+                Some(name_in_namespace) => format!("{}:{}", namespace, name_in_namespace),
+                None => todo!(),
+            },
+            None => self.name.clone(),
+        }
+    }
+}
+
+impl Tag {
+    #[cfg(test)]
+    pub async fn create_for_test<S: AsRef<str>>(
+        client: &mut Client,
+        tag: S,
+    ) -> Result<Tag, PhilomenaModelError> {
+        use sqlx::query;
+        let tag: &str = tag.as_ref();
+        let slug = sluggify(tag);
+        let tag_id = query!("INSERT INTO tags (name, slug, created_at, updated_at) VALUES ($1, $2, NOW(), NOW()) ON CONFLICT DO NOTHING RETURNING id", tag, slug).fetch_one(&mut client.clone()).await?;
+        let tag_id = tag_id.id;
+        Ok(Tag::get(client, tag_id as i64)
+            .await?
+            .expect("tag created but doesn't exist?"))
+    }
+
+    pub fn create_cache_tagline(tags: &[Tag]) -> String {
+        tags.iter().sorted().map(|x| x.full_name()).join(", ")
     }
     pub async fn get_many(
         client: &mut Client,
@@ -134,13 +330,22 @@ impl Tag {
         client: &mut Client,
         term: S,
     ) -> Result<(usize, Vec<Tag>), PhilomenaModelError> {
-        use tiberius_search::tantivy::{query::TermQuery, schema::IndexRecordOption, schema::Term};
+        use tiberius_search::tantivy::{
+            query::TermQuery,
+            schema::{IndexRecordOption, Term},
+        };
         let query = TermQuery::new(
             Term::from_field_text(Self::schema().get_field("full_name").unwrap(), &term.into()),
             IndexRecordOption::Basic,
         );
         let i: tiberius_search::tantivy::IndexReader = client.index_reader::<Tag>()?;
-        let res = Self::search_tantivy_query(&i, query, 10, 0)?;
+        let res = Self::search_tantivy_query(
+            &i,
+            query,
+            10,
+            0,
+            TagSortBy::ImageCount(SortDirection::Descending),
+        )?;
         let res = {
             let tags: Vec<i64> = res.1.iter().map(|(score, id)| *id as i64).collect();
             let tags = Self::get_many(client, tags).await?;
@@ -150,11 +355,55 @@ impl Tag {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TagSortBy {
+    Random,
+    ImageCount(SortDirection),
+    Alphabetical(SortDirection),
+}
+
+impl SortIndicator for TagSortBy {
+    fn random(&self) -> bool {
+        match self {
+            TagSortBy::Random => true,
+            _ => false,
+        }
+    }
+
+    fn field(&self) -> &'static str {
+        match self {
+            TagSortBy::Random => "id",
+            TagSortBy::ImageCount(_) => "image_count",
+            TagSortBy::Alphabetical(_) => "name",
+        }
+    }
+
+    fn invert_sort(&self) -> bool {
+        let dir = match self {
+            TagSortBy::Random => return false,
+            TagSortBy::ImageCount(dir) => dir,
+            TagSortBy::Alphabetical(dir) => dir,
+        };
+        match dir {
+            SortDirection::Ascending => true,
+            SortDirection::Descending => false,
+        }
+    }
+
+    fn field_type(&self) -> tiberius_search::SortFieldType {
+        match self {
+            TagSortBy::Alphabetical(_) => tiberius_search::SortFieldType::String,
+            _ => tiberius_search::SortFieldType::Integer,
+        }
+    }
+}
+
 #[async_trait::async_trait]
 impl Queryable for Tag {
     type Group = String;
     type DBClient = Client;
     type IndexError = PhilomenaModelError;
+    type SortIndicator = TagSortBy;
 
     fn identifier(&self) -> u64 {
         self.id as u64
@@ -186,8 +435,20 @@ impl Queryable for Tag {
     async fn index(
         &self,
         writer: Arc<RwLock<IndexWriter>>,
-        _: &mut Self::DBClient,
+        client: &mut Self::DBClient,
     ) -> std::result::Result<(), Self::IndexError> {
+        let mut client = client.clone();
+        let doc = self.get_doc(&mut client, false).await?;
+        //debug!("Sending {:?} to index", doc);
+        writer.write().await.add_document(doc)?;
+        Ok(())
+    }
+
+    async fn get_doc(
+        &self,
+        client: &mut Self::DBClient,
+        omit_index_only: bool,
+    ) -> std::result::Result<Document, Self::IndexError> {
         let mut doc = tantivy::Document::new();
         let schema = Self::schema();
         doc_add_!(
@@ -195,7 +456,9 @@ impl Queryable for Tag {
             schema,
             date,
             created_at,
-            &chrono::DateTime::<chrono::Utc>::from_utc(self.created_at, chrono::Utc)
+            tantivy::DateTime::from_unix_timestamp(
+                chrono::DateTime::<chrono::Utc>::from_utc(self.created_at, chrono::Utc).timestamp()
+            )
         );
         doc_add_!(doc, schema, u64, id, self.id as u64);
         doc_add_!(doc, schema, text, name, &self.name);
@@ -226,10 +489,25 @@ impl Queryable for Tag {
             self.aliased_tag_id.map(|x| x as u64)
         );
         doc_add_!(doc, schema, option<text>, category, &self.category);
-        let writer = writer.write().await;
-        writer.add_document(doc);
-        drop(writer);
-        Ok(())
+        Ok(doc)
+    }
+
+    async fn get_from_index(
+        reader: crate::IndexReader,
+        id: u64,
+    ) -> std::result::Result<Option<Document>, Self::IndexError> {
+        let term =
+            tantivy::Term::from_field_u64(Self::schema().get_field("id").unwrap(), id as u64);
+        let coll = tantivy::collector::TopDocs::with_limit(1).and_offset(0);
+        let query = tantivy::query::TermQuery::new(term, tantivy::schema::IndexRecordOption::Basic);
+        let res = reader.searcher().search(&query, &coll)?;
+        let res = res.get(0);
+        let res = match res {
+            Some(res) => res.1,
+            None => return Ok(None),
+        };
+        let doc = reader.searcher().doc(res)?;
+        Ok(Some(doc))
     }
 
     async fn delete_from_index(
@@ -243,6 +521,136 @@ impl Queryable for Tag {
             self.id as u64,
         ));
         drop(writer);
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::TagLike;
+    use crate::Tag;
+    use anyhow::Result;
+
+    #[test]
+    pub fn fullname_forming() {
+        assert_eq!(
+            "artist:test",
+            Tag {
+                name: "artist:test".to_string(),
+                namespace: Some("artist".to_string()),
+                name_in_namespace: Some("test".to_string()),
+                ..Default::default()
+            }
+            .full_name()
+        )
+    }
+
+    #[test]
+    pub fn tag_sorting() -> Result<()> {
+        let tag_list = vec![
+            Tag {
+                name: "testA".to_string(),
+                category: Some("spoiler".to_string()),
+                ..Default::default()
+            },
+            Tag {
+                name: "testB".to_string(),
+                category: Some("spoiler".to_string()),
+                ..Default::default()
+            },
+            Tag {
+                name: "testC".to_string(),
+                category: Some("content-official".to_string()),
+                ..Default::default()
+            },
+            Tag {
+                name: "testD".to_string(),
+                category: Some("content-official".to_string()),
+                ..Default::default()
+            },
+            Tag {
+                name: "testE".to_string(),
+                category: Some("content-fanmade".to_string()),
+                ..Default::default()
+            },
+            Tag {
+                name: "testF".to_string(),
+                category: Some("content-fanmade".to_string()),
+                ..Default::default()
+            },
+            Tag {
+                name: "testG".to_string(),
+                category: Some("species".to_string()),
+                ..Default::default()
+            },
+            Tag {
+                name: "testH".to_string(),
+                category: Some("species".to_string()),
+                ..Default::default()
+            },
+            Tag {
+                name: "testI".to_string(),
+                category: Some("oc".to_string()),
+                ..Default::default()
+            },
+            Tag {
+                name: "testJ".to_string(),
+                category: Some("oc".to_string()),
+                ..Default::default()
+            },
+            Tag {
+                name: "testK".to_string(),
+                category: Some("character".to_string()),
+                ..Default::default()
+            },
+            Tag {
+                name: "testL".to_string(),
+                category: Some("character".to_string()),
+                ..Default::default()
+            },
+            Tag {
+                name: "testM".to_string(),
+                category: Some("origin".to_string()),
+                ..Default::default()
+            },
+            Tag {
+                name: "testN".to_string(),
+                category: Some("origin".to_string()),
+                ..Default::default()
+            },
+            Tag {
+                name: "testO".to_string(),
+                category: Some("rating".to_string()),
+                ..Default::default()
+            },
+            Tag {
+                name: "testP".to_string(),
+                category: Some("rating".to_string()),
+                ..Default::default()
+            },
+            Tag {
+                name: "testQ".to_string(),
+                category: Some("error".to_string()),
+                ..Default::default()
+            },
+            Tag {
+                name: "testR".to_string(),
+                category: Some("error".to_string()),
+                ..Default::default()
+            },
+            Tag {
+                name: "test0".to_string(),
+                category: None,
+                ..Default::default()
+            },
+            Tag {
+                name: "test1".to_string(),
+                category: None,
+                ..Default::default()
+            },
+        ];
+        let out = Tag::create_cache_tagline(&tag_list);
+        assert_eq!("testQ, testR, testO, testP, testM, testN, testK, testL, testI, testJ, testG, testH, testE, testF, testC, testD, testA, testB, test0, test1", out, "Cache Tagline Wrong");
         Ok(())
     }
 }

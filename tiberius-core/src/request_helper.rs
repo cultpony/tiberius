@@ -1,32 +1,42 @@
-use std::borrow::Cow;
-use std::convert::TryInto;
+use std::{borrow::Cow, convert::TryInto};
 
+use axum::{headers::ContentType, middleware::Next};
+use axum_extra::routing::TypedPath;
 use either::Either;
-use rocket::http::uri::Reference;
-use rocket::{form::FromForm, http::ContentType, Request, State};
+use serde::{de::DeserializeOwned, Deserialize};
 use sqlx::{pool::PoolConnection, Pool, Postgres};
-use tiberius_models::{ApiKey, Client, Image, DirectSafeSerialize, SafeSerialize};
+use tiberius_dependencies::{
+    axum,
+    axum::{
+        headers::HeaderMapExt,
+        response::{IntoResponse, Redirect},
+    },
+    axum_csrf::CsrfToken,
+    axum_flash::Flash,
+};
+use tiberius_models::{ApiKey, Client, DirectSafeSerialize, Image, SafeSerialize};
 
-use crate::state::Flash;
+use axum::http::{HeaderMap, Request};
+
 use crate::{
+    acl::{verify_acl, ACLActionSite, ACLObject},
     app::DBPool,
     config::Configuration,
     error::{TiberiusError, TiberiusResult},
     http_client,
+    session::SessionMode,
+    state::TiberiusRequestState,
 };
 
 pub type DbRef = PoolConnection<Postgres>;
 
-#[derive(serde::Deserialize, Copy, Clone, PartialEq, Eq, rocket::form::FromFormField, Debug)]
+#[derive(serde::Deserialize, Copy, Clone, PartialEq, Eq, Debug)]
 pub enum FormMethod {
     #[serde(rename = "delete")]
-    #[field(value = "delete")]
     Delete,
     #[serde(rename = "create")]
-    #[field(value = "create")]
     Create,
     #[serde(rename = "update")]
-    #[field(value = "update")]
     Update,
 }
 
@@ -37,62 +47,26 @@ impl ToString for FormMethod {
             Delete => "delete",
             Create => "create",
             Update => "update",
-        }.to_string()
-    }
-}
-
-#[derive(serde::Deserialize, Clone, PartialEq, Eq)]
-#[serde(transparent)]
-pub struct CSRFToken(String);
-
-#[rocket::async_trait]
-impl<'r> FromForm<'r> for CSRFToken {
-    type Context = String;
-
-    fn init(opts: rocket::form::Options) -> Self::Context {
-        "".to_string()
-    }
-
-    fn push_value(ctxt: &mut Self::Context, field: rocket::form::ValueField<'r>) {
-        if field.name == "_csrf_token" {
-            *ctxt = field.value.to_string()
         }
-    }
-
-    async fn push_data(ctxt: &mut Self::Context, field: rocket::form::DataField<'r, '_>) {
-        // noop
-    }
-
-    fn finalize(ctxt: Self::Context) -> rocket::form::Result<'r, Self> {
-        Ok(CSRFToken(ctxt))
+        .to_string()
     }
 }
 
-impl Into<String> for CSRFToken {
-    fn into(self) -> String {
-        self.0
-    }
-}
-
-#[derive(serde::Deserialize, rocket::form::FromForm)]
+#[derive(serde::Deserialize)]
 pub struct ApiFormData<T> {
     #[serde(rename = "_csrf_token")]
-    #[field(name = "_csrf_token")]
-    csrf_token: CSRFToken,
+    csrf_token: String,
     #[serde(rename = "_method")]
-    #[field(name = "_method")]
     method: Option<FormMethod>,
     #[serde(flatten, bound(deserialize = "T: serde::Deserialize<'de>"))]
     pub data: T,
 }
 
-#[derive(serde::Deserialize, rocket::form::FromForm)]
+#[derive(serde::Deserialize)]
 pub struct ApiFormDataEmpty {
     #[serde(rename = "_csrf_token")]
-    #[field(name = "_csrf_token")]
-    csrf_token: CSRFToken,
+    csrf_token: String,
     #[serde(rename = "_method")]
-    #[field(name = "_method")]
     method: Option<FormMethod>,
 }
 
@@ -107,13 +81,17 @@ impl ApiFormDataEmpty {
 }
 
 impl<T> ApiFormData<T> {
-    pub fn verify_csrf(&self, method: Option<FormMethod>) -> bool {
+    pub fn verify_csrf<R: SessionMode>(
+        &self,
+        method: Option<FormMethod>,
+        rstate: &TiberiusRequestState<R>,
+    ) -> bool {
         // verify method expected == method gotten
         if method != self.method {
-            return false;
+            false
+        } else {
+            rstate.csrf_token.verify(&self.csrf_token).is_ok()
         }
-        //TODO: verify CSRF valid!
-        true
     }
     pub fn method(&self) -> Option<FormMethod> {
         self.method
@@ -134,68 +112,99 @@ impl SqlxMiddleware {
     }
 }
 
-#[derive(rocket::Responder)]
-pub enum TiberiusResponse<T> {
+pub enum TiberiusResponse<T: IntoResponse> {
     Html(HtmlResponse),
     Json(JsonResponse),
-    JsonNoHeader(HlJsonResponse),
     SafeJson(SafeJsonResponse),
     File(FileResponse),
-    Redirect(RedirectResponse),
-    NoFlashRedirect(NonFlashRedirectResponse),
+    Redirect(Redirect),
     Custom(CustomResponse<T>),
     Error(TiberiusError),
+    Other(T),
 }
 
-#[derive(rocket::Responder)]
-#[response(status = 200, content_type = "html")]
-pub struct HtmlResponse {
-    pub content: String,
-}
-
-#[derive(rocket::Responder)]
-#[response()]
-pub struct RedirectResponse {
-    pub redirect: rocket::response::Flash<rocket::response::Redirect>,
-}
-
-impl RedirectResponse {
-    pub fn new<T, S: TryInto<Reference<'static>>>(
-        uri: S,
-        flash: Option<Flash>,
-    ) -> TiberiusResponse<T> {
-        match flash {
-            Some(flash) => TiberiusResponse::Redirect(Self {
-                redirect: flash.into_resp(rocket::response::Redirect::to(uri)),
-            }),
-            None => TiberiusResponse::NoFlashRedirect(NonFlashRedirectResponse {
-                redirect: rocket::response::Redirect::to(uri),
-            }),
+impl<T> IntoResponse for TiberiusResponse<T>
+where
+    T: IntoResponse,
+{
+    fn into_response(self) -> axum::response::Response {
+        match self {
+            TiberiusResponse::Html(h) => h.into_response(),
+            TiberiusResponse::Json(j) => j.into_response(),
+            TiberiusResponse::SafeJson(j) => j.into_response(),
+            TiberiusResponse::File(f) => f.into_response(),
+            TiberiusResponse::Redirect(r) => r.into_response(),
+            TiberiusResponse::Custom(v) => v.into_response(),
+            TiberiusResponse::Error(e) => e.into_response(),
+            TiberiusResponse::Other(v) => v.into_response(),
         }
     }
 }
 
-#[derive(rocket::Responder)]
-#[response()]
-pub struct NonFlashRedirectResponse {
-    pub redirect: rocket::response::Redirect,
+pub struct HtmlResponse {
+    pub content: String,
 }
 
-#[derive(rocket::Responder)]
-#[response(status = 200, content_type = "json")]
+impl IntoResponse for HtmlResponse {
+    fn into_response(self) -> axum::response::Response {
+        let mut hm = HeaderMap::new();
+        hm.typed_insert(ContentType::html());
+        (hm, self.content).into_response()
+    }
+}
+
+impl From<String> for HtmlResponse {
+    fn from(s: String) -> Self {
+        Self { content: s }
+    }
+}
+
+impl From<maud::PreEscaped<String>> for HtmlResponse {
+    fn from(s: maud::PreEscaped<String>) -> Self {
+        Self { content: s.0 }
+    }
+}
+
+pub struct RedirectResponse {
+    pub redirect: Redirect,
+}
+
+impl IntoResponse for RedirectResponse {
+    fn into_response(self) -> axum::response::Response {
+        self.redirect.into_response()
+    }
+}
+
+impl RedirectResponse {
+    pub fn new<T>(uri: axum::http::Uri) -> Self {
+        Self {
+            redirect: Redirect::to(uri.to_string().as_str()),
+        }
+    }
+}
+
 pub struct JsonResponse {
     pub content: serde_json::Value,
-    pub headers: rocket::http::Header<'static>,
+    pub headers: HeaderMap,
+}
+
+impl IntoResponse for JsonResponse {
+    fn into_response(self) -> axum::response::Response {
+        (self.headers, serde_json::to_string(&self.content).unwrap()).into_response()
+    }
 }
 
 impl JsonResponse {
-    pub fn safe_serialize<T: SafeSerialize>(v: &T, headers: rocket::http::Header<'static>) -> TiberiusResult<Self> {
+    pub fn safe_serialize<T: SafeSerialize>(v: &T, headers: HeaderMap) -> TiberiusResult<Self> {
         Ok(JsonResponse {
             content: serde_json::to_value(v.into_safe())?,
             headers,
         })
     }
-    pub fn direct_safe_serialize<T: DirectSafeSerialize>(v: &T, headers: rocket::http::Header<'static>) -> TiberiusResult<Self> {
+    pub fn direct_safe_serialize<T: DirectSafeSerialize>(
+        v: &T,
+        headers: HeaderMap,
+    ) -> TiberiusResult<Self> {
         Ok(JsonResponse {
             content: serde_json::to_value(&v)?,
             headers,
@@ -203,27 +212,6 @@ impl JsonResponse {
     }
 }
 
-#[derive(rocket::Responder)]
-#[response(status = 200, content_type = "json")]
-pub struct HlJsonResponse {
-    pub content: serde_json::Value,
-}
-
-impl HlJsonResponse {
-    pub fn safe_serialize<T: SafeSerialize>(v: &T) -> TiberiusResult<Self> {
-        Ok(HlJsonResponse {
-            content: serde_json::to_value(v.into_safe())?,
-        })
-    }
-    pub fn direct_safe_serialize<T: DirectSafeSerialize>(v: &T) -> TiberiusResult<Self> {
-        Ok(HlJsonResponse {
-            content: serde_json::to_value(&v)?,
-        })
-    }
-}
-
-#[derive(rocket::Responder)]
-#[response(status = 200, content_type = "json")]
 pub struct SafeJsonResponse {
     pub content: serde_json::Value,
 }
@@ -241,17 +229,35 @@ impl SafeJsonResponse {
     }
 }
 
-#[derive(rocket::Responder)]
-#[response(status = 200)]
-pub struct FileResponse {
-    pub content: Cow<'static, [u8]>,
-    pub content_type: ContentType,
+impl IntoResponse for SafeJsonResponse {
+    fn into_response(self) -> axum::response::Response {
+        serde_json::to_string(&self.content)
+            .unwrap()
+            .into_response()
+    }
 }
 
-#[derive(rocket::Responder)]
-#[response(status = 200)]
-pub struct CustomResponse<T> {
-    #[response(bound = "T: rocket::response::Responder")]
+pub struct FileResponse {
+    pub content: Cow<'static, [u8]>,
+    pub headers: HeaderMap,
+}
+
+impl IntoResponse for FileResponse {
+    fn into_response(self) -> axum::response::Response {
+        (self.headers, self.content).into_response()
+    }
+}
+
+pub struct CustomResponse<T: IntoResponse> {
     pub content: T,
-    pub content_type: ContentType,
+    pub headers: HeaderMap,
+}
+
+impl<T> IntoResponse for CustomResponse<T>
+where
+    T: IntoResponse,
+{
+    fn into_response(self) -> axum::response::Response {
+        (self.headers, self.content).into_response()
+    }
 }

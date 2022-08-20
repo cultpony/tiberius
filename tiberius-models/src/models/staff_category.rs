@@ -1,25 +1,24 @@
-use std::num::NonZeroU32;
-use std::ops::DerefMut;
+use std::{num::NonZeroU32, ops::DerefMut};
 
-use chrono::{Utc, DateTime};
+use anyhow::Context;
+use chrono::{DateTime, Utc};
 use sqlx::{query, query_as};
 use tracing::trace;
-use anyhow::Context;
 
 use crate::{Client, PhilomenaModelError, User};
 
-#[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Eq, rocket::FromFormField)]
+#[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize)]
 #[repr(i32)]
 pub enum StaffCategoryColor {
-    #[field(value = "none")]
+    #[serde(rename = "none")]
     None = 0,
-    #[field(value = "red")]
+    #[serde(rename = "red")]
     Red = 1,
-    #[field(value = "orange")]
+    #[serde(rename = "orange")]
     Orange = 2,
-    #[field(value = "green")]
+    #[serde(rename = "green")]
     Green = 3,
-    #[field(value = "purple")]
+    #[serde(rename = "purple")]
     Purple = 4,
 }
 
@@ -32,7 +31,8 @@ impl ToString for StaffCategoryColor {
             Green => "block--success",
             Purple => "block--assistant",
             None => "",
-        }.to_string()
+        }
+        .to_string()
     }
 }
 
@@ -82,7 +82,8 @@ impl StaffCategory {
     }
 
     pub async fn save(&mut self, client: &mut Client) -> Result<(), PhilomenaModelError> {
-        let id = sqlx::query!("INSERT INTO
+        let id = sqlx::query!(
+            "INSERT INTO
             staff_category (role, display_name, text, created_at, updated_at, deleted_at, color)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (role) DO UPDATE
@@ -93,8 +94,17 @@ impl StaffCategory {
                     updated_at = excluded.updated_at,
                     deleted_at = excluded.deleted_at,
                     color = excluded.color
-            RETURNING id", self.role, self.display_name, self.text, self.created_at, self.updated_at, self.deleted_at, self.color as i32).fetch_one(client)
-            .await?;
+            RETURNING id",
+            self.role,
+            self.display_name,
+            self.text,
+            self.created_at,
+            self.updated_at,
+            self.deleted_at,
+            self.color as i32
+        )
+        .fetch_one(client)
+        .await?;
         self.id = id.id;
         Ok(())
     }

@@ -1,4 +1,3 @@
-
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct Hashable {
     pub sha512_hash: Option<String>,
@@ -65,5 +64,4 @@ pub struct ImageInteractionMetadata {
     pub score: i64,
     pub tags: Vec<String>,
     pub wilson_score: f32,
-
 }

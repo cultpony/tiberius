@@ -1,5 +1,5 @@
 [workspace]
-members = ["tiberius-server", "tiberius-models", "tiberius-core", "tiberius-jobs", "tiberius-common-html"]
+members = ["tiberius-server", "tiberius-models", "tiberius-core", "tiberius-jobs", "tiberius-common-html", "tiberius-dependencies"]
 default-members = ["tiberius-server"]
 
 [profile.release]
@@ -7,3 +7,14 @@ opt-level = 3
 lto = true
 codegen-units = 1
 incremental = true
+debug = 0
+split-debuginfo = "packed"
+
+[profile.dev.package.sqlx-macros]
+opt-level = 3
+[profile.dev.package.tantivy]
+opt-level = 3
+
+[profile.dev]
+debug = 1
+split-debuginfo = "unpacked"

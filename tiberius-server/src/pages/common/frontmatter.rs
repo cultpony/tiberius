@@ -1,38 +1,62 @@
+use axum::headers::{HeaderMapExt, UserAgent};
+use axum_extra::routing::TypedPath;
+use chrono::{DateTime, NaiveDateTime, Utc};
 use itertools::Itertools;
-use tiberius_common_html::no_avatar_svg;
-use std::fmt::Display;
 use std::{
     collections::BTreeMap,
-    fmt::{write, Debug},
+    fmt::{write, Debug, Display},
 };
-use tiberius_core::app::PageTitle;
-use tiberius_core::assets::{QuickTagTableContent, SiteConfig};
-use tiberius_core::error::TiberiusResult;
-use tiberius_core::session::{Session, SessionMode, SessionPtr};
-use tiberius_core::state::{SiteNotices, TiberiusRequestState, TiberiusState};
-use tiberius_core::request_helper::FormMethod;
+use tiberius_common_html::no_avatar_svg;
+use tiberius_core::{
+    app::PageTitle,
+    assets::{QuickTagTableContent, SiteConfig},
+    error::{TiberiusError, TiberiusResult},
+    request_helper::FormMethod,
+    session::{Session, SessionMode},
+    state::{SiteNotices, TiberiusRequestState, TiberiusState},
+};
+use tiberius_dependencies::axum_flash::{Flash, IncomingFlashes};
 
-use crate::pages::common::image::image_thumb_urls;
-use crate::pages::common::{
-    flash::get_flash,
-    routes::{cdn_host, dark_stylesheet_path, static_path, stylesheet_path},
+use crate::{
+    api::int::oembed::PathOembed,
+    pages::{
+        common::{
+            image::image_thumb_urls,
+            routes::{cdn_host, dark_stylesheet_path, static_path, stylesheet_path},
+        },
+        images::{PathSearchEmpty, PathShowImage},
+        session::{PathNewSession, PathRegistration, PathSessionLogout},
+        tags::PathTagsByNameShowTag,
+        PathImageThumbGetSimple,
+    },
 };
 use either::Either;
 use maud::{html, Markup, PreEscaped};
-use rocket::Request;
-use rocket::{request::FromRequest, uri, State};
 use tiberius_models::{
-    Channel, Client, Conversation, Filter, Forum, Image, ImageThumbType, Notification, SiteNotice,
-    Tag, User, Badge,
+    Badge, Channel, Client, Conversation, Filter, Forum, Image, ImageThumbType, Notification,
+    SiteNotice, Tag, TagLike, User,
 };
-use tracing::trace;
+use tracing::{trace, Instrument};
 
-pub fn viewport_meta_tags<T: SessionMode>(rstate: &TiberiusRequestState<'_, T>) -> Markup {
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub enum CSSWidth {
+    Pixels(u16),
+    Ems(u16),
+}
+
+impl Display for CSSWidth {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            CSSWidth::Pixels(px) => format!("{px}px"),
+            CSSWidth::Ems(em) => format!("{em}em"),
+        };
+        f.write_str(s.as_str())
+    }
+}
+
+pub fn viewport_meta_tags<T: SessionMode>(rstate: &TiberiusRequestState<T>) -> Markup {
     let mobile_uas = ["Mobile", "webOS"];
-    if let Some(value) = rstate
-        .headers
-        .get_one(rocket::http::hyper::header::USER_AGENT.as_str())
-    {
+    if let Some(value) = rstate.headers.typed_get::<UserAgent>() {
         for mobile_ua in &mobile_uas {
             if value.to_string().contains(mobile_ua) {
                 return html! { meta name="viewport" content="width=device-width, initial-scale=1"; };
@@ -42,17 +66,15 @@ pub fn viewport_meta_tags<T: SessionMode>(rstate: &TiberiusRequestState<'_, T>) 
     return html! { meta name="viewport" content="width=1024, initial-scale=1"; };
 }
 
-pub async fn csrf_meta_tag<T: SessionMode>(rstate: &TiberiusRequestState<'_, T>) -> Markup {
-    let session: &SessionPtr<T> = &rstate.session;
-    let csrf = session.read().await.csrf_token();
+pub async fn csrf_meta_tag<T: SessionMode>(rstate: &TiberiusRequestState<T>) -> Markup {
+    let csrf = rstate.csrf_token.authenticity_token();
     html! {
         meta content=(csrf) csrf-param="_csrf_token" method-param="_method" name="csrf-token";
     }
 }
 
-pub async fn csrf_input_tag<T: SessionMode>(rstate: &TiberiusRequestState<'_, T>) -> Markup {
-    let session: &SessionPtr<T> = &rstate.session;
-    let csrf = session.read().await.csrf_token();
+pub async fn csrf_input_tag<T: SessionMode>(rstate: &TiberiusRequestState<T>) -> Markup {
+    let csrf = rstate.csrf_token.authenticity_token();
     html! {
         input type="hidden" name="_csrf_token" value=(csrf);
     }
@@ -70,8 +92,9 @@ pub fn form_submit_button(label: &str) -> Markup {
     }
 }
 
+#[instrument(skip(state, image))]
 pub async fn open_graph(state: &TiberiusState, image: Option<Image>) -> TiberiusResult<Markup> {
-    let mut client = state.get_db_client().await?;
+    let mut client = state.get_db_client();
     let filtered = !image
         .as_ref()
         .map(|x| x.thumbnails_generated)
@@ -97,7 +120,7 @@ pub async fn open_graph(state: &TiberiusState, image: Option<Image>) -> Tiberius
             meta name="keywords" content=(image.tag_list_cache.as_ref().map(|x| x.as_str()).unwrap_or(""));
             meta name="description" content=(description);
             meta property="og:title" content=(description);
-            meta property="og:url" content=(uri!(crate::pages::images::show_image(image = image.id as u64)).to_string());
+            meta property="og:url" content=(PathShowImage{ image: (image.id as u64) }.to_uri());
 
             @for tag in artist_tags(&image.tags(&mut client).await?) {
                 meta property="dc:creator" content=(tag.full_name());
@@ -109,22 +132,23 @@ pub async fn open_graph(state: &TiberiusState, image: Option<Image>) -> Tiberius
                 }
             }
 
-            link rel="alternate" type="application/json-oembed" href=(uri!(crate::api::int::oembed::fetch)) title="oEmbed JSON Profile";
-            link rel="canonical" href=(uri!(crate::pages::images::show_image(image = image.id as u64)));
+            link rel="alternate" type="application/json-oembed" href=(PathOembed{}.to_uri()) title="oEmbed JSON Profile";
+            link rel="canonical" href=(PathShowImage{ image: (image.id as u64) }.to_uri());
 
             @match (image.image_mime_type.as_ref().map(|x| x.as_str()), filtered) {
                 (Some("video/webm"), false) => {
                     meta property="og:type" content="video.other";
-                    meta property="og:image" content=(uri!(crate::pages::files::image_thumb_get_simple(id = image.id as u64, thumbtype = "rendered", _filename = image.filetypef("rendered"))));
-                    meta property="og:video" content=(uri!(crate::pages::files::image_thumb_get_simple(id = image.id as u64, thumbtype = "large", _filename = image.filetypef("large"))));
+
+                    meta property="og:image" content=(PathImageThumbGetSimple{ id: image.id as u64, thumbtype : "".to_string(), filename : image.filetypef("rendered")}.to_uri());
+                    meta property="og:video" content=(PathImageThumbGetSimple{ id: image.id as u64, thumbtype : "".to_string(), filename : image.filetypef("large")}.to_uri());
                 },
                 (Some("image/svg+xml"), false) => {
                     meta property="og:type" content="website";
-                    meta property="og:image" content=(uri!(crate::pages::files::image_thumb_get_simple(id = image.id as u64, thumbtype = "rendered", _filename = image.filetypef("rendered"))));
+                    meta property="og:image" content=(PathImageThumbGetSimple{ id: image.id as u64, thumbtype : "".to_string(), filename : image.filetypef("rendered")}.to_uri());
                 },
                 (_, false) => {
                     meta property="og:type" content="website";
-                    meta property="og:image" content=(uri!(crate::pages::files::image_thumb_get_simple(id = image.id as u64, thumbtype = "large", _filename=image.filename())));
+                    meta property="og:image" content=(PathImageThumbGetSimple{ id: image.id as u64, thumbtype : "large".to_string(), filename : image.filename()}.to_uri());
                 },
                 _ => { meta property="og:type" content="website"; },
             }
@@ -194,7 +218,11 @@ pub fn tag_editor<S1: Display, S2: Display>(editor_type: S1, name: S2) -> Markup
 pub fn tag_link(uri: bool, tag: &str, name: &str) -> Markup {
     //TODO: set proper title for tag description
     let uri = if uri {
-        uri!(crate::pages::tags::show_tag_by_name(tag = tag)).to_string()
+        PathTagsByNameShowTag {
+            tag: tag.to_string(),
+        }
+        .to_uri()
+        .to_string()
     } else {
         "#".to_string()
     };
@@ -203,6 +231,7 @@ pub fn tag_link(uri: bool, tag: &str, name: &str) -> Markup {
     }
 }
 
+#[instrument(skip(state))]
 pub fn quick_tag_table(state: &TiberiusState) -> Markup {
     let asset_loader = &state.asset_loader;
     let qtt = asset_loader.quick_tag_table();
@@ -275,14 +304,15 @@ pub fn quick_tag_table(state: &TiberiusState) -> Markup {
     }
 }
 
+#[instrument(skip(state, rstate))]
 pub async fn header<T: SessionMode>(
     site_config: &SiteConfig,
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, T>,
+    rstate: &TiberiusRequestState<T>,
 ) -> TiberiusResult<Markup> {
     let notifications = rstate.notifications().await?;
-    let mut client = state.get_db_client().await?;
-    let filter: Filter = rstate.filter(state).await?;
+    let mut client = state.get_db_client();
+    let filter: &Filter = rstate.filter(state).await?;
     trace!("preloading data for header html");
     let user = rstate.user(state).await?;
     let conversations = rstate.conversations().await?;
@@ -305,7 +335,7 @@ pub async fn header<T: SessionMode>(
                     }
                 }
 
-                form.header__search.flex.flex--nowrap.flex--centered.hform action=(uri!(crate::pages::images::search_empty)) method="GET" {
+                form.header__search.flex.flex--nowrap.flex--centered.hform action=(PathSearchEmpty{}.to_uri()) method="GET" {
                     input.input.header__input.header__input--search #q name="q" title="For terms all required, separate with ',' or 'AND'; also supports 'OR' for optional terms and '-' or 'NOT' for negation. Search with a blank query for more options or click the ? for syntax help."
                         value=(rstate.search_query().await?.to_string()) placeholder="Search" autocapitalize="none";
 
@@ -351,14 +381,14 @@ pub async fn header<T: SessionMode>(
                         }
 
                         // TODO: user change filter form https://github.com/derpibooru/philomena/blob/355ce491accae4702f273334271813e93a261e0f/lib/philomena_web/templates/layout/_header.html.slime#L52
-                        form #filter-quick-form.header__filter-form action="// TODO: filter form" method="POST" {}
+                        form #filter-quick-form.header__filter-form action="/filters/current" method="POST" {}
 
                         // TODO: user change hide/spoiler form https://github.com/derpibooru/philomena/blob/355ce491accae4702f273334271813e93a261e0f/lib/philomena_web/templates/layout/_header.html.slime#L55
-                        form #spoiler-quick-form.header__filter-form.hide-mobile.hide-limited-desktop action="// TODO: quick spoiler form" method="POST" {}
+                        form #spoiler-quick-form.header__filter-form.hide-mobile.hide-limited-desktop action="/filters/spoiler_type" method="POST" {}
 
 
                         .dropdown.header_dropdown {
-                            a.header__link.header__link-user href=(uri!(crate::pages::session::registration)) {
+                            a.header__link.header__link-user href=(PathRegistration{}.to_uri()) {
                                 //TODO: render user attribution view
                                 .image-constrained."avatar--28px" {
                                     (no_avatar_svg())
@@ -366,19 +396,19 @@ pub async fn header<T: SessionMode>(
                                 span.header__link-user__dropdown__content.hide-mobile data-click-preventdefault="true";
                             }
                             nav.dropdown__content.dropdown__content-right.hide-mobile.js-burger-links {
-                                a.header__link href=(uri!(crate::pages::session::registration)) { (user.name); }
+                                a.header__link href=(PathRegistration{}.to_uri()) { (user.name); }
                                 a.header__link href="/search?q=my:watched" { i.fa.fa-fw.fa-eye { "Watched"; } }
                                 a.header__link href="/search?q=my:faves" { i.fa.fa-fw.fa-start { "Faves"; } }
                                 a.header__link href="/search?q=my:upvotes" { i.fa.fa-fw.fa-arrow-up { "Upvotes"; } }
-                                a.header__link href=(uri!(crate::pages::session::registration)) { i.fa.fa-fw.fa-image { "Galleries"; }}
+                                a.header__link href=(PathRegistration{}.to_uri()) { i.fa.fa-fw.fa-image { "Galleries"; }}
                                 a.header__link href="/search?q=my:uploads" { i.fa.fa-fw.fa-upload { "Uploads"; } }
                                 a.header__link href="/comments?cq=my:comments" { i.fa.fa-fw.fa-comments { "Comments"; } }
                                 a.header__link href="/posts?pq=my:watched" { i.fa.fa-fw.fa-pen-square { "Posts"; } }
-                                a.header__link href=(uri!(crate::pages::session::registration)) { i.fa.fa-fw.fa-link { "Links"; } }
+                                a.header__link href=(PathRegistration{}.to_uri()) { i.fa.fa-fw.fa-link { "Links"; } }
                                 a.header__link href="/settings/edit" { i.fa.fa-fw.fa-cogs { "Settings"; } }
                                 a.header__link href="/conversations" { i.fa.fa-fw.fa-envelope { "Messages"; } }
-                                a.header__link href=(uri!(crate::pages::session::registration)) { i.fa.fa-fw.fa-user { "Account"; } }
-                                a.header__link href=(uri!(crate::pages::session::destroy_session)) { i.fa.fa-fw.fa-sign-out-alt { "Logout"; } }
+                                a.header__link href=(PathRegistration{}.to_uri()) { i.fa.fa-fw.fa-user { "Account"; } }
+                                a.header__link href=(PathSessionLogout{}.to_uri()) { i.fa.fa-fw.fa-sign-out-alt { "Logout"; } }
                             }
                         }
                     } @else {
@@ -388,8 +418,8 @@ pub async fn header<T: SessionMode>(
                                 i.fa.fa-fw.fa-cogs.hide-desktop { "Settings" }
                             }
                         }
-                        a.header__link href=(uri!(crate::pages::session::registration)) { "Register" }
-                        a.header__link href=(uri!(crate::pages::session::new_session)) { "Login" }
+                        a.header__link href=(PathRegistration{}.to_uri()) { "Register" }
+                        a.header__link href=(PathNewSession{}.to_uri()) { "Login" }
                     }
                 }
             }
@@ -397,7 +427,7 @@ pub async fn header<T: SessionMode>(
         nav.header.header--secondary {
             .flex.flex--centered.flex--spaced-out.flex--wrap {
                 (header_navigation_links(&mut client).await?)
-                @if user.map(|x| x.role) != Some("user".to_string()) {
+                @if user.as_ref().map(|x| x.role.as_str()) != Some("user") {
                     (header_staff_links())
                 }
             }
@@ -405,6 +435,7 @@ pub async fn header<T: SessionMode>(
     })
 }
 
+#[instrument]
 pub async fn header_navigation_links<'a>(client: &mut Client) -> TiberiusResult<Markup> {
     trace!("generating header_nav links");
     Ok(html! {
@@ -442,7 +473,7 @@ pub async fn header_navigation_links<'a>(client: &mut Client) -> TiberiusResult<
                 }
                 .dropdown__content {
                     @for forum in Forum::all(client).await? {
-                        a.header__link href=(uri!(crate::pages::session::registration)) {
+                        a.header__link href=(PathRegistration{}.to_uri())  {
                             (forum.name)
                         }
                     }
@@ -469,22 +500,33 @@ pub fn header_staff_links() -> Markup {
     }
 }
 
+pub fn pretty_time(date: &NaiveDateTime) -> String {
+    use tiberius_dependencies::chrono_humanize::HumanTime;
+    let date: DateTime<Utc> = DateTime::from_utc(date.clone(), Utc);
+    let ht = HumanTime::from(date);
+    format!("{}", ht)
+}
+
+#[instrument(skip(state, rstate))]
 pub async fn flash_warnings<T: SessionMode>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, T>,
+    rstate: &TiberiusRequestState<T>,
 ) -> TiberiusResult<Markup> {
-    let site_notices: Option<SiteNotices> = state.site_notices();
-    let site_notices = site_notices.unwrap_or_default();
-    use tiberius_core::state::Flash;
+    let site_notices: SiteNotices = state.site_notices().await?;
+    let mut flash_msgs: Vec<PreEscaped<String>> = Vec::new();
+    for (flash_lvl, flash_msg) in rstate.incoming_flashes.iter() {
+        use tiberius_dependencies::axum_flash::Level;
+        flash_msgs.push(match flash_lvl {
+            Level::Debug => todo!(),
+            Level::Info => html! { .flash.flash--success { (flash_msg) } },
+            Level::Success => html! { .flash.flash--success { (flash_msg) } },
+            Level::Warning => html! { .flash.flash--warning { (flash_msg) } },
+            Level::Error => html! { .flash.flash--warning { (flash_msg) } },
+        });
+    }
     let flash_body = html! {
-        @for flash in get_flash(state, rstate).await? {
-            @match flash {
-                Flash::Info(text) => { .flash.flash--success { (text) } }
-                Flash::Alert(text) => { .flash.flash--warning { (text) } }
-                Flash::Error(text) => { .flash.flash--warning { (text) } }
-                Flash::Warning(text) => { .flash.flash--warning { (text) } }
-                Flash::None => {},
-            }
+        @for flash_msg in flash_msgs {
+            (flash_msg);
         }
     };
     let flash_pre = html! {
@@ -494,13 +536,10 @@ pub async fn flash_warnings<T: SessionMode>(
                 " "
                 (notice.text)
                 " "
-                @match &notice.link {
-                    Some(link) => {
-                        a href=(link) {
-                            (notice.link_text.as_ref().unwrap_or(link))
-                        }
-                    },
-                    None => {},
+                @if !notice.link.is_empty() {
+                    a href=(notice.link) {
+                        (notice.link_text)
+                    }
                 }
             }
         }
@@ -520,19 +559,27 @@ pub async fn flash_warnings<T: SessionMode>(
     })
 }
 
-pub async fn layout_class<T: SessionMode>(req: &TiberiusRequestState<'_, T>) -> String {
+pub async fn layout_class<T: SessionMode>(req: &TiberiusRequestState<T>) -> String {
     req.layout_class().await.to_string()
 }
 
+#[instrument(skip(state, rstate))]
 pub async fn footer<T: SessionMode>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, T>,
+    rstate: &TiberiusRequestState<T>,
 ) -> TiberiusResult<Markup> {
     let end_time = rstate.started_at;
     let time = end_time.elapsed();
     let time: f32 = time.as_secs_f32() * 1000f32; // TODO: reimplement measuring this
     let footer_data = state.footer_data();
     let site_config = state.site_config();
+    let render_time = {
+        #[cfg(debug_assertions)]
+        let ret = format!(" (rendered in {:1.3} ms, debug)", time);
+        #[cfg(not(debug_assertions))]
+        let ret = format!(" (rendered in {:1.3} ms)", time);
+        ret
+    };
     Ok(html! {
         footer #footer {
             div #footer_content {
@@ -553,18 +600,18 @@ pub async fn footer<T: SessionMode>(
             div #serving_info {
                 "Powered by "
                 a href=(site_config.source_repo()) { (site_config.source_name()) }
-                (format!(" (rendered in {:1.3} ms)", time))
+                (render_time)
             }
         }
     })
 }
 
-pub async fn ignored_tag_list<'a, T: SessionMode>(
+pub async fn ignored_tag_list<T: SessionMode>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, T>,
+    rstate: &TiberiusRequestState<T>,
 ) -> TiberiusResult<Vec<i32>> {
     let filter = rstate.filter(state).await?;
-    return Ok(filter.hidden_tag_ids);
+    return Ok(filter.hidden_tag_ids.clone());
 }
 
 macro_rules! insert_csd {
@@ -575,14 +622,32 @@ macro_rules! insert_csd {
     };
 }
 
-pub async fn image_clientside_data<'a, T: SessionMode>(
+#[instrument(skip(rstate, state, inner, image), level = "debug")]
+pub async fn image_clientside_data<T: SessionMode>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, T>,
+    rstate: &TiberiusRequestState<T>,
     image: &Image,
-    inner: Markup,
+    inner: PreEscaped<String>,
+) -> TiberiusResult<Markup> {
+    Ok(state
+        .csd_cache
+        .try_get_with(
+            image.id as u64,
+            uncached_image_clientside_data(state, rstate, image, inner),
+        )
+        .await
+        .map_err(|e| TiberiusError::CacheError(format!("{}", e)))?)
+}
+
+#[instrument(skip(rstate, state, inner, image))]
+async fn uncached_image_clientside_data<T: SessionMode>(
+    state: &TiberiusState,
+    rstate: &TiberiusRequestState<T>,
+    image: &Image,
+    inner: PreEscaped<String>,
 ) -> TiberiusResult<Markup> {
     let mut data: BTreeMap<String, serde_json::Value> = BTreeMap::new();
-    let mut client = state.get_db_client().await?;
+    let mut client = state.get_db_client();
 
     insert_csd!(data, aspect_ratio, image.image_aspect_ratio);
     insert_csd!(data, comment_count, image.comments_count);
@@ -609,9 +674,10 @@ pub async fn image_clientside_data<'a, T: SessionMode>(
     Ok(csd_to_markup("image-show-container", data, inner).await?)
 }
 
+#[instrument(skip(rstate, state))]
 pub async fn clientside_data<'a, T: SessionMode>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, T>,
+    rstate: &TiberiusRequestState<T>,
 ) -> TiberiusResult<Markup> {
     let extra = rstate.csd_extra().await?;
     let interactions = rstate.interactions().await?;
@@ -682,6 +748,7 @@ pub async fn clientside_data<'a, T: SessionMode>(
     Ok(csd_to_markup("js-datastore", data, PreEscaped("".to_string())).await?)
 }
 
+#[instrument(skip(class, data, inner))]
 async fn csd_to_markup<S: std::fmt::Display>(
     class: S,
     data: BTreeMap<String, serde_json::Value>,
@@ -715,7 +782,7 @@ async fn csd_to_markup<S: std::fmt::Display>(
 
 pub async fn container_class<T: SessionMode>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, T>,
+    rstate: &TiberiusRequestState<T>,
 ) -> TiberiusResult<String> {
     if let Some(user) = rstate.user(state).await? {
         if user.use_centered_layout {
@@ -725,7 +792,11 @@ pub async fn container_class<T: SessionMode>(
     Ok("".to_string())
 }
 
-pub async fn user_attribution<S: ToString>(client: &mut Client, user: &User) -> TiberiusResult<maud::Markup> {
+#[instrument]
+pub async fn user_attribution<S: ToString>(
+    client: &mut Client,
+    user: &User,
+) -> TiberiusResult<maud::Markup> {
     Ok(html! {
         strong {
             a href="user link" { (user.displayname()) }
@@ -734,7 +805,11 @@ pub async fn user_attribution<S: ToString>(client: &mut Client, user: &User) -> 
     })
 }
 
-pub fn user_attribution_avatar<S: ToString>(user: &User, classes: S) -> TiberiusResult<maud::Markup> {
+#[instrument(skip(classes))]
+pub fn user_attribution_avatar<S: ToString>(
+    user: &User,
+    classes: S,
+) -> TiberiusResult<maud::Markup> {
     let av = user.avatar();
     let classes = classes.to_string();
     let classes = if !classes.is_empty() {
@@ -752,12 +827,19 @@ pub fn user_attribution_avatar<S: ToString>(user: &User, classes: S) -> Tiberius
     })
 }
 
-pub fn badge_image(img: Option<&String>, alt: String, title: String, width: u64, height: u64) -> maud::Markup {
+pub fn badge_image(
+    img: Option<&String>,
+    alt: String,
+    title: String,
+    width: u64,
+    height: u64,
+) -> maud::Markup {
     html! {
         img src=(img.unwrap_or(&"placeholder/url".to_string())) alt=(alt) title=(title) width=(width) height=(height) {}
     }
 }
 
+#[instrument]
 pub async fn user_badges(user: &User, client: &mut Client) -> TiberiusResult<maud::Markup> {
     let badges = user.badges(client).await?;
     let (badges, overflow): (&[Badge], &[Badge]) = if badges.len() <= 10 {
@@ -791,9 +873,10 @@ pub async fn user_badges(user: &User, client: &mut Client) -> TiberiusResult<mau
     })
 }
 
+//#[instrument(skip(rstate, state, client, body, image))]
 pub async fn app<T: SessionMode>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, T>,
+    rstate: &TiberiusRequestState<T>,
     page_title: Option<PageTitle>,
     client: &mut Client,
     body: Markup,
@@ -804,6 +887,7 @@ pub async fn app<T: SessionMode>(
         meta http-equiv="X-UA-Compatible" content="IE=edge";
         (viewport_meta_tags(rstate));
     };
+    let flash = rstate.flash();
     let title = html! {
         title { (
             match page_title {
@@ -828,21 +912,26 @@ pub async fn app<T: SessionMode>(
         meta name="format-detection" content="telephone=no";
         (csrf_meta_tag(rstate).await);
     };
-    let body = html! {
-        body data-theme=(rstate.theme_name(state).await?) {
-            (burger());
-            div.(container_class(state, rstate).await?)#container {
-                (header(state.site_config(), state, rstate).await?);
-                (flash_warnings(state, rstate).await?);
-                main.(layout_class(rstate).await)#content { (body) }
-                (footer(state, rstate).await?);
-                form.hidden {
-                    input.js-interaction-cache type="hidden" value="{}";
+    let body_gen_span = trace_span!("generate_body");
+    let body = async {
+        Ok::<_, TiberiusError>(html! {
+            body data-theme=(rstate.theme_name(state).await?) {
+                (burger());
+                div.(container_class(state, rstate).await?)#container {
+                    (header(state.site_config(), state, rstate).await?);
+                    (flash_warnings(state, rstate).await?);
+                    main.(layout_class(rstate).await)#content { (body) }
+                    (footer(state, rstate).await?);
+                    form.hidden {
+                        input.js-interaction-cache type="hidden" value="{}";
+                    }
+                    (clientside_data(state, rstate).await?);
                 }
-                (clientside_data(state, rstate).await?);
             }
-        }
-    };
+        })
+    }
+    .instrument(body_gen_span)
+    .await?;
     let script = html! {
         script type="text/javascript" src=(static_path("js/app.js").to_string_lossy()) async="async" {}
         /*(maud::PreEscaped("</script>"));*/

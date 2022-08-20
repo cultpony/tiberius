@@ -27,10 +27,8 @@
 extern crate base64;
 extern crate openssl;
 
-use openssl::hash::MessageDigest;
-use openssl::symm::Cipher;
-use std::error::Error;
-use std::str;
+use openssl::{hash::MessageDigest, symm::Cipher};
+use std::{error::Error, str};
 
 pub mod types {
     #[repr(C)]
@@ -194,11 +192,13 @@ pub fn contains_ip(session_data: &Vec<u8>, ip: &[u8]) -> bool {
 
 #[cfg(test)]
 mod test {
-    use crate::config::Configuration;
-    use crate::error::TiberiusResult;
-    use crate::session::philomena_plug::session_c::{
-        c_derive_key, c_request_authenticated,
-        types::{CookieData, KeyData},
+    use crate::{
+        config::Configuration,
+        error::TiberiusResult,
+        session::philomena_plug::session_c::{
+            c_derive_key, c_request_authenticated,
+            types::{CookieData, KeyData},
+        },
     };
 
     #[test]

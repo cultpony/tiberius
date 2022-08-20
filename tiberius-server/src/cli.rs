@@ -1,16 +1,17 @@
-use clap::{Parser, ArgEnum, Args, Subcommand};
+use clap::{ArgEnum, Args, Parser, Subcommand};
 
-pub mod grant_acl;
+//pub mod grant_acl;
 pub mod list_users;
+pub mod run_job;
 pub mod server;
-#[cfg(feature = "verify-db")]
-pub mod verify_db;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about = "The Lunar Image Board", long_about = None)]
 pub struct AppCli {
     #[clap(subcommand)]
     pub command: Command,
+    #[clap(flatten)]
+    pub config: tiberius_core::config::Configuration,
 }
 
 #[derive(Subcommand, Debug)]
@@ -30,23 +31,18 @@ pub enum Command {
     /// Basic Access Management for Tiberius, to be used to promote users to admin if access to existing admin accounts is lost
     /// or during bootstrapping your installation.
     GrantAcl(GrantAclCli),
+    /// Run a specific job manually. Note that you will only schedule the job, a worker must be available
+    RunJob(RunJobCli),
 }
 
 #[derive(Args, Debug)]
 pub struct ServerCli {
-    #[clap(long, short = 'z')]
+    #[clap(long, short = 'z', alias = "no-jobrunner")]
+    /// Disable all job processing, including scheduler
     pub no_jobs: bool,
-}
-
-#[cfg(feature = "verify-db")]
-#[derive(Args, Debug)]
-pub struct VerifyDbCli {
-    #[clap(long)]
-    pub table: String,
-    #[clap(long)]
-    pub start_id: u64,
-    #[clap(long)]
-    pub stop_id: u64,
+    #[clap(long, short = 'y')]
+    /// Disable the scheduler, only run a worker
+    pub no_scheduler: bool,
 }
 
 #[derive(Args, Debug)]
@@ -90,4 +86,19 @@ pub enum GrantAclAction {
     Grant,
     Revoke,
     List,
+}
+
+#[derive(Args, Debug)]
+pub struct RunJobCli {
+    #[clap(subcommand)]
+    pub job: RunJobSelect,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum RunJobSelect {
+    RefreshCachelines {
+        image_start: u64,
+        #[clap(requires("image-start"))]
+        image_end: Option<u64>,
+    },
 }

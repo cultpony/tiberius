@@ -22,14 +22,19 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
  */
 
-use crate::error::{TiberiusError, TiberiusResult};
-use crate::Configuration;
+use crate::{
+    error::{TiberiusError, TiberiusResult},
+    Configuration,
+};
 use erlang_term::Term;
-use std::convert::{TryFrom, TryInto};
-use std::error::Error;
-use std::net::IpAddr;
-use std::num::NonZeroU32;
-use std::{default, str};
+use std::{
+    convert::{TryFrom, TryInto},
+    default,
+    error::Error,
+    net::IpAddr,
+    num::NonZeroU32,
+    str,
+};
 
 /// This Session Plugin allows using Philomena Session Plugins for login if the appropriate session secret keys are
 /// present
@@ -298,10 +303,12 @@ mod test {
     use super::unwrap_cek;
     use std::convert::TryInto;
 
-    use crate::config::Configuration;
-    use crate::error::TiberiusResult;
-    use crate::session::philomena_plug::session::{
-        decode_cookie, decrypt_session, request_authenticated, ElixirCookie, KeyData,
+    use crate::{
+        config::Configuration,
+        error::TiberiusResult,
+        session::philomena_plug::session::{
+            decode_cookie, decrypt_session, request_authenticated, ElixirCookie, KeyData,
+        },
     };
 
     fn config() -> Configuration {

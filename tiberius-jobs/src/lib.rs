@@ -10,10 +10,11 @@ extern crate tracing;
 
 #[cfg(feature = "job_cleanup_sessions")]
 pub mod cleanup_sessions;
-#[cfg(feature = "job_refresh_channels")]
-pub mod refresh_channels;
 #[cfg(feature = "job_process_image")]
 pub mod process_image;
+pub mod refresh_cachelines;
+#[cfg(feature = "job_refresh_channels")]
+pub mod refresh_channels;
 #[cfg(feature = "job_reindex_images")]
 pub mod reindex_images;
 #[cfg(feature = "job_reindex_tags")]
@@ -22,10 +23,9 @@ pub mod reindex_tags;
 use std::error::Error;
 
 use sqlxmq::JobRegistry;
-use tiberius_core::app::DBPool;
-use tiberius_core::config::Configuration;
-use tiberius_core::error::TiberiusResult;
-use tiberius_core::state::TiberiusState;
+use tiberius_core::{
+    app::DBPool, config::Configuration, error::TiberiusResult, state::TiberiusState,
+};
 use tiberius_models::Client;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{error, info};
@@ -48,6 +48,7 @@ pub fn registry() -> TiberiusResult<JobRegistry> {
         reindex_tags::run_job,
         #[cfg(feature = "job_process_image")]
         process_image::run_job,
+        refresh_cachelines::run_job,
     ]))
 }
 

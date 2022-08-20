@@ -1,27 +1,39 @@
-use std::collections::BTreeMap;
-use std::marker::PhantomData;
-use std::ops::{Deref, DerefMut};
-use std::sync::Arc;
+use std::{
+    collections::BTreeMap,
+    marker::PhantomData,
+    ops::{Deref, DerefMut},
+    sync::Arc,
+};
 
 use async_std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
+use async_trait::async_trait;
+use axum::headers::{self, Header};
 use chrono::{Duration, NaiveDateTime, Utc};
-use rocket::http::Status;
-use rocket::response::Redirect;
-use rocket::{
-    fairing::{Fairing, Info, Kind},
-    http::Cookie,
-    request::{FromRequest, Outcome},
-    Build, Request, Response, Rocket, State,
-};
 use sqlx::{pool::PoolConnection, PgPool, Postgres};
+use tiberius_dependencies::{
+    async_once_cell::OnceCell,
+    axum,
+    axum::{
+        extract::{FromRequest, RequestParts},
+        headers::{
+            authorization::{Basic, Bearer},
+            Authorization, HeaderMapExt,
+        },
+        http::StatusCode,
+        middleware::Next,
+    },
+    axum_database_sessions::{AxumDatabasePool, AxumPgPool, AxumSession},
+    axum_extra::extract::{cookie::Cookie, CookieJar},
+    http::Request,
+};
 use tiberius_models::{Client, User};
 use tracing::{info, trace, warn};
 use uuid::Uuid;
 
-use crate::state::TiberiusState;
 use crate::{
     app::DBPool,
     error::{TiberiusError, TiberiusResult},
+    state::TiberiusState,
 };
 
 use crate::session::philomena_plug::handover_session;
@@ -35,7 +47,7 @@ pub struct PostgresSessionStore {
     cookie_name: String,
 }
 
-pub trait SessionMode: Copy + Clone + Eq + PartialEq + std::fmt::Debug {}
+pub trait SessionMode: Copy + Clone + Eq + PartialEq + std::fmt::Debug + Send {}
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct Authenticated {}
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
@@ -67,6 +79,27 @@ pub struct Session<MODE: SessionMode> {
     #[serde(skip)]
     ephemeral: bool,
     waiting_on_totp: bool,
+
+    #[serde(skip, default = "OnceCell::new")]
+    cache_user: OnceCell<Option<User>>,
+}
+
+impl<T: SessionMode> Clone for Session<T> {
+    fn clone(&self) -> Self {
+        Self {
+            _type: self._type.clone(),
+            id: self.id.clone(),
+            created: self.created.clone(),
+            expires: self.expires.clone(),
+            csrf_token: self.csrf_token.clone(),
+            user_id: self.user_id.clone(),
+            data: self.data.clone(),
+            dirty: self.dirty.clone(),
+            ephemeral: self.ephemeral.clone(),
+            waiting_on_totp: self.waiting_on_totp.clone(),
+            cache_user: OnceCell::new_with(self.cache_user.get().map(|x| x.clone())),
+        }
+    }
 }
 
 impl Into<Session<Unauthenticated>> for Session<Authenticated> {
@@ -82,6 +115,8 @@ impl Into<Session<Unauthenticated>> for Session<Authenticated> {
             dirty: self.dirty,
             ephemeral: self.ephemeral,
             waiting_on_totp: false,
+
+            cache_user: OnceCell::new(),
         }
     }
 }
@@ -106,11 +141,6 @@ impl<T: SessionMode> Session<T> {
     pub fn csrf_token(&self) -> String {
         self.csrf_token.clone()
     }
-    pub async fn save(&self, state: &TiberiusState) {
-        let pss = state.get_db_pool();
-        let pss = PostgresSessionStore::from_client(pss);
-        pss.store_session(self).await.unwrap();
-    }
     pub fn get_data(&self, key: &str) -> TiberiusResult<Option<String>> {
         Ok(self
             .data
@@ -131,10 +161,7 @@ impl<T: SessionMode> Session<T> {
     ) -> Option<serde_json::Value> {
         self.data.insert(key, value)
     }
-    pub fn get_json_data(
-        &self,
-        key: String,
-    ) -> Option<&serde_json::Value> {
+    pub fn get_json_data(&self, key: String) -> Option<&serde_json::Value> {
         self.data.get(&key)
     }
     /// Returns true if the session is not persisted into cookies or the database backend
@@ -156,6 +183,10 @@ impl<T: SessionMode> Session<T> {
     pub async fn get_user(&self, client: &mut Client) -> TiberiusResult<Option<User>> {
         match self.user_id {
             None => Ok(None),
+            /*Some(user_id) => Ok(self
+            .cache_user
+            .get_or_try_init(User::get_id(client, user_id))
+            .await?.clone()),*/
             Some(user_id) => Ok(User::get_id(client, user_id).await?),
         }
     }
@@ -177,6 +208,10 @@ impl<T: SessionMode> Session<T> {
         match r {
             AuthMethod::TOTP => self.waiting_on_totp = true,
         }
+    }
+
+    pub fn raw_user(&self) -> Option<i64> {
+        self.user_id
     }
 }
 
@@ -200,6 +235,24 @@ impl Session<Authenticated> {
             dirty: false,
             ephemeral,
             waiting_on_totp: false,
+
+            cache_user: OnceCell::new(),
+        }
+    }
+    pub fn into_unauthenticated(self) -> Session<Unauthenticated> {
+        Session::<Unauthenticated> {
+            _type: PhantomData::<Unauthenticated>,
+            id: self.id,
+            created: self.created,
+            expires: self.expires,
+            csrf_token: self.csrf_token,
+            user_id: self.user_id,
+            data: self.data,
+            dirty: self.dirty,
+            ephemeral: self.ephemeral,
+            waiting_on_totp: false,
+
+            cache_user: OnceCell::new(),
         }
     }
 }
@@ -224,6 +277,8 @@ impl Session<Unauthenticated> {
             dirty: false,
             ephemeral,
             waiting_on_totp: false,
+
+            cache_user: OnceCell::new(),
         }
     }
     pub fn into_authenticated(self, user_id: i64) -> Session<Authenticated> {
@@ -238,111 +293,9 @@ impl Session<Unauthenticated> {
             dirty: self.dirty,
             ephemeral: self.ephemeral,
             waiting_on_totp: false,
+
+            cache_user: OnceCell::new(),
         }
-    }
-}
-
-impl PostgresSessionStore {
-    pub fn from_client(client: PgPool) -> Self {
-        Self {
-            client,
-            table_name: "user_sessions".into(),
-            cookie_name: "_tiberius_session".into(),
-        }
-    }
-    async fn connection(&self) -> sqlx::Result<PoolConnection<Postgres>> {
-        self.client.acquire().await
-    }
-    pub async fn cleanup(&self) -> sqlx::Result<()> {
-        let mut conn = self.connection().await?;
-        sqlx::query(&format!(
-            "DELETE FROM {} WHERE expires < $1",
-            self.table_name
-        ))
-        .bind(Utc::now())
-        .execute(&mut conn)
-        .await?;
-
-        Ok(())
-    }
-    pub async fn count(&self) -> sqlx::Result<i64> {
-        let (count,) = sqlx::query_as(&format!("SELECT COUNT(*) FROM {}", self.table_name))
-            .fetch_one(&mut self.connection().await?)
-            .await?;
-        Ok(count)
-    }
-
-    #[instrument(level = "trace", skip(self, cookie_value))]
-    async fn load_session<T: SessionMode>(
-        &self,
-        cookie_value: String,
-    ) -> TiberiusResult<Option<Session<T>>> {
-        if cookie_value == "" {
-            return Ok(None);
-        }
-        let id: Uuid = cookie_value.parse()?;
-        let mut conn = self.connection().await?;
-        let result: Option<(String,)> = sqlx::query_as(&format!(
-            "SELECT session FROM {} WHERE id = $1 AND (expires IS NOT NULL OR expires > $2)",
-            self.table_name
-        ))
-        .bind(&id)
-        .bind(Utc::now())
-        .fetch_optional(&mut conn)
-        .await?;
-        let result = result
-            .map(|(session,)| serde_json::from_str(&session))
-            .transpose()?;
-        trace!("Session: {:?}", result);
-        Ok(result)
-    }
-
-    async fn store_session<T: SessionMode>(
-        &self,
-        session: &Session<T>,
-    ) -> TiberiusResult<()> {
-        if session.ephemeral() {
-            return Ok(());
-        }
-        let id = session.id();
-        let string = serde_json::to_string(&session)?;
-        let mut conn = self.connection().await?;
-
-        sqlx::query(&format!(
-            r#"INSERT INTO {}
-            (id, session, expires) SELECT $1, $2, $3
-            ON CONFLICT(id) DO UPDATE SET
-                expires = EXCLUDED.expires,
-                session = EXCLUDED.session"#,
-            self.table_name
-        ))
-        .bind(&id)
-        .bind(&string)
-        .bind(&session.expires)
-        .execute(&mut conn)
-        .await?;
-        Ok(())
-    }
-
-    async fn destroy_session<T: SessionMode>(
-        &self,
-        session: &Session<T>,
-    ) -> TiberiusResult<()> {
-        let id = session.id();
-        let mut conn = self.connection().await?;
-        sqlx::query(&format!("DELETE FROM {} WHERE id = $1", self.table_name))
-            .bind(&id)
-            .execute(&mut conn)
-            .await?;
-        Ok(())
-    }
-
-    async fn clear_store(&self) -> TiberiusResult<()> {
-        let mut conn = self.connection().await?;
-        sqlx::query(&format!("TRUNCATE {}", self.table_name))
-            .execute(&mut conn)
-            .await?;
-        Ok(())
     }
 }
 
@@ -362,216 +315,43 @@ impl SessionID {
     }
 }
 
-#[rocket::async_trait]
-impl Fairing for PostgresSessionStore {
-    fn info(&self) -> Info {
-        Info {
-            name: "Session Middleware",
-            kind: Kind::Request | Kind::Response,
-        }
-    }
-
-    async fn on_ignite(&self, rocket: Rocket<Build>) -> rocket::fairing::Result {
-        Ok(rocket.manage(self.clone()))
-    }
-
-    async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut Response<'r>) {
-        if req.uri().path().starts_with("/static/") || req.uri().path().starts_with("/favicon") {
-            trace!("Skipping Session Handler on Static Asset");
-            return;
-        }
-        trace!("Post Request Session Handler on {}", req.uri().path());
-        let session: Option<SessionPtr<Unauthenticated>> =
-            req.guard().await.succeeded();
-        // todo: handle auth'd sessions
-
-        if let Some(session) = session {
-            let session = session.read().await;
-            let session_id = session.id().to_string();
-            if session.dirty() {
-                trace!("Storing session {}, dirty={}", session_id, session.dirty());
-                // active sessions are manually saved on change
-                match self.store_session(&session).await {
-                    Ok(_) => (),
-                    Err(e) => warn!("Error in session store (cur) : {}", e),
-                };
-            }
-            res.adjoin_header(
-                Cookie::build(self.cookie_name.clone(), session_id)
-                    .path("/")
-                    .finish(),
-            )
-        } else {
-            trace!("No session in request, making a session");
-            let session = if let Some(authorization) = authorization(req) {
-                let mut new_session = Session::<Unauthenticated>::new(true);
-                match session_from_api_key(&mut new_session, &authorization, req) {
-                    Ok(_) => new_session,
-                    Err(e) => {
-                        warn!("error on ephemeral session: {}", e);
-                        Session::<Unauthenticated>::new(false)
-                    }
-                }
-            } else {
-                Session::<Unauthenticated>::new(false)
-            };
-            let session_id = session.id().to_string();
-            trace!("New session {}", session_id);
-            match self.store_session(&session).await.map_err(|x| {
-                warn!("Could not store session: {}", x);
-            }) {
-                Ok(_) => (),
-                Err(e) => warn!("Error in session store (new) : {:?}", e),
-            };
-            if !session.ephemeral() {
-                res.adjoin_header(
-                    Cookie::build(self.cookie_name.clone(), session_id)
-                        .path("/")
-                        .finish(),
-                )
-            }
-        }
-    }
-}
-
-type SessionPtrInt<T> = Arc<RwLock<Session<T>>>;
-
-#[derive(Clone)]
-pub struct SessionPtr<T: SessionMode>(SessionPtrInt<T>);
-
-impl<T: SessionMode> SessionPtr<T> {
-    pub async fn read<'a>(&'a self) -> RwLockReadGuard<'a, Session<T>> {
-        self.0.read().await
-    }
-    pub async fn write<'a>(&'a self) -> RwLockWriteGuard<'a, Session<T>> {
-        let mut session = self.0.write().await;
-        trace!(
-            "Session {} marked dirty due to possible write",
-            session.id()
-        );
-        session.mark_dirty();
-        session
-    }
-}
-
 // Returns authorization from HTTP Header
-fn authorization<'r>(req: &'r Request<'_>) -> Option<String> {
+fn authorization<B: Send>(req: &RequestParts<B>) -> Option<String> {
     static HEADER: &str = "Authorization";
     let headers = req.headers();
-    if headers.contains(HEADER) {
-        let auth_headers: Vec<&str> = headers.get(HEADER).collect();
-        if auth_headers.len() == 1 {
-            Some(auth_headers[0].to_string())
-        } else {
-            None
-        }
+    if headers.get(Authorization::<Bearer>::name()).is_some() {
+        let auth_headers: Option<Authorization<Bearer>> =
+            headers.typed_get::<headers::Authorization<Bearer>>();
+        let auth_headers: Option<Bearer> = auth_headers.map(|x| x.0);
+        auth_headers.map(|bearer: Bearer| bearer.token().to_string())
     } else {
         None
     }
 }
 
 // Turns an unauthorized session into an authorized session
-fn session_from_api_key(
+fn session_from_api_key<B: Send>(
     session: &mut Session<Unauthenticated>,
     key: &str,
-    req: &Request<'_>,
+    req: &RequestParts<B>,
 ) -> TiberiusResult<Session<Authenticated>> {
     todo!()
 }
 
-#[rocket::async_trait]
-impl<'r> FromRequest<'r> for SessionPtr<Unauthenticated> {
-    type Error = TiberiusError;
-
-    #[instrument(level = "trace", skip(request))]
-    async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        let new_session = |req: &Request<'_>| {
-            trace!("Couldn't find or load session, generating new session");
-            let mut new_session = if let Some(authorization) = authorization(req) {
-                let mut new_session = Session::<Unauthenticated>::new(true);
-                match session_from_api_key(&mut new_session, &authorization, req) {
-                    Ok(_) => new_session,
-                    Err(e) => {
-                        warn!("error on ephemeral session: {}", e);
-                        Session::<Unauthenticated>::new(false)
-                    }
-                }
-            } else {
-                Session::<Unauthenticated>::new(false)
-            };
-            new_session.mark_dirty();
-            trace!("New session id: {}", new_session.id());
-            SessionPtr(Arc::new(RwLock::new(new_session)))
-        };
-        match get_session_ptr(request).await {
-            None => Outcome::Success(new_session(request)),
-            Some(v) => Outcome::Success(v),
-        }
-    }
+#[async_trait]
+pub trait DbSessionExt {
+    async fn get_session<T: SessionMode>(&self) -> Option<Session<T>>;
+    async fn set_session<T: SessionMode>(&self, session: Session<T>);
 }
 
-/// Makes a SessionPtr if there is a session in the request
-async fn get_session_ptr<'r, T: SessionMode>(request: &'r Request<'_>) -> Option<SessionPtr<T>> {
-    let session_store: &State<PostgresSessionStore> =
-        request.guard().await.expect("no session store");
-    let session_id = request.cookies().get(&session_store.cookie_name);
-    if let Some(session_id) = session_id {
-        let session_data = session_store
-            .load_session(session_id.value().to_string())
-            .await;
-        match session_data {
-            Ok(Some(session_data)) => {
-                if session_data.more_auth() {
-                    return None;
-                }
-                let session = SessionPtr(Arc::new(RwLock::new(session_data)));
-                if let Some(cookie) = request.cookies().get("_philomena_key") {
-                    trace!("Philomena session, trying takeover");
-                    let state: &State<TiberiusState> = request.guard().await.expect("no tiberius state");
-                    let mut client = match state.get_db_client().await {
-                        Ok(v) => v,
-                        Err(e) => panic!("error in database connection"),
-                    };
-                    let config = state.config();
-                    match handover_session(&mut client, config, cookie.value(), session.clone()).await {
-                        Ok(v) => (),
-                        Err(e) => {
-                            warn!("error: could not handover session: {}", e);
-                        }
-                    }
-                } else {
-                    trace!("No philomena session");
-                }
-                Some(session)
-            },
-            Ok(None) => {
-                info!("Got an empty session");
-                return None;
-            }
-            Err(e) => {
-                warn!("error trying to get session: {}", e);
-                return None;
-            }
-        }
-    } else {
-        return None;
+const SESSION_KEY: &str = "tiberius_session";
+
+#[async_trait]
+impl DbSessionExt for AxumSession<AxumPgPool> {
+    async fn get_session<T: SessionMode>(&self) -> Option<Session<T>> {
+        self.get(SESSION_KEY).await
     }
-}
-
-#[rocket::async_trait]
-impl<'r> FromRequest<'r> for SessionPtr<Authenticated> {
-    type Error = TiberiusError;
-
-    #[instrument(level = "trace", skip(request))]
-    async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        trace!("Getting SessionPtr<Auth> from request");
-        let session = match get_session_ptr(request).await {
-            None => {
-                trace!("No session in request, skipping handover");
-                return Outcome::Forward(())
-            },
-            Some(v) => v,
-        };
-        Outcome::Success(session)
+    async fn set_session<T: SessionMode>(&self, session: Session<T>) {
+        self.set(SESSION_KEY, session).await
     }
 }

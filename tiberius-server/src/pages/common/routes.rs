@@ -1,15 +1,17 @@
 use std::{path::PathBuf, str::FromStr};
 
+use axum::headers::{HeaderMapExt, Host};
 use either::Either;
-use rocket::{Request, State};
-use tiberius_core::error::TiberiusResult;
-use tiberius_core::session::SessionMode;
-use tiberius_core::state::{TiberiusRequestState, TiberiusState};
+use tiberius_core::{
+    error::TiberiusResult,
+    session::SessionMode,
+    state::{TiberiusRequestState, TiberiusState},
+};
 use tiberius_models::{Channel, Client, Forum, Image, ImageThumbType, ImageThumbUrl, Tag, User};
 
 pub async fn stylesheet_path<T: SessionMode>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, T>,
+    rstate: &TiberiusRequestState<T>,
 ) -> TiberiusResult<String> {
     let user = rstate.user(state).await?;
     Ok(if let Some(user) = user {
@@ -34,13 +36,14 @@ pub async fn stylesheet_path<T: SessionMode>(
 }
 
 pub fn dark_stylesheet_path<T: SessionMode>(
-    rstate: &TiberiusRequestState<'_, T>,
+    rstate: &TiberiusRequestState<T>,
 ) -> TiberiusResult<String> {
     Ok(static_path(PathBuf::from_str("css/dark.css")?)
         .to_string_lossy()
         .to_string())
 }
 
+#[instrument(skip(path))]
 pub fn static_path<S: Into<PathBuf>>(path: S) -> PathBuf {
     // Statics are hosted on root, but on a different hash name, where to get?
     let path: PathBuf = path.into();
@@ -50,13 +53,15 @@ pub fn static_path<S: Into<PathBuf>>(path: S) -> PathBuf {
         path
     );
     let prefix: PathBuf = PathBuf::from_str("/static").unwrap();
-    let path = prefix.join(path);
+    let prefix = prefix.join(path.clone());
+    let path = PathBuf::from_str(&format!("/{}", path.display())).unwrap();
     assert!(
         tiberius_core::assets::Assets::iter().any(|x| x == path.to_string_lossy()),
-        "asset must exist in repository: {:?}",
-        path
+        "asset must exist in repository: {:?} ({:?})",
+        path,
+        prefix
     );
-    path
+    prefix
 }
 
 pub struct ShowHidden(pub bool);
@@ -87,14 +92,14 @@ pub fn thumb_format<S: Into<String>, R: Into<String>>(
 
 pub async fn cdn_host<T: SessionMode>(
     state: &TiberiusState,
-    rstate: &TiberiusRequestState<'_, T>,
+    rstate: &TiberiusRequestState<T>,
 ) -> String {
     let cdn_host = state.config.cdn_host.clone();
     cdn_host.unwrap_or(
         rstate
             .headers
-            .get_one("Host")
-            .unwrap_or("this site's domain")
-            .to_string(),
+            .typed_get::<Host>()
+            .map(|x| x.to_string())
+            .unwrap_or("invalid or missing host header".to_string()),
     )
 }

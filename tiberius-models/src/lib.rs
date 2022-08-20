@@ -12,11 +12,12 @@ mod models;
 #[macro_use]
 mod macros;
 pub mod pluggables;
-use std::sync::Arc;
 use std::{
     collections::BTreeMap,
     ops::{Deref, DerefMut},
+    sync::Arc,
 };
+pub mod slug;
 
 //#[cfg(test)]
 //mod secret_tests;
@@ -26,12 +27,16 @@ pub use models::*;
 
 use chrono::NaiveDateTime;
 pub use tantivy::TantivyError;
-pub use tiberius_search::QueryError;
-pub use tiberius_search::Queryable;
+use tiberius_dependencies::{
+    moka::future::Cache,
+    totp_rs::{self, TotpUrlError},
+};
+pub use tiberius_search::{QueryError, Queryable};
 
 use async_trait::async_trait;
 use sqlx::{pool::PoolConnection, PgPool, Postgres};
 use tantivy::{IndexReader, IndexWriter};
+use tracing::Level;
 
 pub type Tx<'a> = &'a mut TxOwned<'a>;
 pub type TxOwned<'a> = sqlx::Transaction<'a, sqlx::Postgres>;
@@ -76,11 +81,26 @@ pub enum PhilomenaModelError {
     Bcrypt(#[from] bcrypt::BcryptError),
     #[error("{:?}", .0)]
     Context(#[from] anyhow::Error),
+    #[error("TOTP Error: {:?}", .0)]
+    TotpUrlError(totp_rs::TotpUrlError),
+}
+
+impl From<Arc<sqlx::Error>> for PhilomenaModelError {
+    fn from(v: Arc<sqlx::Error>) -> Self {
+        // TODO: fix the arc deref here
+        Self::Other(v.to_string())
+    }
 }
 
 impl From<ring::error::Unspecified> for PhilomenaModelError {
     fn from(_: ring::error::Unspecified) -> Self {
         Self::RingUnspec
+    }
+}
+
+impl From<TotpUrlError> for PhilomenaModelError {
+    fn from(v: TotpUrlError) -> Self {
+        Self::TotpUrlError(v)
     }
 }
 
@@ -90,6 +110,8 @@ pub struct Client {
     search_dir: Option<std::path::PathBuf>,
     indices: Arc<RwLock<BTreeMap<String, tantivy::Index>>>,
     writers: Arc<RwLock<BTreeMap<String, Arc<RwLock<tantivy::IndexWriter>>>>>,
+    cache_users: Cache<i64, Option<User>>,
+    cache_tag_assoc: Cache<ImageID, Vec<Tag>>,
 }
 
 impl Client {
@@ -105,12 +127,20 @@ impl Client {
             search_dir: search_dir.cloned(),
             indices: Arc::new(RwLock::new(BTreeMap::new())),
             writers: Arc::new(RwLock::new(BTreeMap::new())),
+            cache_users: Cache::new(1000),
+            cache_tag_assoc: Cache::new(1000),
         }
     }
     #[deprecated(note = "Use Client directly since it implements the necessary interface")]
     pub(crate) async fn db(&self) -> Result<PoolConnection<Postgres>, PhilomenaModelError> {
         Ok(self.db.acquire().await?)
     }
+
+    /// Returns an instance of the recommendation engine used to show users images they might like
+    pub fn recommendation_engine(&self) -> Result<(), ()> {
+        todo!()
+    }
+
     pub async fn index_writer<T: Queryable>(
         &mut self,
     ) -> Result<Arc<RwLock<IndexWriter>>, PhilomenaModelError> {
@@ -185,6 +215,8 @@ impl Client {
             search_dir: self.search_dir.clone(),
             indices: self.indices.clone(),
             writers: self.writers.clone(),
+            cache_users: Cache::new(1000),
+            cache_tag_assoc: Cache::new(1000),
         })
     }
 }
@@ -198,9 +230,28 @@ impl std::fmt::Debug for Client {
     }
 }
 
+impl From<PgPool> for Client {
+    fn from(p: PgPool) -> Self {
+        Client::new(p, None)
+    }
+}
+
+impl From<&PgPool> for Client {
+    fn from(p: &PgPool) -> Self {
+        Client::new(p.clone(), None)
+    }
+}
+
+impl From<&mut PgPool> for Client {
+    fn from(p: &mut PgPool) -> Self {
+        Client::new(p.clone(), None)
+    }
+}
+
 impl<'c> sqlx::Executor<'c> for &mut Client {
     type Database = sqlx::Postgres;
 
+    #[instrument(skip(query), fields(query = query.sql()))]
     fn fetch_many<'e, 'q: 'e, E: 'q>(
         self,
         query: E,
@@ -221,6 +272,7 @@ impl<'c> sqlx::Executor<'c> for &mut Client {
         self.db.fetch_many(query)
     }
 
+    #[instrument(skip(query), fields(query = query.sql()))]
     fn fetch_optional<'e, 'q: 'e, E: 'q>(
         self,
         query: E,
@@ -235,6 +287,7 @@ impl<'c> sqlx::Executor<'c> for &mut Client {
         self.db.fetch_optional(query)
     }
 
+    #[instrument(skip(parameters))]
     fn prepare_with<'e, 'q: 'e>(
         self,
         sql: &'q str,
@@ -249,6 +302,7 @@ impl<'c> sqlx::Executor<'c> for &mut Client {
         self.db.prepare_with(sql, parameters)
     }
 
+    #[instrument]
     fn describe<'e, 'q: 'e>(
         self,
         sql: &'q str,
@@ -258,15 +312,6 @@ impl<'c> sqlx::Executor<'c> for &mut Client {
     {
         self.db.describe(sql)
     }
-}
-
-/// Tables that implement this trait can be verified.
-/// Verifying means all table entries are loaded, scanned and it's foreign keys loaded.
-/// If any foreign keys are missing, it is noted in the log output.
-#[cfg(feature = "verify-db")]
-#[async_trait]
-pub trait VerifiableTable {
-    async fn verify(&mut self) -> Result<(), PhilomenaModelError>;
 }
 
 #[derive(sqlx::FromRow, Debug, Clone)]
@@ -308,3 +353,23 @@ pub trait SafeSerialize {
 }
 
 pub trait DirectSafeSerialize: serde::Serialize {}
+
+pub trait Identifiable {
+    fn id(&self) -> i64;
+}
+
+#[async_trait]
+pub trait IdentifiesUser {
+    async fn best_user_identifier(
+        &self,
+        client: &mut Client,
+    ) -> Result<String, PhilomenaModelError>;
+    fn user_id(&self) -> Option<i64>;
+    fn is_anonymous(&self) -> bool;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SortDirection {
+    Ascending,
+    Descending,
+}

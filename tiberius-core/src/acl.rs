@@ -1,27 +1,64 @@
-use casbin::CoreApi;
-use rocket::State;
-use tiberius_core::error::TiberiusResult;
-use tiberius_core::session::{Authenticated, Unauthenticated, SessionMode};
-use tiberius_core::state::{TiberiusState, TiberiusRequestState};
+use std::marker::PhantomData;
 
+use axum::extract::{FromRequest, RequestParts};
+use reqwest::StatusCode;
+use tiberius_dependencies::{casbin, casbin::prelude::*};
+
+use crate::{
+    error::TiberiusResult,
+    session::{Authenticated, SessionMode, Unauthenticated},
+    state::{TiberiusRequestState, TiberiusState},
+};
+
+pub struct ACLEntity<A, B, C>(A, B, C)
+where
+    A: ACLSubjectTrait,
+    B: ACLObjectTrait,
+    C: ACLActionTrait;
+
+impl<A: ACLSubjectTrait, B: ACLObjectTrait, C: ACLActionTrait> From<(A, B, C)>
+    for ACLEntity<A, B, C>
+{
+    fn from((a, b, c): (A, B, C)) -> Self {
+        ACLEntity(a, b, c)
+    }
+}
 
 #[derive(Clone, PartialEq)]
 pub enum ACLSubject {
+    /// No user given
     None,
+    /// An anonymous User (the permission is only given based on login, not on the actual user)
+    Anonymous,
+    /// A logged in and active user
     User(tiberius_models::User),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ACLObject {
+    /// Global Permissions
+    Site,
+    /// An image that has been uploaded or is processing
     Image,
+    /// A permanent sessionkey
     APIKey,
+    /// Staff Category for the Staff Page
     StaffCategory,
+    /// Staff Entry into the Staff Page
     StaffUserEntry,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ACLActionSite {
+    /// Allow to view the site, if not given require login
+    Use,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ACLActionImage {
     ChangeUploader,
+    MergeDuplicate,
+    IncrementView,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -59,11 +96,13 @@ pub trait ACLActionTrait: std::fmt::Debug {
 impl ACLObjectTrait for ACLObject {
     fn object(&self) -> String {
         match self {
+            ACLObject::Site => "site",
             ACLObject::Image => "image",
             ACLObject::APIKey => "api_key",
             ACLObject::StaffCategory => "staff_category",
             ACLObject::StaffUserEntry => "staff_user_entry",
-        }.to_string()
+        }
+        .to_string()
     }
     fn inner(&self) -> &ACLObject {
         self
@@ -76,8 +115,21 @@ impl ACLSubjectTrait for ACLSubject {
             ACLSubject::User(v) => {
                 format!("user::{}", v.email)
             }
+            ACLSubject::Anonymous => "any::user".to_string(),
             ACLSubject::None => "anonymous::anonymous".to_string(),
         }
+    }
+}
+
+impl ACLActionTrait for ACLActionSite {
+    fn action(&self) -> String {
+        match self {
+            ACLActionSite::Use => "use".to_string(),
+        }
+    }
+
+    fn action_of(&self, a: &ACLObject) -> bool {
+        *a == ACLObject::Site
     }
 }
 
@@ -85,6 +137,8 @@ impl ACLActionTrait for ACLActionImage {
     fn action(&self) -> String {
         match self {
             ACLActionImage::ChangeUploader => "change_uploader".to_string(),
+            ACLActionImage::MergeDuplicate => "merge_duplicate".to_string(),
+            ACLActionImage::IncrementView => "increment_view".to_string(),
         }
     }
     fn action_of(&self, a: &ACLObject) -> bool {
@@ -108,8 +162,9 @@ impl ACLActionTrait for ACLActionAPIKey {
 impl ACLActionTrait for ACLActionStaffCategory {
     fn action(&self) -> String {
         match self {
-            ACLActionStaffCategory::Manage => "manage"
-        }.to_string()
+            ACLActionStaffCategory::Manage => "manage",
+        }
+        .to_string()
     }
     fn action_of(&self, a: &ACLObject) -> bool {
         *a == ACLObject::StaffCategory
@@ -121,29 +176,36 @@ impl ACLActionTrait for ACLActionStaffUserEntry {
         match self {
             ACLActionStaffUserEntry::Admin => "admin",
             ACLActionStaffUserEntry::EditSelf => "edit_self",
-        }.to_string()
+        }
+        .to_string()
     }
     fn action_of(&self, a: &ACLObject) -> bool {
         *a == ACLObject::StaffUserEntry
     }
 }
 
+#[instrument(skip(state, rstate), fields(user = rstate.session().raw_user()))]
 pub async fn verify_acl<T: SessionMode>(
-    state: &State<TiberiusState>,
-    rstate: &TiberiusRequestState<'_, T>,
+    state: &TiberiusState,
+    rstate: &TiberiusRequestState<T>,
     object: impl ACLObjectTrait,
     action: impl ACLActionTrait,
 ) -> TiberiusResult<bool> {
-    assert!(action.action_of(object.inner()), "ACL Action {:?} was not member of ACL Object {:?}", object, action);
-    let casbin = state.get_casbin();
+    assert!(
+        action.action_of(object.inner()),
+        "ACL Action {:?} was not member of ACL Object {:?}",
+        object,
+        action
+    );
     let subject = rstate.user(state).await?;
     let subject = match subject {
         None => ACLSubject::None,
-        Some(v) => ACLSubject::User(v),
+        Some(v) => ACLSubject::User(v.clone()),
     };
     let v = (subject.subject(), object.object(), action.action());
     debug!("Checking if {:?} is OK in RBAC", v);
-    let enforce_result = casbin.read().await.enforce(v.clone())?;
-    debug!("Result of {:?} = {:?}", v, enforce_result);
+    let casbin: casbin::Enforcer = state.get_acl_enforcer().await?;
+    let enforce_result = casbin.enforce(v.clone())?;
+    info!("Result of {:?} = {:?}", v, enforce_result);
     Ok(enforce_result)
 }

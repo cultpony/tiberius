@@ -8,16 +8,28 @@
 #[macro_use]
 extern crate tracing;
 
-#[macro_use]
-extern crate rocket;
-
-use reqwest::header::HeaderMap;
-use reqwest::Proxy;
+use async_trait::async_trait;
+use axum::http::Uri;
+use axum_extra::routing::TypedPath;
+use reqwest::{header::HeaderMap, Proxy};
+use tiberius_dependencies::{
+    axum::{
+        self,
+        extract::FromRequest,
+        headers::{HeaderMapExt, UserAgent},
+        http::{HeaderValue, Request},
+        middleware::{self, Next},
+        response::Response,
+        Extension,
+    },
+    serde_qs,
+    tower::{Layer, ServiceBuilder},
+};
 use tracing::trace;
 
-use crate::config::Configuration;
-use crate::error::TiberiusResult;
+use crate::{config::Configuration, error::TiberiusResult};
 
+pub mod acl;
 pub mod app;
 pub mod assets;
 pub mod config;
@@ -26,6 +38,24 @@ pub mod footer;
 pub mod request_helper;
 pub mod session;
 pub mod state;
+
+// How long to hold Subtext in Cache while they're being used
+pub const PAGE_SUBTEXT_CACHE_TTL: Duration = Duration::from_secs(5 * 60);
+// How long to hold Subtext in Cache while they're not being used
+pub const PAGE_SUBTEXT_CACHE_TTI: Duration = Duration::from_secs(60);
+
+pub const PAGE_SUBTEXT_CACHE_SIZE: u64 = 1_000;
+pub const PAGE_SUBTEXT_CACHE_START_SIZE: usize = 100;
+
+pub const CSD_CACHE_TTL: Duration = Duration::from_secs(5 * 60);
+pub const CSD_CACHE_TTI: Duration = Duration::from_secs(60);
+pub const CSD_CACHE_SIZE: u64 = 10_000;
+pub const CSD_CACHE_START_SIZE: usize = 100;
+
+pub const COMMENT_CACHE_TTL: Duration = Duration::from_secs(5 * 60);
+pub const COMMENT_CACHE_TTI: Duration = Duration::from_secs(60);
+pub const COMMENT_CACHE_SIZE: u64 = 100;
+pub const COMMENT_CACHE_START_SIZE: usize = 10;
 
 pub fn http_client(config: &Configuration) -> TiberiusResult<reqwest::Client> {
     let client = reqwest::Client::builder()
@@ -74,76 +104,88 @@ pub const fn package_version() -> &'static str {
     VERSION
 }
 
-pub struct CSPHeader;
+#[derive(Clone)]
+pub struct CSPHeader {
+    pub static_host: Option<String>,
+    pub camo_host: Option<String>,
+}
 
-#[rocket::async_trait]
-impl Fairing for CSPHeader {
-    fn info(&self) -> Info {
-        Info {
-            name: "CSP Header Middleware",
-            kind: Kind::Response,
-        }
+impl CSPHeader {
+    fn header_name(&self) -> &'static str {
+        "Content-Security-Policy"
     }
-
-    async fn on_response<'r>(&self, req: &'r Request<'_>, res: &mut Response<'r>) {
+    fn header_value(&self) -> HeaderValue {
         use csp::*;
-        let state: &State<crate::state::TiberiusState> = req.guard().await.succeeded().unwrap();
-        let rstate: Option<TiberiusRequestState<Unauthenticated>> =
-            req.guard().await.succeeded();
-        let config = state.config();
-        let static_host = config.static_host(rstate.as_ref());
-        let camo_host = config.camo_config().map(|x| x.0);
+        let default_src = match &self.static_host {
+            Some(static_host) => Sources::new_with(Source::Self_).add(Source::Host(&static_host)),
+            None => Sources::new_with(Source::Self_),
+        };
+        let style_src = match &self.static_host {
+            Some(static_host) => Sources::new_with(Source::Self_)
+                .add(Source::UnsafeInline)
+                .add(Source::Host(&static_host)),
+            None => Sources::new_with(Source::Self_).add(Source::UnsafeInline),
+        };
+        let img_src = {
+            let s = Sources::new_with(Source::Self_)
+                .add(Source::Scheme("data"))
+                // Picarto CDN
+                .add(Source::Host("images.picarto.tv"))
+                .add(Source::Host("*.picarto.tv"));
+            let s = match &self.static_host {
+                Some(static_host) => s.add(Source::Host(&static_host)),
+                None => s,
+            };
+            let s = match &self.camo_host {
+                Some(v) => s.add(Source::Host(&v)),
+                None => s,
+            };
+            s
+        };
         let csp = CSP::new()
-            .add(Directive::DefaultSrc(
-                Sources::new_with(Source::Self_).add(Source::Host(&static_host)),
-            ))
+            .add(Directive::DefaultSrc(default_src))
             .add(Directive::ObjectSrc(Sources::new()))
             .add(Directive::FrameAncestors(Sources::new()))
             .add(Directive::FrameSrc(Sources::new()))
             .add(Directive::FormAction(Sources::new_with(Source::Self_)))
             .add(Directive::ManifestSrc(Sources::new_with(Source::Self_)))
-            .add(Directive::StyleSrc(
-                Sources::new_with(Source::Self_)
-                    .add(Source::UnsafeInline)
-                    .add(Source::Host(&static_host)),
-            ))
-            .add(Directive::ImgSrc({
-                let s = Sources::new_with(Source::Self_)
-                    .add(Source::Scheme("data"))
-                    .add(Source::Host(&static_host))
-                    // Picarto CDN
-                    .add(Source::Host("images.picarto.tv"))
-                    .add(Source::Host("*.picarto.tv"));
-                let s = match camo_host {
-                    Some(v) => s.add(Source::Host(v)),
-                    None => s,
-                };
-                s
-            }))
+            .add(Directive::StyleSrc(style_src))
+            .add(Directive::ImgSrc(img_src))
             .add(Directive::BlockAllMixedContent);
-        let h = Header::new("Content-Security-Policy".to_string(), csp.to_string());
-        res.set_header(h);
+        HeaderValue::from_str(&csp.to_string()).unwrap()
     }
 }
 
-pub fn get_user_agent<T: SessionMode>(
-    rstate: &TiberiusRequestState<'_, T>,
-) -> TiberiusResult<Option<String>> {
-    Ok(rstate
-        .headers
-        .get_one(rocket::http::hyper::header::USER_AGENT.as_str())
-        .map(|x| x.to_string()))
+async fn csp_header<B>(req: Request<B>, next: Next<B>) -> Response {
+    let csp_header: CSPHeader = req.extensions().get::<CSPHeader>().unwrap().clone();
+    let mut resp = next.run(req).await;
+    resp.headers_mut()
+        .insert(csp_header.header_name(), csp_header.header_value());
+    resp
 }
 
-use crate::session::{SessionMode, Unauthenticated};
-use crate::{error::TiberiusError, state::TiberiusRequestState};
-use either::Either;
-use rocket::{
-    fairing::{Fairing, Info, Kind},
-    http::Header,
-    Request, Response, State,
+pub fn sb_add_csp<B>(config: &Configuration) -> impl Layer<B> {
+    ServiceBuilder::new()
+        .layer(Extension(CSPHeader {
+            static_host: config.static_host.clone(),
+            camo_host: config.camo_host.clone(),
+        }))
+        .layer(middleware::from_fn(csp_header::<B>))
+}
+
+pub fn get_user_agent<T: SessionMode>(
+    rstate: TiberiusRequestState<T>,
+) -> TiberiusResult<Option<UserAgent>> {
+    Ok(rstate.headers.typed_get::<UserAgent>())
+}
+
+use crate::{
+    error::TiberiusError,
+    session::{SessionMode, Unauthenticated},
+    state::TiberiusRequestState,
 };
-use std::str::FromStr;
+use either::Either;
+use std::{str::FromStr, time::Duration};
 
 pub struct Query {
     query: Option<Either<String, QueryData>>,
@@ -179,6 +221,7 @@ impl std::str::FromStr for Query {
 
 #[derive(Debug, Clone)]
 pub enum LayoutClass {
+    Wide,
     Narrow,
     Other(String),
 }
@@ -186,8 +229,42 @@ pub enum LayoutClass {
 impl ToString for LayoutClass {
     fn to_string(&self) -> String {
         match self {
+            Self::Wide => "layout--wide".to_string(),
             Self::Narrow => "layout--narrow".to_string(),
             Self::Other(v) => v.clone(),
         }
     }
+}
+
+pub trait PathQuery: serde::Serialize {}
+
+pub fn path_and_query<T: TypedPath, Q: PathQuery>(
+    path: T,
+    query: Option<&Q>,
+) -> TiberiusResult<Uri> {
+    let path = path.to_uri();
+    let query = match query {
+        Some(query) => Some(serde_qs::to_string(query)?),
+        None => None,
+    };
+    let p_and_q = path.path_and_query().map(|x| match query {
+        Some(query) => {
+            if !query.is_empty() {
+                x.to_string() + "?" + query.as_str()
+            } else {
+                x.to_string()
+            }
+        }
+        None => x.to_string(),
+    });
+    let builder = Uri::builder();
+    let builder = match path.authority() {
+        Some(auth) => builder.authority(auth.clone()),
+        None => builder,
+    };
+    let builder = match p_and_q {
+        Some(p_and_q) => builder.path_and_query(p_and_q),
+        None => builder,
+    };
+    Ok(builder.build()?)
 }

@@ -1,14 +1,11 @@
-use std::str::FromStr;
-use std::sync::Arc;
+use std::{str::FromStr, sync::Arc};
 
 pub(crate) mod query;
 pub(crate) mod tokenizer;
 
 use async_std::sync::RwLock;
-pub use query::Match;
-pub use query::Query;
-pub use query::QueryError;
-use tracing::info;
+pub use query::{Match, Query, QueryError};
+use tracing::*;
 
 #[cfg(feature = "search-with-tantivy")]
 pub use tantivy;
@@ -22,11 +19,34 @@ pub fn parse<S: Into<String>>(s: S) -> std::result::Result<Query, (Query, QueryE
     Query::from_str(&s)
 }
 
+pub enum SortFieldType {
+    /// U64 Field
+    Integer,
+    /// I64 Field
+    SignedInteger,
+    /// F32 Field
+    Float,
+    /// String Field
+    String,
+}
+
+pub trait SortIndicator: std::fmt::Debug {
+    /// Indicate that search is to randomize the score
+    fn random(&self) -> bool;
+    fn field(&self) -> &'static str;
+    /// Indicate that search order is reversed, this does not affect anything if random returns true
+    fn invert_sort(&self) -> bool;
+    fn field_type(&self) -> SortFieldType {
+        SortFieldType::Integer
+    }
+}
+
 #[async_trait::async_trait]
 pub trait Queryable {
     type Group: Into<String>;
     type DBClient;
     type IndexError: std::error::Error;
+    type SortIndicator: SortIndicator;
 
     /// Return a unique identifer (UUID as u128 or Integer) for the object
     fn identifier(&self) -> u64;
@@ -46,6 +66,22 @@ pub trait Queryable {
         writer: Arc<RwLock<IndexWriter>>,
         db: &mut Self::DBClient,
     ) -> std::result::Result<(), Self::IndexError>;
+
+    /// This returns the raw document used for indexing
+    /// Returning the document helps identify if an image requires a reindex or not.
+    /// If omit_index_only is set, index only fields must be skipped
+    #[cfg(feature = "search-with-tantivy")]
+    async fn get_doc(
+        &self,
+        db: &mut Self::DBClient,
+        omit_index_only: bool,
+    ) -> std::result::Result<Document, Self::IndexError>;
+
+    #[cfg(feature = "search-with-tantivy")]
+    async fn get_from_index(
+        reader: crate::IndexReader,
+        id: u64,
+    ) -> std::result::Result<Option<Document>, Self::IndexError>;
 
     #[cfg(feature = "search-with-tantivy")]
     async fn delete_from_index(
@@ -69,12 +105,10 @@ pub trait Queryable {
             std::fs::create_dir(path.clone())?;
         }
         let path = directory::MmapDirectory::open(path)?;
-        let path = directory::ManagedDirectory::wrap(path)?;
+        let path = directory::ManagedDirectory::wrap(Box::new(path))?;
         let index = Index::open_or_create(path, Self::schema())?;
         let autocomplete_tokenizer = {
-            use tantivy::tokenizer::LowerCaser;
-            use tantivy::tokenizer::NgramTokenizer;
-            use tantivy::tokenizer::TextAnalyzer;
+            use tantivy::tokenizer::{LowerCaser, NgramTokenizer, TextAnalyzer};
             let tokenizer = NgramTokenizer::new(2, 50, true);
             TextAnalyzer::from(tokenizer).filter(LowerCaser)
         };
@@ -96,6 +130,7 @@ pub trait Queryable {
         anq: Vec<crate::query::Query>,
         limit: usize,
         offset: usize,
+        dir: Self::SortIndicator,
     ) -> std::result::Result<(usize, Vec<(f32, u64)>), QueryError> {
         info!(
             "Converting query: {}, offset: {}, limit: {}",
@@ -133,7 +168,7 @@ pub trait Queryable {
             anq.into_iter().map(|x| (Occur::MustNot, x)).collect();
         aq.extend(anq);
         let q = tantivy::query::BooleanQuery::new(aq);
-        Self::search_tantivy_query(i, q, limit, offset)
+        Self::search_tantivy_query(i, q, limit, offset, dir)
     }
 
     #[cfg(feature = "search-with-tantivy")]
@@ -142,35 +177,66 @@ pub trait Queryable {
         q: T,
         limit: usize,
         offset: usize,
+        dir: Self::SortIndicator,
     ) -> std::result::Result<(usize, Vec<(f32, u64)>), QueryError> {
-        info!(
+        debug!(
             "Beginning query: {:?}, offset: {}, limit: {}",
             q, offset, limit
         );
         let schema = Self::schema();
-        use tantivy::collector::*;
+        use tantivy::{collector::*, fastfield::FastFieldReader};
         let coll = TopDocs::with_limit(limit).and_offset(offset);
+        let coll = {
+            let field = Self::schema().get_field(dir.field()).expect(&format!(
+                "direction indicator faulty, indicated invalid field {dir:?}"
+            ));
+            let field_type = dir.field_type();
+            let dir: f64 = if dir.invert_sort() { -1.0 } else { 1.0 };
+            match field_type {
+                SortFieldType::Integer => {
+                    coll.custom_score(move |segment_reader: &SegmentReader| {
+                        let pop_reader = segment_reader.fast_fields().u64(field).unwrap();
+                        move |doc: DocId| {
+                            let pop = pop_reader.get(doc);
+                            (if dir.is_sign_negative() {
+                                u64::MAX - pop
+                            } else {
+                                pop
+                            }) as f32
+                        }
+                    })
+                }
+                SortFieldType::SignedInteger => todo!(),
+                SortFieldType::Float => todo!(),
+                SortFieldType::String => todo!(),
+            }
+        };
         let searcher = i.searcher();
         let field = schema.get_field("id");
         let field = match field {
             Some(f) => f,
             None => panic!("could not find ID field"),
         };
-        let count = searcher.search(&q, &Count)?;
+        debug!("Counting Documents matching query");
+        //let count = searcher.search(&q, &Count)?;
+        let count = q.count(&searcher)?;
+        debug!("Retrieving page window");
         let res = searcher.search(&q, &coll)?;
 
+        debug!("Producing output vector with data");
         let mut out = Vec::new();
         for (score, addr) in res.iter() {
             let doc = searcher.doc(*addr)?;
+            trace!("Got document: {:?}", doc);
             let value = doc.get_first(field);
-            let value = value.map(|x| x.u64_value()).flatten();
+            let value = value.map(|x| x.as_u64()).flatten();
             match value {
                 Some(v) => out.push((*score, v)),
                 None => continue,
             }
         }
 
-        info!("Completed query, got {} results", count);
+        debug!("Completed query, got {} results", count);
 
         Ok((count, out))
     }
@@ -183,6 +249,7 @@ pub trait Queryable {
         anq: Vec<S2>,
         limit: usize,
         offset: usize,
+        dir: Self::SortIndicator,
     ) -> std::result::Result<(usize, Vec<(f32, u64)>), QueryError> {
         let s: String = s.into();
         let q = crate::query::Query::from_str(&s);
@@ -205,6 +272,6 @@ pub trait Queryable {
             .map(|s| crate::query::Query::from_str(&s.into()))
             .flatten()
             .collect();
-        Self::search_item(i, q, aq, anq, limit, offset)
+        Self::search_item(i, q, aq, anq, limit, offset, dir)
     }
 }

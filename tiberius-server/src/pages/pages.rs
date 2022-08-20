@@ -1,5 +1,22 @@
+use axum::{
+    extract::FromRequest,
+    headers::{ContentType, Cookie, HeaderMapExt},
+    http::{HeaderMap, Request, Response, StatusCode, Uri},
+    middleware::Next,
+    response::{IntoResponse, Redirect},
+};
+use axum_extra::routing::TypedPath;
 use maud::{html, Markup, PreEscaped};
-use tiberius_core::error::{TiberiusError, TiberiusResult};
+use serde::Deserialize;
+use tiberius_core::{
+    acl::{verify_acl, ACLActionSite, ACLObject},
+    error::{TiberiusError, TiberiusResult},
+    session::Unauthenticated,
+    state::{TiberiusRequestState, TiberiusState},
+};
+use tiberius_dependencies::axum_database_sessions::AxumSession;
+
+use crate::pages::session::PathSessionsLogin;
 
 pub mod activity;
 pub mod apikeys;
@@ -9,8 +26,7 @@ pub mod errors;
 pub mod images;
 pub mod session;
 pub mod tags;
-
-use rocket::Request;
+pub mod user;
 
 pub async fn todo_page<S: Into<String>>(name: S) -> TiberiusResult<Markup> {
     let name: String = name.into();
@@ -18,7 +34,7 @@ pub async fn todo_page<S: Into<String>>(name: S) -> TiberiusResult<Markup> {
     err
 }
 
-pub async fn todo_page_fn(req: Request<'_>) -> TiberiusResult<Markup> {
+pub async fn todo_page_fn<B>(req: Request<B>) -> TiberiusResult<Markup> {
     tracing::error!("ROUTE {:?} WAS NOT IMPLEMENTED!", req.uri().path());
     todo_page(req.uri().path().to_string()).await
 }
@@ -46,6 +62,19 @@ pub async fn error_page(err: &TiberiusError) -> Markup {
     }
 }
 
-pub async fn not_found_page(url: &str) -> Markup {
-    error_page(&TiberiusError::PageNotFound(url.to_string())).await
+pub async fn not_found_page(uri: Uri) -> (StatusCode, HeaderMap, String) {
+    let mut hm = HeaderMap::new();
+    hm.typed_insert(ContentType::html());
+    info!("Undefined route called at {uri}");
+    (
+        axum::http::StatusCode::NOT_FOUND,
+        hm,
+        error_page(&TiberiusError::PageNotFound(uri.to_string()))
+            .await
+            .into_string(),
+    )
 }
+
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/filters")]
+pub struct PathFilters {}

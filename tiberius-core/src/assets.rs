@@ -1,51 +1,69 @@
-use std::collections::BTreeMap;
-use std::{borrow::Cow, path::PathBuf, str::FromStr};
+use std::{borrow::Cow, collections::BTreeMap, path::PathBuf, str::FromStr};
 
 use anyhow::Context;
 use async_std::sync::RwLock;
-use rocket::response::content;
-use rocket::response::status;
-use rocket::response::stream::ReaderStream;
-use rocket::{
-    fairing::{Fairing, Info, Kind},
-    http::{ContentType, Status},
-    response::stream::ByteStream,
-    Request, State,
-};
+use axum::Router;
+use tiberius_dependencies::axum::headers::{ContentType, HeaderMapExt};
 use tracing::info;
 
-use crate::config::Configuration;
-use crate::error::{TiberiusError, TiberiusResult};
-use crate::footer::FooterData;
-use crate::request_helper::FileResponse;
+use crate::{
+    config::Configuration,
+    error::{TiberiusError, TiberiusResult},
+    footer::FooterData,
+    request_helper::FileResponse,
+};
+use tiberius_dependencies::{axum_extra, mime, rust_embed};
+
+use axum_extra::routing::{RouterExt, TypedPath};
+
+pub fn embedded_file_pages(r: Router) -> Router {
+    r.typed_get(serve_favicon_ico)
+        .typed_get(serve_favicon_svg)
+        .typed_get(serve_robots)
+        .typed_get(serve_asset)
+}
 
 #[derive(rust_embed::RustEmbed)]
 #[folder = "../res/assets-build/"]
-#[prefix = "/static/"]
+#[prefix = "/"]
 pub struct Assets;
 
-#[get("/favicon.ico")]
-pub async fn serve_favicon_ico() -> TiberiusResult<FileResponse> {
-    serve_static_file(PathBuf::from_str("/static/favicon.ico")?).await
+#[derive(TypedPath, serde::Deserialize)]
+#[typed_path("/favicon.ico")]
+pub struct GetFaviconIco {}
+
+pub async fn serve_favicon_ico(_: GetFaviconIco) -> TiberiusResult<FileResponse> {
+    serve_static_file(PathBuf::from_str("/favicon.ico")?).await
 }
 
-#[get("/favicon.svg")]
-pub async fn serve_favicon_svg() -> TiberiusResult<FileResponse> {
-    serve_static_file(PathBuf::from_str("/static/favicon.ico")?).await
+#[derive(TypedPath, serde::Deserialize)]
+#[typed_path("/favicon.svg")]
+pub struct GetFaviconSvg {}
+pub async fn serve_favicon_svg(_: GetFaviconSvg) -> TiberiusResult<FileResponse> {
+    serve_static_file(PathBuf::from_str("/favicon.ico")?).await
 }
 
-#[get("/robots.txt")]
-pub async fn serve_robots() -> TiberiusResult<FileResponse> {
+#[derive(TypedPath, serde::Deserialize)]
+#[typed_path("/robots.txt")]
+pub struct GetRobotsTxt {}
+
+pub async fn serve_robots(_: GetRobotsTxt) -> TiberiusResult<FileResponse> {
     serve_static_file(PathBuf::from_str("/static/robots.txt")?).await
 }
 
-#[get("/static/<path..>")]
-pub async fn serve_asset(path: PathBuf) -> TiberiusResult<FileResponse> {
-    serve_static_file(path).await
+#[derive(TypedPath, serde::Deserialize)]
+#[typed_path("/static/*path")]
+pub struct GetStaticFile {
+    path: String,
 }
 
+pub async fn serve_asset(GetStaticFile { path }: GetStaticFile) -> TiberiusResult<FileResponse> {
+    serve_static_file(path.try_into()?).await
+}
+
+#[instrument]
 pub async fn serve_static_file(file: PathBuf) -> TiberiusResult<FileResponse> {
-    let file = PathBuf::from_str("/static/").unwrap().join(file);
+    trace!("Serving static file {:?}", file);
     let path = file.clone();
     let file = Assets::get(file.to_str().unwrap());
     Ok(match file {
@@ -58,20 +76,18 @@ pub async fn serve_static_file(file: PathBuf) -> TiberiusResult<FileResponse> {
         Some(file) => {
             let content_type =
                 new_mime_guess::from_ext(&path.extension().unwrap_or_default().to_string_lossy());
-            let content_type = content_type.first();
-            let content_type = match content_type {
-                None => rocket::http::ContentType::Plain.to_string(),
-                Some(t) => t.essence_str().to_string(),
-            };
+            let content_type = content_type.first().unwrap_or(mime::TEXT_HTML_UTF_8);
             trace!(
                 "Serving static file {} with content type {}",
                 path.display(),
                 content_type
             );
+            use tiberius_dependencies::http::HeaderMap;
+            let mut hm = HeaderMap::new();
+            hm.typed_insert(ContentType::from(content_type));
             FileResponse {
                 content: file.data,
-                content_type: ContentType::from_str(&content_type)
-                    .map_err(|x| TiberiusError::Other(x))?,
+                headers: hm,
             }
         }
     })
@@ -181,15 +197,19 @@ impl AssetLoader {
         let mut data = dataroot.clone();
         data.push("footer.json");
         let data = std::fs::File::open(data).context("Could not find footer data")?;
-        let data: FooterData = serde_json::from_reader(data).context("Could not parse Footer Data")?;
+        let data: FooterData =
+            serde_json::from_reader(data).context("Could not parse Footer Data")?;
         let mut siteconf = dataroot.clone();
         siteconf.push("site-conf.json");
         let siteconf = std::fs::File::open(siteconf).context("Could not find site config data")?;
-        let siteconf: SiteConfig = serde_json::from_reader(siteconf).context("Could not parse site config data")?;
+        let siteconf: SiteConfig =
+            serde_json::from_reader(siteconf).context("Could not parse site config data")?;
         let mut quicktagtable = dataroot.clone();
         quicktagtable.push("quick_tag_table.json");
-        let quicktagtable = std::fs::File::open(quicktagtable).context("Could not find quick tag table")?;
-        let quicktagtable = serde_json::from_reader(quicktagtable).context("Could not parse quicktag table")?;
+        let quicktagtable =
+            std::fs::File::open(quicktagtable).context("Could not find quick tag table")?;
+        let quicktagtable =
+            serde_json::from_reader(quicktagtable).context("Could not parse quicktag table")?;
         Ok(Self {
             data,
             siteconf,

@@ -1,9 +1,7 @@
-use rocket::Request;
 use sqlxmq::{job, Checkpoint, CurrentJob};
-use tiberius_core::config::Configuration;
-use tiberius_core::error::TiberiusResult;
-use tiberius_core::http_client;
-use tiberius_core::state::TiberiusState;
+use tiberius_core::{
+    config::Configuration, error::TiberiusResult, http_client, state::TiberiusState,
+};
 use tiberius_models::{Channel, Client};
 use tracing::{debug, info, trace};
 
@@ -28,7 +26,7 @@ impl Default for PicartoConfig {
     }
 }
 
-#[instrument]
+#[instrument(level = "trace")]
 #[sqlxmq::job]
 pub async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
     let pool = current_job.pool();
@@ -82,12 +80,15 @@ async fn refresh_channel(
     chan: &mut Channel,
 ) -> TiberiusResult<()> {
     match chan.r#type {
-        tiberius_models::ChannelType::PicartoChannel => refresh_picarto_channel(config, client, chan).await,
+        tiberius_models::ChannelType::PicartoChannel => {
+            refresh_picarto_channel(config, client, chan).await
+        }
         tiberius_models::ChannelType::PiczelChannel => todo!(),
         tiberius_models::ChannelType::TwitchChannel => todo!(),
     }
 }
 
+#[instrument(level = "trace")]
 async fn refresh_picarto_channel(
     config: &Configuration,
     client: &mut Client,

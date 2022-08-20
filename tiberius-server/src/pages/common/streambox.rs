@@ -1,18 +1,16 @@
-use maud::html;
-use maud::Markup;
-use maud::PreEscaped;
-use rocket::Request;
+use maud::{html, Markup, PreEscaped};
 use sqlx::{query_as, Acquire};
 use std::str::FromStr;
-use tiberius_core::error::TiberiusResult;
-use tiberius_core::session::{SessionMode, Unauthenticated};
-use tiberius_core::state::TiberiusRequestState;
-use tiberius_models::Channel;
-use tiberius_models::Client;
+use tiberius_core::{
+    error::TiberiusResult,
+    session::{SessionMode, Unauthenticated},
+    state::TiberiusRequestState,
+};
+use tiberius_models::{Channel, Client};
 use url::Url;
 
 pub async fn stream_box(
-    rstate: &TiberiusRequestState<'_, Unauthenticated>,
+    rstate: &TiberiusRequestState<Unauthenticated>,
     client: &mut Client,
 ) -> TiberiusResult<Markup> {
     let channels: Vec<Channel> = Channel::get_frontpage_channels(client).await?;

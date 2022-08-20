@@ -3,6 +3,7 @@
 */
 
 mod channel;
+pub mod comment;
 pub use channel::*;
 mod user_staff_entry;
 pub use user_staff_entry::*;

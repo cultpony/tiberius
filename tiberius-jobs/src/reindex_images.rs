@@ -1,11 +1,8 @@
-use rocket::futures::TryStreamExt;
-use rocket::Request;
+use futures_util::stream::StreamExt;
 use sqlx::{FromRow, Pool, Postgres};
 use sqlxmq::{job, Checkpoint, CurrentJob};
-use tiberius_core::config::Configuration;
-use tiberius_core::error::TiberiusResult;
-use tiberius_core::state::TiberiusState;
-use tiberius_models::{Channel, Client, Image};
+use tiberius_core::{config::Configuration, error::TiberiusResult, state::TiberiusState};
+use tiberius_models::{Channel, Client, Image, ImageSortBy};
 use tracing::{info, trace};
 
 use tiberius_models::Queryable;
@@ -31,7 +28,7 @@ pub async fn reindex_images<'a, E: sqlx::Executor<'a, Database = sqlx::Postgres>
     Ok(())
 }
 
-#[instrument]
+#[instrument(level = "trace")]
 #[sqlxmq::job]
 pub async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
     info!("Job {}: Reindexing all images", current_job.id());
@@ -58,8 +55,9 @@ pub async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRe
     Ok(())
 }
 
+#[instrument(level = "trace")]
 async fn reindex_many(client: &mut Client, ids: Vec<i64>) -> TiberiusResult<()> {
-    let images = Image::get_many(client, ids).await?;
+    let images = Image::get_many(client, ids, ImageSortBy::Random).await?;
     let index_writer = client.index_writer::<Image>().await?;
     info!("Reindexing all images, streaming from DB...");
     for image in images {
@@ -73,13 +71,47 @@ async fn reindex_many(client: &mut Client, ids: Vec<i64>) -> TiberiusResult<()> 
     Ok(())
 }
 
-async fn reindex_all(pool: &Pool<Postgres>, client: &mut Client) -> TiberiusResult<()> {
+#[instrument(level = "trace")]
+pub async fn reindex_all(pool: &Pool<Postgres>, client: &mut Client) -> TiberiusResult<()> {
+    let image_count = Image::count(&mut Client::new(pool.clone(), None), None, None).await?;
     let mut images = Image::get_all(pool.clone(), None, None).await?;
     let index_writer = client.index_writer::<Image>().await?;
-    info!("Reindexing all images, streaming from DB...");
-    while let Some(image) = images.try_next().await? {
+    let index_reader = client.index_reader::<Image>()?;
+    info!("Reindexing {image_count} images, streaming from DB...");
+    let mut counter = 0;
+    let progress_indicator = image_count / 521;
+    while let Some(image) = images.next().await.transpose()? {
+        if counter % progress_indicator == 0 {
+            info!(
+                "Progress {:07.3}%",
+                (counter as f64 / image_count as f64) * 100.0
+            );
+            index_writer.write().await.commit()?;
+        }
+        counter += 1;
         let image: Image = Image::from_row(&image)?;
-        info!("Reindexing image {} {:?}", image.id, image.image);
+        let image_in_index =
+            Image::get_from_index(index_reader.clone(), image.identifier()).await?;
+        let image_in_db = image.get_doc(client, true).await?;
+        match image_in_index {
+            Some(image_in_index) => {
+                if image_in_db != image_in_index {
+                    info!("Reindexing image {counter}/{image_count}: {}", image.id);
+                } else {
+                    debug!(
+                        "Image {counter}/{image_count} requires no reindex: {}",
+                        image.id
+                    );
+                    continue;
+                }
+            }
+            None => {
+                info!(
+                    "Image {counter}/{image_count} indexing for first time: {}",
+                    image.id
+                );
+            }
+        }
         image.delete_from_index(index_writer.clone()).await?;
         image.index(index_writer.clone(), client).await?;
     }

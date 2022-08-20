@@ -1,15 +1,11 @@
 use std::convert::Infallible;
 
-use rocket::request::FromRequest;
-use rocket::request::Outcome;
-use rocket::Request;
-
 pub type DBPool = sqlx::PgPool;
 pub type DBConnection = sqlx::PgConnection;
 pub type DBTx<'a> = &'a mut sqlx::Transaction<'a, sqlx::Postgres>;
 pub type DBTxOwned<'a> = sqlx::Transaction<'a, sqlx::Postgres>;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PageTitle(String);
 impl std::convert::Into<String> for PageTitle {
     fn into(self) -> String {

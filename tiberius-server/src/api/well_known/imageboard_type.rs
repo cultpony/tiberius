@@ -1,7 +1,14 @@
+use axum_extra::routing::TypedPath;
+use serde::Deserialize;
+
 use crate::package_full;
 
-#[get("/.well-known/imageboard-type")]
-pub async fn imageboardtype() -> String {
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/.well-known/imageboard-type")]
+pub struct PathImageBoardApiFlavor {}
+
+#[instrument(level = "trace")]
+pub async fn imageboardtype(_: PathImageBoardApiFlavor) -> String {
     format!(
         "{},min-api:{},max-api:{},api-flavor:{},flavor-philomena-int:{},flavor-philomena:{}",
         package_full(),
@@ -13,17 +20,29 @@ pub async fn imageboardtype() -> String {
     )
 }
 
-#[get("/.well-known/imageboard-api/flavor-tiberius")]
-pub async fn imageboardapiflavor() -> String {
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/.well-known/imageboard-api/flavor-tiberius")]
+pub struct PathImageBoardTiberiusApiFlavor {}
+
+#[instrument(level = "trace")]
+pub async fn imageboardapiflavor(_: PathImageBoardTiberiusApiFlavor) -> String {
     format!("/api/v1")
 }
 
-#[get("/.well-known/imageboard-api/flavor-philomena-int")]
-pub async fn imageboardapiflavor_philomena_int() -> String {
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/.well-known/imageboard-api/flavor-philomena-int")]
+pub struct PathImageBoardPhilomenaIntApiFlavor {}
+
+#[instrument(level = "trace")]
+pub async fn imageboardapiflavor_philomena_int(_: PathImageBoardPhilomenaIntApiFlavor) -> String {
     format!("!")
 }
 
-#[get("/.well-known/imageboard-api/flavor-philomena")]
-pub async fn imageboardapiflavor_philomena_v1() -> String {
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/.well-known/imageboard-api/flavor-philomena")]
+pub struct PathImageBoardPhilomenaApiFlavor {}
+
+#[instrument(level = "trace")]
+pub async fn imageboardapiflavor_philomena_v1(_: PathImageBoardPhilomenaApiFlavor) -> String {
     format!("/api/philomena/v1")
 }

@@ -1,17 +1,17 @@
 use change_detection::ChangeDetection;
-use std::convert::TryFrom;
-use std::path::Path;
-use std::process::Command;
+use std::{convert::TryFrom, path::Path, process::Command};
 
 fn main() {
     if std::env::var("TIBERIUS_PREBUILT_ASSETS") == Ok("YES".to_string()) {
         return;
     }
-    let debug = std::env::var("PROFILE").expect("need rust compile profile").to_lowercase();
+    let debug = std::env::var("PROFILE")
+        .expect("need rust compile profile")
+        .to_lowercase();
     let debug = match debug.as_str() {
         "release" => false,
         "deploy" => false,
-        _ => true
+        _ => true,
     };
     /*if !debug {
         let assetdir = "../res/assets-build";

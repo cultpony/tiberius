@@ -1,9 +1,8 @@
-use maud::{Markup, html};
+use maud::{html, Markup};
 
 /**
  * This crate contains dependency free HTML markups that do not rely on any other crate to execute or perform
  */
-
 
 pub fn no_avatar_svg() -> Markup {
     html! {

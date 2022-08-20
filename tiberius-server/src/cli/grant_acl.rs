@@ -8,8 +8,7 @@ use tiberius_core::state::TiberiusState;
 use crate::cli::GrantAclAction;
 
 
-pub async fn grant_acl(args: &crate::cli::GrantAclCli) -> TiberiusResult<()> {
-    let config: Configuration = envy::from_env::<Configuration>()?;
+pub async fn grant_acl(args: &crate::cli::GrantAclCli, config: Configuration) -> TiberiusResult<()> {
     info!("Initializing Database connection");
     let db_conn: DBPool = config.db_conn().await?;
     let state = TiberiusState::new(config.clone()).await?;
@@ -35,7 +34,7 @@ pub async fn grant_acl(args: &crate::cli::GrantAclCli) -> TiberiusResult<()> {
     match (user.as_ref(), subject.as_ref(), action.as_ref()) {
         (Some(v), Some(w), Some(x)) => {
             if grant {
-                todo!("grant ACL")
+                casbin.add_permission_for_user(&v, vec![w.clone(), x.clone()]).await?;
             } else if revoke {
                 todo!("revoke ACL")
             } else if list {

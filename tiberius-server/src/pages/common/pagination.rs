@@ -1,7 +1,6 @@
 use std::{collections::BTreeMap, ops::Range};
 
 use maud::{html, Markup};
-use rocket::Request;
 use tiberius_core::error::TiberiusResult;
 
 const SURROUNDING_PAGES: u64 = 3;
@@ -54,29 +53,33 @@ impl PaginationCtl {
             suffix,
         })
     }
+
+    fn current_page(&self) -> u64 {
+        self.current_page + 1
+    }
     pub fn current_offset(current_page: u64, page_size: u8) -> u64 {
         (current_page - 1) * (page_size as u64)
     }
 
     fn left_gap(&self) -> bool {
-        self.current_page.saturating_sub(SURROUNDING_PAGES) > 3
+        self.current_page().saturating_sub(SURROUNDING_PAGES) > 3
     }
     fn left_page_numbers(&self) -> Range<u64> {
-        self.current_page.saturating_sub(SURROUNDING_PAGES).max(1)
+        self.current_page().saturating_sub(SURROUNDING_PAGES).max(1)
             ..(self.current_page.saturating_sub(1)).max(1)
     }
     fn right_gap(&self) -> bool {
-        self.current_page.saturating_add(SURROUNDING_PAGES) < self.pages
+        self.current_page().saturating_add(SURROUNDING_PAGES) < self.pages
     }
     fn right_page_numbers(&self) -> Range<u64> {
-        self.current_page + 1..(self.current_page + SURROUNDING_PAGES).min(self.pages)
+        self.current_page() + 1..(self.current_page() + SURROUNDING_PAGES).min(self.pages)
     }
 
     pub fn pagination(&self) -> Markup {
         html! {
             @if self.pages > 0 {
                 nav.pagination.hide-mobile-t {
-                    @if self.current_page != 1 {
+                    @if self.current_page() != 1 {
                         a href="" { "« First" }
                         a.js-prev href="" { "‹ Prev" }
                     }
@@ -89,7 +92,7 @@ impl PaginationCtl {
                         a href="" { (number.to_string()) }
                     }
 
-                    span.page-current { (self.current_page.to_string()) }
+                    span.page-current { (self.current_page().to_string()) }
 
                     @for number in self.right_page_numbers() {
                         a href="" { (number.to_string()) }

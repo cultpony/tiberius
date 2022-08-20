@@ -84,9 +84,12 @@ impl UserStaffEntry {
     }
 
     pub async fn get_all(client: &mut Client) -> Result<Vec<Self>, PhilomenaModelError> {
-        let r = sqlx::query_as!(Self, "SELECT * FROM user_staff_entry WHERE deleted_at IS NULL")
-            .fetch_all(client)
-            .await?;
+        let r = sqlx::query_as!(
+            Self,
+            "SELECT * FROM user_staff_entry WHERE deleted_at IS NULL"
+        )
+        .fetch_all(client)
+        .await?;
         Ok(r)
     }
 

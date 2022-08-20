@@ -1,35 +1,47 @@
+use crate::pages::common::frontmatter::{csrf_input_tag, form_method, form_submit_button};
+use axum::{http::HeaderMap, Extension, Router};
+use axum_extra::routing::{RouterExt, TypedPath};
 use maud::html;
-use rocket::form::Form;
-use rocket::State;
-use tiberius_core::app::PageTitle;
-use tiberius_core::error::{TiberiusError, TiberiusResult};
-use tiberius_core::request_helper::{FormMethod, HlJsonResponse, HtmlResponse, JsonResponse, TiberiusResponse};
-use tiberius_core::session::{Authenticated, SessionMode};
-use tiberius_core::state::{TiberiusRequestState, TiberiusState};
+use serde::Deserialize;
+use tiberius_core::{
+    acl::*,
+    app::PageTitle,
+    error::{TiberiusError, TiberiusResult},
+    request_helper::{FormMethod, HtmlResponse, JsonResponse, TiberiusResponse},
+    session::{Authenticated, SessionMode},
+    state::{TiberiusRequestState, TiberiusState},
+};
 use tiberius_models::{ApiKey, Image, User};
 use uuid::Uuid;
-use crate::pages::common::frontmatter::{form_submit_button, form_method, csrf_input_tag};
 
-use crate::pages::common::acl::{verify_acl, ACLActionAPIKey, ACLActionImage, ACLObject, ACLSubject};
+pub fn api_key_pages(r: Router) -> Router {
+    r.typed_get(manage_keys_page)
+        .typed_post(create_api_key)
+        .typed_delete(delete_api_key)
+}
 
-#[get("/api/v3/manage/keys")]
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/api/v3/manage/keys")]
+pub struct PathManageAPIKeys {}
+
 pub async fn manage_keys_page(
-    state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, Authenticated>,
+    _: PathManageAPIKeys,
+    Extension(state): Extension<TiberiusState>,
+    rstate: TiberiusRequestState<Authenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let view_all_api_keys: bool =
-        verify_acl(state, &rstate, ACLObject::APIKey, ACLActionAPIKey::ViewAll).await?;
+        verify_acl(&state, &rstate, ACLObject::APIKey, ACLActionAPIKey::ViewAll).await?;
     let edit_api_key: bool = verify_acl(
-        state,
+        &state,
         &rstate,
         ACLObject::APIKey,
         ACLActionAPIKey::CreateDelete,
     )
     .await?;
     let admin_api_key: bool =
-        verify_acl(state, &rstate, ACLObject::APIKey, ACLActionAPIKey::Admin).await?;
-    let mut client = state.get_db_client().await?;
-    let user = rstate.session.read().await.get_user(&mut client).await?;
+        verify_acl(&state, &rstate, ACLObject::APIKey, ACLActionAPIKey::Admin).await?;
+    let mut client = state.get_db_client();
+    let user = rstate.session().get_user(&mut client).await?;
     let user = match user {
         Some(u) => u,
         None => return Err(TiberiusError::AccessDenied),
@@ -53,7 +65,7 @@ pub async fn manage_keys_page(
                     td { (api_key.id()) }
                     td { (api_key.secret()) }
                     td {
-                        form method="POST" action=(uri!(delete_api_key(api_key.id()))) {
+                        form method="POST" action=(PathDeleteApiKey{uuid: api_key.id().clone()}.to_uri()) {
                             (csrf_input_tag(&rstate).await);
                             (form_method(FormMethod::Delete));
                             (form_submit_button("Delete Key"));
@@ -63,14 +75,14 @@ pub async fn manage_keys_page(
             }
         }
         @if edit_api_key {
-            form method="POST" action=(uri!(create_api_key)) {
+            form method="POST" action=(PathApiCreateAPIKey{}.to_uri()) {
                 (csrf_input_tag(&rstate).await);
                 input type="submit" value="Create new Key";
             }
         }
     };
     let app = crate::pages::common::frontmatter::app(
-        state,
+        &state,
         &rstate,
         Some(PageTitle::from("API - Manage API Keys")),
         &mut client,
@@ -83,22 +95,26 @@ pub async fn manage_keys_page(
     }))
 }
 
-#[post("/api/v3/manage/keys/create")]
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/api/v3/manage/keys/create")]
+pub struct PathApiCreateAPIKey {}
+
 pub async fn create_api_key(
-    state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, Authenticated>,
+    _: PathApiCreateAPIKey,
+    Extension(state): Extension<TiberiusState>,
+    rstate: TiberiusRequestState<Authenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let edit_api_key: bool = verify_acl(
-        state,
+        &state,
         &rstate,
         ACLObject::APIKey,
         ACLActionAPIKey::CreateDelete,
     )
     .await?;
     let admin_api_key: bool =
-        verify_acl(state, &rstate, ACLObject::APIKey, ACLActionAPIKey::Admin).await?;
-    let mut client = state.get_db_client().await?;
-    let user = rstate.user(state).await?;
+        verify_acl(&state, &rstate, ACLObject::APIKey, ACLActionAPIKey::Admin).await?;
+    let mut client = state.get_db_client();
+    let user = rstate.user(&state).await?;
     let user = match user {
         None => return Err(TiberiusError::AccessDenied),
         Some(v) => v,
@@ -106,29 +122,37 @@ pub async fn create_api_key(
     let new_key = ApiKey::new(&user)?;
 
     let id = new_key.insert(&mut client).await?;
-    let key = ApiKey::get_id(&mut client, id).await?.expect("we just inserted, cannot fail");
+    let key = ApiKey::get_id(&mut client, id)
+        .await?
+        .expect("we just inserted, cannot fail");
 
-    Ok(TiberiusResponse::JsonNoHeader(HlJsonResponse{
+    Ok(TiberiusResponse::Json(JsonResponse {
         content: serde_json::to_value(&key)?,
+        headers: HeaderMap::new(),
     }))
 }
 
-#[post("/api/v3/manage/keys/<uuid>/delete")]
-pub async fn delete_api_key(
-    state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, Authenticated>,
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/api/v3/manage/keys/:uuid/delete")]
+pub struct PathDeleteApiKey {
     uuid: Uuid,
+}
+
+pub async fn delete_api_key(
+    PathDeleteApiKey { uuid }: PathDeleteApiKey,
+    Extension(state): Extension<TiberiusState>,
+    rstate: TiberiusRequestState<Authenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let edit_api_key: bool = verify_acl(
-        state,
+        &state,
         &rstate,
         ACLObject::APIKey,
         ACLActionAPIKey::CreateDelete,
     )
     .await?;
     let admin_api_key: bool =
-        verify_acl(state, &rstate, ACLObject::APIKey, ACLActionAPIKey::Admin).await?;
-    let mut client = state.get_db_client().await?;
+        verify_acl(&state, &rstate, ACLObject::APIKey, ACLActionAPIKey::Admin).await?;
+    let mut client = state.get_db_client();
     let api_key = ApiKey::get_id(&mut client, uuid).await?;
 
     let api_key = match api_key {
@@ -136,7 +160,7 @@ pub async fn delete_api_key(
         Some(v) => v,
     };
 
-    if Some(api_key.user_id()) != rstate.user(&state).await?.map(|x| x.id()) {
+    if Some(api_key.user_id()) != rstate.user(&state).await?.as_ref().map(|x| x.id()) {
         if !admin_api_key {
             return Err(TiberiusError::AccessDenied);
         }
@@ -144,7 +168,8 @@ pub async fn delete_api_key(
 
     let ok = api_key.clone().delete(&mut client).await?;
 
-    Ok(TiberiusResponse::JsonNoHeader(HlJsonResponse{
+    Ok(TiberiusResponse::Json(JsonResponse {
         content: serde_json::to_value(&ok)?,
+        headers: HeaderMap::new(),
     }))
 }

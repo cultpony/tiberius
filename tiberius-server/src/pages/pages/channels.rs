@@ -1,32 +1,24 @@
 use std::fmt;
 
+use axum::{extract::Query, response::Redirect, Extension, Form};
+use axum_extra::{extract::cookie::Cookie, routing::TypedPath};
 use maud::{html, Markup};
-use rocket::uri;
-use rocket::{
-    form::Form,
-    http::{
-        uri::{
-            fmt::FromUriParam,
-            fmt::{Formatter, Query, UriDisplay},
-        },
-        Cookie, CookieJar, Status,
+use serde::Deserialize;
+use tiberius_core::{
+    app::PageTitle,
+    error::TiberiusResult,
+    request_helper::{
+        ApiFormDataEmpty, FormMethod, HtmlResponse, RedirectResponse, TiberiusResponse,
     },
-    response::Redirect,
-    State,
+    session::{SessionMode, Unauthenticated},
+    state::{TiberiusRequestState, TiberiusState},
 };
-use tiberius_core::app::PageTitle;
-use tiberius_core::error::TiberiusResult;
-use tiberius_core::request_helper::{
-    ApiFormDataEmpty, FormMethod, HtmlResponse, RedirectResponse, TiberiusResponse,
-};
-use tiberius_core::session::{SessionMode, Unauthenticated};
-use tiberius_core::state::{Flash, TiberiusRequestState, TiberiusState};
+use tiberius_dependencies::axum_flash::Flash;
 use tiberius_models::{Channel, Client, Image};
 
-use crate::pages::common::channels::channel_box;
-use crate::pages::common::pagination::PaginationCtl;
+use crate::pages::common::{channels::channel_box, pagination::PaginationCtl};
 
-#[derive(serde::Deserialize, rocket::FromForm)]
+#[derive(serde::Deserialize)]
 pub struct ChannelQuery {
     cq: Option<String>,
 }
@@ -37,63 +29,61 @@ impl ChannelQuery {
     }
 }
 
-impl UriDisplay<Query> for ChannelQuery {
-    fn fmt(&self, f: &mut Formatter<Query>) -> fmt::Result {
-        f.write_named_value("cq", &self.cq)
-    }
-}
-
-impl<'a, 'b> FromUriParam<Query, Option<&'a str>> for ChannelQuery {
-    type Target = ChannelQuery;
-
-    fn from_uri_param(cq: Option<&'a str>) -> ChannelQuery {
-        ChannelQuery {
-            cq: cq.map(|x| x.to_string()),
-        }
-    }
-}
-
-#[post("/channels/nsfw", data = "<fd>")]
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/channels/nsfw")]
+pub struct PathSetChannelNsfw {}
 pub async fn set_nsfw(
-    rstate: TiberiusRequestState<'_, Unauthenticated>,
+    mut rstate: TiberiusRequestState<Unauthenticated>,
+    _: PathSetChannelNsfw,
     fd: Form<ApiFormDataEmpty>,
-) -> TiberiusResult<TiberiusResponse<()>> {
+) -> TiberiusResult<(TiberiusRequestState<Unauthenticated>, Redirect)> {
     let fd = fd.into_afd();
     match fd.method() {
         Some(FormMethod::Create) => {
-            rstate.cookie_jar.add(Cookie::new("chan_nsfw", "true"));
-            Ok(TiberiusResponse::Redirect(RedirectResponse {
-                redirect: Flash::alert("NSFW Channels are now visible")
-                    .into_resp(Redirect::to(uri!(list_channels(cq = None)))),
-            }))
+            rstate.cookie_jar = rstate.cookie_jar.add(Cookie::new("chan_nsfw", "true"));
+            rstate.flash_mut().error("NSFW Channels are now visible");
+            Ok((
+                rstate,
+                Redirect::to(PathChannelsList {}.to_uri().to_string().as_str()),
+            ))
         }
         Some(FormMethod::Delete) => {
-            rstate.cookie_jar.add(Cookie::new("chan_nsfw", "false"));
-            Ok(TiberiusResponse::Redirect(RedirectResponse {
-                redirect: Flash::alert("NSFW Channels are now no longer visible")
-                    .into_resp(Redirect::to(uri!(list_channels(cq = None)))),
-            }))
+            rstate.cookie_jar = rstate.cookie_jar.add(Cookie::new("chan_nsfw", "false"));
+            rstate
+                .flash_mut()
+                .error("NSFW Channels are now no longer visible");
+            Ok((
+                rstate,
+                Redirect::to(PathChannelsList {}.to_uri().to_string().as_str()),
+            ))
         }
-        _ => Ok(TiberiusResponse::Redirect(RedirectResponse {
-            redirect: Flash::alert("Bad Request, is your browser up-to-date?")
-                .into_resp(Redirect::to(uri!(list_channels(cq = None)))),
-        })),
+        _ => Ok((
+            rstate,
+            Redirect::to(PathChannelsList {}.to_uri().to_string().as_str()),
+        )),
     }
 }
 
-#[post("/channels/read")]
-pub async fn read() -> rocket::response::Redirect {
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/channels/read")]
+pub struct PathChannelsRead {}
+
+/// POST
+pub async fn read(_: PathChannelsRead) -> String {
     todo!()
 }
 
-#[get("/channels?<cq>")]
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/channels")]
+pub struct PathChannelsList {}
+
 pub async fn list_channels(
-    state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, Unauthenticated>,
-    cq: Option<ChannelQuery>,
+    Extension(state): Extension<TiberiusState>,
+    rstate: TiberiusRequestState<Unauthenticated>,
+    _: PathChannelsList,
+    Query(cq): Query<ChannelQuery>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
-    let cq = cq.unwrap_or(ChannelQuery { cq: None });
-    let mut client = state.get_db_client().await?;
+    let mut client = state.get_db_client();
     let channels = Channel::get_all_channels::<String>(&mut client, None).await?;
     //TODO: honor NSFW channel setting
     let pages = PaginationCtl::new(
@@ -105,7 +95,7 @@ pub async fn list_channels(
         "channel",
         "",
     )?;
-    let show_hide_nsfw_uri = uri!(set_nsfw);
+    let show_hide_nsfw_uri = PathSetChannelNsfw {}.to_uri();
     let body = html! {
         h1 { "Livestreams" }
         form.hform {
@@ -158,7 +148,7 @@ pub async fn list_channels(
         }
     };
     let app = crate::pages::common::frontmatter::app(
-        state,
+        &state,
         &rstate,
         Some(PageTitle::from("Livestreams")),
         &mut client,

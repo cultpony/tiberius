@@ -267,8 +267,7 @@ pub(crate) fn fold_pass5(m: FoldStateVec) -> FoldStateVec {
 
 #[cfg(test)]
 mod test {
-    use super::super::*;
-    use super::*;
+    use super::{super::*, *};
 
     #[test]
     fn test_tokens_pass1() {

@@ -1,34 +1,41 @@
+use axum::Extension;
+use axum_extra::routing::TypedPath;
 use maud::html;
-use rocket::form::Form;
-use rocket::State;
-use tiberius_core::app::PageTitle;
-use tiberius_core::error::{TiberiusError, TiberiusResult};
-use tiberius_core::request_helper::{HtmlResponse, JsonResponse, TiberiusResponse};
-use tiberius_core::session::{SessionMode, Unauthenticated};
-use tiberius_core::state::{TiberiusRequestState, TiberiusState};
+use serde::Deserialize;
+use tiberius_core::{
+    app::PageTitle,
+    error::{TiberiusError, TiberiusResult},
+    request_helper::{HtmlResponse, JsonResponse, TiberiusResponse},
+    session::{SessionMode, Unauthenticated},
+    state::{TiberiusRequestState, TiberiusState},
+};
 use tiberius_models::{Image, User};
 
-#[get("/api/v3/misc/session/handover")]
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/api/v3/misc/session/handover")]
+pub struct PathApiV3MiscSessionHandover {}
+
+#[instrument(level = "trace")]
 pub async fn session_handover_user(
-    state: &State<TiberiusState>,
-    rstate: TiberiusRequestState<'_, Unauthenticated>,
+    Extension(state): Extension<TiberiusState>,
+    rstate: TiberiusRequestState<Unauthenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
-    let mut client = state.get_db_client().await?;
+    let mut client = state.get_db_client();
     let body = html! {
         div {
             p { b {
                 "Handover Status: "
-                (rstate.session.read().await.get_data(tiberius_core::session::philomena_plug::METADATA_KEY)?.unwrap_or("none".to_string()))
+                (rstate.session().get_data(tiberius_core::session::philomena_plug::METADATA_KEY)?.unwrap_or("none".to_string()))
             } }
             p {
                 "Login Stats: "
-                (format!("{:?}", rstate.session.read().await.get_user(&mut client).await?.map(|x| x.id())))
+                (format!("{:?}", rstate.session().raw_user()))
             }
             br;
         }
     };
     let app = crate::pages::common::frontmatter::app(
-        state,
+        &state,
         &rstate,
         Some(PageTitle::from("API - Session Handover")),
         &mut client,
