@@ -25,7 +25,7 @@ build-release:
   cargo build --release --no-default-features --features=stable-release
 
 build-release-ubuntu: sqlx-prepare
-  cross build --release
+  cross +nightly build --release
 
 sqlx-prepare:
   cargo sqlx prepare --merged
