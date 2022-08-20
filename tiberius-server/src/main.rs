@@ -149,7 +149,7 @@ fn main() -> TiberiusResult<()> {
             Ok(())
         }
         Command::GrantAcl(config) => {
-            //runtime.block_on(async move { crate::cli::grant_acl::grant_acl(&config, global_config).await })?;
+            runtime.block_on(async move { crate::cli::grant_acl::grant_acl(&config, global_config).await })?;
             drop(guard);
             Ok(())
         }

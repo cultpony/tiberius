@@ -1,6 +1,6 @@
 use clap::{ArgEnum, Args, Parser, Subcommand};
 
-//pub mod grant_acl;
+pub mod grant_acl;
 pub mod list_users;
 pub mod run_job;
 pub mod server;
