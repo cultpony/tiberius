@@ -54,9 +54,9 @@ use axum::{response::Redirect, Form};
 
 pub fn image_pages(r: Router) -> Router {
     r.typed_get(show_image)
-        .typed_get(beta_show_image)
         .typed_get(specific_show_image)
         .typed_get(get_image_comment)
+        .typed_get(show_random_image)
 }
 
 #[derive(TypedPath, Deserialize)]
@@ -114,26 +114,15 @@ pub async fn embed_image_no_flag(_: PathEmbedImageNoFlag) -> TiberiusResult<()> 
 pub async fn embed_image(_: PathEmbedImage) -> TiberiusResult<()> {
     todo!()
 }
-
-#[derive(TypedPath, Deserialize)]
-#[typed_path("/beta/:image")]
-pub struct PathBetaShowImage {
-    pub image: u64,
-}
-
-pub async fn beta_show_image(
-    PathBetaShowImage { image }: PathBetaShowImage,
-    query_search: Query<QuerySearchQuery>,
+pub async fn show_random_image(
+    _: PathRandomImage,
     Extension(state): Extension<TiberiusState>,
     rstate: TiberiusRequestState<Unauthenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
-    show_image(
-        PathShowImage { image },
-        query_search,
-        Extension(state),
-        rstate,
-    )
-    .await
+    // TODO: ensure acceptable by filter
+    let mut client = state.get_db_client();
+    let image = Image::random(&mut client).await?;
+    Ok(TiberiusResponse::Redirect(Redirect::temporary(PathShowImage{image: image.id().into()}.to_uri().to_string().as_str())))
 }
 
 #[derive(TypedPath, Deserialize)]

@@ -732,6 +732,13 @@ impl Image {
         .await?)
     }
     #[instrument(skip(client))]
+    pub async fn random(client: &mut Client) -> Result<Self, PhilomenaModelError> {
+        Ok(query_as!(
+            Image, "SELECT * FROM images ORDER BY random() LIMIT 1"
+        ).fetch_one(client).await?)
+    }
+
+    #[instrument(skip(client))]
     pub async fn get(client: &mut Client, id: i64) -> Result<Option<Self>, PhilomenaModelError> {
         Ok(
             query_as!(Image, "SELECT * FROM images WHERE id = $1", (id as i32),)
