@@ -2,6 +2,7 @@ use std::{io::Seek, str::FromStr};
 
 use async_std::path::PathBuf;
 use async_trait::async_trait;
+use axum::extract::RawQuery;
 use axum::{
     body::HttpBody,
     extract::{ContentLengthLimit, FromRequest, Multipart, Query, RequestParts},
@@ -25,6 +26,7 @@ use tiberius_core::{
     state::{TiberiusRequestState, TiberiusState},
     PathQuery,
 };
+use tiberius_dependencies::serde_urlencoded;
 use tiberius_dependencies::{axum_flash::Flash, mime, sentry};
 use tiberius_models::{comment::Comment, Image, ImageMeta};
 use tokio::{
@@ -53,10 +55,12 @@ use crate::{
 use axum::{response::Redirect, Form};
 
 pub fn image_pages(r: Router) -> Router {
-    r.typed_get(show_image)
-        .typed_get(specific_show_image)
-        .typed_get(get_image_comment)
-        .typed_get(show_random_image)
+    let r = r.typed_get(show_navigate_image);
+    let r = r.typed_get(get_image_comment);
+    let r = r.typed_get(specific_show_image);
+    let r = r.typed_get(show_random_image);
+    let r = r.typed_get(show_image);
+    r
 }
 
 #[derive(TypedPath, Deserialize)]
@@ -75,7 +79,7 @@ pub struct PathNavigateImage {
     image: u64,
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, PartialEq)]
 pub struct QueryNavigateImage {
     rel: NavigateRelation,
     #[serde(flatten)]
@@ -84,7 +88,7 @@ pub struct QueryNavigateImage {
 
 impl PathQuery for QueryNavigateImage {}
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NavigateRelation {
     #[serde(rename = "next")]
     Next,
@@ -114,6 +118,7 @@ pub async fn embed_image_no_flag(_: PathEmbedImageNoFlag) -> TiberiusResult<()> 
 pub async fn embed_image(_: PathEmbedImage) -> TiberiusResult<()> {
     todo!()
 }
+
 pub async fn show_random_image(
     _: PathRandomImage,
     Extension(state): Extension<TiberiusState>,
@@ -125,8 +130,27 @@ pub async fn show_random_image(
     Ok(TiberiusResponse::Redirect(Redirect::temporary(PathShowImage{image: image.id().into()}.to_uri().to_string().as_str())))
 }
 
+pub async fn show_navigate_image(
+    PathNavigateImage{ image: id }: PathNavigateImage,
+    raw_query: RawQuery,
+    //Query(navigate): Query<NavigateRelation>,
+    Extension(state): Extension<TiberiusState>,
+    rstate: TiberiusRequestState<Unauthenticated>,
+) -> TiberiusResult<TiberiusResponse<()>> {
+    let query = raw_query.0.unwrap_or_default();
+    let QueryNavigateImage{ rel, .. } = serde_urlencoded::from_str(&query)?;
+    // TODO: ensure acceptable by filter
+    let mut client = state.get_db_client();
+    let image = match rel {
+        NavigateRelation::Next => Image::get_next_from(&mut client, id as i64).await?,
+        NavigateRelation::Find => todo!(),
+        NavigateRelation::Prev => Image::get_previous_from(&mut client, id as i64).await?,
+    }.map(|x| x.id().into()).unwrap_or(id);
+    Ok(TiberiusResponse::Redirect(Redirect::temporary(PathShowImage{image: image}.to_uri().to_string().as_str())))
+}
+
 #[derive(TypedPath, Deserialize)]
-#[typed_path("/image/:image")]
+#[typed_path("/images/:image")]
 pub struct PathShowImageSpecific {
     pub image: u64,
 }
@@ -152,7 +176,7 @@ pub struct PathShowImage {
     pub image: u64,
 }
 
-#[derive(serde::Deserialize, serde::Serialize, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, Clone, Debug, PartialEq)]
 pub struct QuerySearchQuery {
     #[serde(rename = "q")]
     pub query: Option<String>,
@@ -1038,22 +1062,22 @@ pub async fn spool_multipart(mut multipart: Multipart, limit: u64) -> TiberiusRe
 }
 
 #[derive(TypedPath, Deserialize)]
-#[typed_path("/images/:image_id/comments/:comment_id")]
+#[typed_path("/images/:image/comments/:comment")]
 pub struct PathImageComment {
-    image_id: i64,
-    comment_id: i64,
+    image: i64,
+    comment: i64,
 }
 
 pub async fn get_image_comment(
     PathImageComment {
-        image_id,
-        comment_id,
+        image,
+        comment: comment_id,
     }: PathImageComment,
     Extension(state): Extension<TiberiusState>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let comment = Comment::get_by_id(&mut state.get_db_client(), comment_id).await?;
     if let Some(comment) = comment {
-        if comment.image_id() != Some(image_id) {
+        if comment.image_id() != Some(image) {
             Err(TiberiusError::ObjectNotFound(
                 "Comment".to_string(),
                 comment_id.to_string(),
@@ -1070,5 +1094,36 @@ pub async fn get_image_comment(
             "Comment".to_string(),
             comment_id.to_string(),
         ))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::pages::images::{NavigateRelation, QueryNavigateImage, QuerySearchQuery};
+    use tiberius_dependencies::serde_urlencoded;
+
+    #[test]
+    pub fn test_image_relation_deserialization() {
+        let query = QueryNavigateImage{
+            rel: NavigateRelation::Next,
+            search_query: Some(QuerySearchQuery{
+                query: None,
+            }),
+        };
+        let query_str = serde_qs::to_string(&query).unwrap();
+        assert_eq!("rel=next", query_str);
+        let query_dec = serde_qs::from_str(&query_str).unwrap();
+        assert_eq!(query, query_dec);
+
+        let query = QueryNavigateImage{
+            rel: NavigateRelation::Next,
+            search_query: Some(QuerySearchQuery{
+                query: None,
+            }),
+        };
+        let query_str = serde_urlencoded::to_string(&query).unwrap();
+        assert_eq!("rel=next", query_str);
+        let query_dec = serde_urlencoded::from_str(&query_str).unwrap();
+        assert_eq!(query, query_dec);
     }
 }

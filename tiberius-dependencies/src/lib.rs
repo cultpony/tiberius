@@ -26,3 +26,4 @@ pub use sqlx_adapter;
 pub use tempfile;
 pub use totp_rs;
 pub use tower;
+pub use serde_urlencoded;

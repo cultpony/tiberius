@@ -101,6 +101,8 @@ pub enum TiberiusError {
     HttpError(#[from] tiberius_dependencies::http::Error),
     #[error("Serde QS Error: {0:?}")]
     SerdeQsError(#[from] tiberius_dependencies::serde_qs::Error),
+    #[error("Serde URLENCODED Error: {0:?}")]
+    SerdeUrlEncoded(#[from] tiberius_dependencies::serde_urlencoded::de::Error),
     #[error("Session Errored out: {0:?}")]
     SessionError(#[from] tiberius_dependencies::axum_database_sessions::SessionError),
     #[error("Error return from Cache Initializer: {0:?}")]

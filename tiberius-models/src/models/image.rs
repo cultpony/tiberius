@@ -738,6 +738,18 @@ impl Image {
         ).fetch_one(client).await?)
     }
 
+    pub async fn get_next_from(client: &mut Client, id: i64) -> Result<Option<Self>, PhilomenaModelError> {
+        Ok(query_as!(
+            Image, "SELECT * FROM images WHERE id > $1 ORDER BY id LIMIT 1", id as i32
+        ).fetch_optional(client).await?)
+    }
+
+    pub async fn get_previous_from(client: &mut Client, id: i64) -> Result<Option<Self>, PhilomenaModelError> {
+        Ok(query_as!(
+            Image, "SELECT * FROM images WHERE id < $1 ORDER BY id DESC LIMIT 1", id as i32
+        ).fetch_optional(client).await?)
+    }
+
     #[instrument(skip(client))]
     pub async fn get(client: &mut Client, id: i64) -> Result<Option<Self>, PhilomenaModelError> {
         Ok(
