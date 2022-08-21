@@ -404,6 +404,9 @@ impl TiberiusState {
     pub fn footer_data(&self) -> &FooterData {
         self.asset_loader.footer_data()
     }
+    pub async fn system_filters(&self) -> TiberiusResult<Vec<Filter>> {
+        Ok(Filter::get_system(&mut self.get_db_client()).await?)
+    }
     pub async fn site_notices(&self) -> TiberiusResult<SiteNotices> {
         let mut client = self.get_db_client();
         let mut notices = SiteNotice::get_all_active_notices(&mut client).await?;

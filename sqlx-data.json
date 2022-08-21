@@ -18,6 +18,98 @@
     },
     "query": "SELECT COUNT(*) AS Cnt FROM channels WHERE nsfw = false"
   },
+  "0c2150fd0b97973c58a5eed0d79af8276ead1ec512713b80e6d06762e51173bb": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "description",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "system",
+          "ordinal": 3,
+          "type_info": "Bool"
+        },
+        {
+          "name": "public",
+          "ordinal": 4,
+          "type_info": "Bool"
+        },
+        {
+          "name": "hidden_complex_str",
+          "ordinal": 5,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "spoilered_complex_str",
+          "ordinal": 6,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "hidden_tag_ids",
+          "ordinal": 7,
+          "type_info": "Int4Array"
+        },
+        {
+          "name": "spoilered_tag_ids",
+          "ordinal": 8,
+          "type_info": "Int4Array"
+        },
+        {
+          "name": "user_count",
+          "ordinal": 9,
+          "type_info": "Int4"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 10,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "updated_at",
+          "ordinal": 11,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 12,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "SELECT * FROM filters WHERE system IS FALSE AND user_id = $1"
+  },
   "0d8e84159f5f80d411018e7ae1cf8dd7b6e768ef1b9c140f4ddba1c3aa6885c9": {
     "describe": {
       "columns": [
@@ -7431,6 +7523,96 @@
       }
     },
     "query": "SELECT id, short_name, title, description, channel_image,\n                    tags, viewers, nsfw, is_live, last_fetched_at, next_check_at,\n                    last_live_at, watcher_ids, watcher_count, type as \"type: ChannelType\",\n                    created_at, updated_at, associated_artist_tag_id, viewer_minutes_today,\n                    viewer_minutes_thisweek, viewer_minutes_thismonth, total_viewer_minutes,\n                    banner_image, remote_Stream_id, thumbnail_url FROM channels WHERE type = $1"
+  },
+  "d28b1df0c8b4e57abe190c4106767c911db3d9b9528f31448cf7617226891cc2": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "description",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "system",
+          "ordinal": 3,
+          "type_info": "Bool"
+        },
+        {
+          "name": "public",
+          "ordinal": 4,
+          "type_info": "Bool"
+        },
+        {
+          "name": "hidden_complex_str",
+          "ordinal": 5,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "spoilered_complex_str",
+          "ordinal": 6,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "hidden_tag_ids",
+          "ordinal": 7,
+          "type_info": "Int4Array"
+        },
+        {
+          "name": "spoilered_tag_ids",
+          "ordinal": 8,
+          "type_info": "Int4Array"
+        },
+        {
+          "name": "user_count",
+          "ordinal": 9,
+          "type_info": "Int4"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 10,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "updated_at",
+          "ordinal": 11,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 12,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT * FROM filters WHERE system IS TRUE"
   },
   "d560972cfed3bfc82f4cc2257338f444b2db28bc488196ab10372e97128717f9": {
     "describe": {

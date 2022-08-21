@@ -27,6 +27,7 @@ pub mod images;
 pub mod session;
 pub mod tags;
 pub mod user;
+pub mod filters;
 
 pub async fn todo_page<S: Into<String>>(name: S) -> TiberiusResult<Markup> {
     let name: String = name.into();

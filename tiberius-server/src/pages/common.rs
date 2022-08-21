@@ -1,6 +1,7 @@
 use axum::response::Redirect;
 use axum_extra::routing::TypedPath;
 use chrono::NaiveDateTime;
+use maud::PreEscaped;
 use tiberius_core::{
     config::Configuration,
     error::TiberiusResult,
@@ -22,6 +23,7 @@ pub mod routes;
 pub mod streambox;
 pub mod tag;
 pub mod user;
+pub mod filters;
 
 pub enum APIMethod {
     Create,

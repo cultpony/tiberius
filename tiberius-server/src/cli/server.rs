@@ -44,6 +44,7 @@ pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResu
     let router = pages::session::session_pages(router);
     let router = pages::static_file_pages(router);
     let router = pages::tags::tags_pages(router);
+    let router = pages::filters::setup_filters(router);
     let router = tiberius_core::assets::embedded_file_pages(router);
 
     use tiberius_dependencies::{axum_csrf, axum_database_sessions, axum_flash};

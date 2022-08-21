@@ -404,6 +404,12 @@ impl User {
         .fetch_optional(client.db().await?.deref_mut())
         .await?)
     }
+    pub async fn get_all_user_filters(
+        &self,
+        client: &mut Client,
+    ) -> Result<Vec<Filter>, PhilomenaModelError> {
+        Ok(Filter::get_user_filters(client, self).await?)
+    }
     pub async fn get_id(client: &mut Client, id: i64) -> Result<Option<User>, PhilomenaModelError> {
         Ok(client.cache_users.get_or_try_insert_with(id, query_as!(crate::User,
             r#"

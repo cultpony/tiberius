@@ -40,12 +40,22 @@ pub enum ACLObject {
     Site,
     /// An image that has been uploaded or is processing
     Image,
+    /// A filter used to hide or change which images are visible/spoilered
+    Filter,
     /// A permanent sessionkey
     APIKey,
     /// Staff Category for the Staff Page
     StaffCategory,
     /// Staff Entry into the Staff Page
     StaffUserEntry,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ACLActionFilter {
+    /// Edit filters the user owns
+    EditOwned,
+    /// Edit filters the user does not own
+    EditAll,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -101,6 +111,7 @@ impl ACLObjectTrait for ACLObject {
             ACLObject::APIKey => "api_key",
             ACLObject::StaffCategory => "staff_category",
             ACLObject::StaffUserEntry => "staff_user_entry",
+            ACLObject::Filter => "filter",
         }
         .to_string()
     }
@@ -181,6 +192,19 @@ impl ACLActionTrait for ACLActionStaffUserEntry {
     }
     fn action_of(&self, a: &ACLObject) -> bool {
         *a == ACLObject::StaffUserEntry
+    }
+}
+
+impl ACLActionTrait for ACLActionFilter {
+    fn action(&self) -> String {
+        match self {
+            ACLActionFilter::EditOwned => "edit_own",
+            ACLActionFilter::EditAll => "admin",
+        }.to_string()
+    }
+
+    fn action_of(&self, a: &ACLObject) -> bool {
+        *a == ACLObject::Filter
     }
 }
 

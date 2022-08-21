@@ -23,6 +23,7 @@ pub mod slug;
 //mod secret_tests;
 
 use async_std::sync::{RwLock, RwLockWriteGuard};
+use maud::PreEscaped;
 pub use models::*;
 
 use chrono::NaiveDateTime;
