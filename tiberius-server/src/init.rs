@@ -31,6 +31,7 @@ pub fn logging(config: &Configuration) {
                                 || v.contains("tokio")
                                 || v.contains("mio")
                                 || v.contains("tantivy")
+                                || v.contains("sqlx")
                         },
                     }
                 })),
