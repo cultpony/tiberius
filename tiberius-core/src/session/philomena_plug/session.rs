@@ -300,6 +300,8 @@ fn contains_ip(session_data: &[u8], ip: &IpAddr) -> bool {
 #[cfg(test)]
 mod test {
 
+    use tiberius_dependencies::hex;
+
     use super::unwrap_cek;
     use std::convert::TryInto;
 

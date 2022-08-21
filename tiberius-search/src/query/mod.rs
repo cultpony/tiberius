@@ -679,7 +679,7 @@ mod test {
     fn test_death_query_tantivy() -> anyhow::Result<()> {
         let query = "sg AND (-pony-,(:),human (eqg)))";
         let fs = crate::tokenizer::parse(query);
-        let exp = r#"BooleanQuery { subqueries: [(Must, TermQuery(Term(field=0,bytes=[115, 103]))), (Must, BooleanQuery { subqueries: [(Must, BooleanQuery { subqueries: [(MustNot, TermQuery(Term(field=0,bytes=[112, 111, 110, 121, 45])))] }), (Must, BooleanQuery { subqueries: [(Must, TermQuery(Term(field=0,bytes=[58, 41]))), (Must, TermQuery(Term(field=0,bytes=[104, 117, 109, 97, 110, 32, 40, 101, 113, 103, 41])))] })] })] }"#;
+        let exp = r#"BooleanQuery { subqueries: [(Must, TermQuery(Term(type=Str, field=0, "sg"))), (Must, BooleanQuery { subqueries: [(Must, BooleanQuery { subqueries: [(MustNot, TermQuery(Term(type=Str, field=0, "pony-")))] }), (Must, BooleanQuery { subqueries: [(Must, TermQuery(Term(type=Str, field=0, ":)"))), (Must, TermQuery(Term(type=Str, field=0, "human (eqg)")))] })] })] }"#;
         let q = Query::from_foldstate(0, fs);
         let q = match q {
             Ok(v) => v,
