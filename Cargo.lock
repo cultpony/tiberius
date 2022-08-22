@@ -3432,23 +3432,12 @@ dependencies = [
 
 [[package]]
 name = "pulldown-cmark"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffade02495f22453cd593159ea2f59827aae7f53fa8323f756799b670881dcf8"
-dependencies = [
- "bitflags",
- "getopts",
- "memchr 2.5.0",
- "unicase",
-]
-
-[[package]]
-name = "pulldown-cmark"
 version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2d9cc634bc78768157b5cbfe988ffcd1dcba95cd2b2f03a88316c08c6d00ed63"
 dependencies = [
  "bitflags",
+ "getopts",
  "memchr 2.5.0",
  "unicase",
 ]
@@ -4245,7 +4234,7 @@ dependencies = [
  "cargo_metadata",
  "error-chain",
  "glob",
- "pulldown-cmark 0.9.2",
+ "pulldown-cmark",
  "tempfile",
  "walkdir",
 ]
@@ -4991,7 +4980,7 @@ dependencies = [
  "maud",
  "moka 0.8.6",
  "new_mime_guess",
- "pulldown-cmark 0.8.0",
+ "pulldown-cmark",
  "rand",
  "regex 1.6.0",
  "reqwest",
