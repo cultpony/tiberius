@@ -12,7 +12,7 @@ publish = false
 async-std = { version = "1.9", features = ["attributes", "tokio1"] }
 async-trait = "0.1.50"
 base64 = "0.13"
-bcrypt = "0.10.0"
+bcrypt = "0.13.0"
 better-panic = "0.2"
 camo-url = "0.1.2"
 chrono = "0.4.20"

@@ -11,7 +11,7 @@ change-detection = "1.2.0"
 async-std = { version = "1.9", features = ["attributes", "tokio1"] }
 async-trait = "0.1.50"
 base64 = "0.13"
-bcrypt = "0.10.0"
+bcrypt = "0.13.0"
 chrono = "0.4.20"
 # casbin = "2.0.7" # needs tobe 2.0.8 until sqlxmq is replaced or updated
 csp = "0.1.0"
