@@ -1283,7 +1283,7 @@ dependencies = [
  "ripemd160",
  "sha-1 0.9.8",
  "sha2 0.9.9",
- "sha3",
+ "sha3 0.9.1",
  "streebog",
  "whirlpool",
 ]
@@ -4179,6 +4179,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "sha3"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0a31480366ec990f395a61b7c08122d99bd40544fdb5abcfc1b06bb29994312c"
+dependencies = [
+ "digest 0.10.3",
+ "keccak",
+]
+
+[[package]]
 name = "sharded-slab"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4972,7 +4982,7 @@ dependencies = [
  "serde_json",
  "serde_qs",
  "sha2 0.9.9",
- "sha3",
+ "sha3 0.10.2",
  "sqlx",
  "sqlx-database-tester",
  "sqlxmq",
