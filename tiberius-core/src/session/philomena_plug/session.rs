@@ -107,7 +107,7 @@ impl TryFrom<Term> for PhilomenaCookie {
     type Error = TiberiusError;
 
     fn try_from(value: Term) -> Result<Self, Self::Error> {
-        let value = value.as_map().ok_or(TiberiusError::ErlangTermDecode(
+        let value = value.as_atom_map().ok_or(TiberiusError::ErlangTermDecode(
             "Philomena Cookie invalid".to_string(),
         ))?;
         let live_socket_id: Option<String>;

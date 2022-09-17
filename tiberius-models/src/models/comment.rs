@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
-use ipnetwork::IpNetwork;
 use sqlx::query_as;
+use sqlx::types::ipnetwork::IpNetwork;
 
 use crate::{Client, Identifiable, IdentifiesUser, PhilomenaModelError, User};
 

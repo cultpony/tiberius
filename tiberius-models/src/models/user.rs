@@ -4,9 +4,8 @@ use anyhow::Context;
 use async_trait::async_trait;
 use chrono::{NaiveDateTime, Utc};
 use either::Either;
-use ipnetwork::IpNetwork;
 use maud::Markup;
-use sqlx::{query, query_as, PgPool};
+use sqlx::{query, query_as, PgPool, types::ipnetwork::IpNetwork};
 use tiberius_dependencies::{
     axum_sessions_auth::{Authentication, HasPermission},
     hex, sentry, totp_rs,
@@ -245,7 +244,7 @@ impl User {
                     let time = time as u64;
                     use totp_rs::{Algorithm, TOTP};
                     let totpi =
-                        TOTP::new(Algorithm::SHA1, 6, 1, 30, dotp, None, username.to_string())?;
+                        TOTP::new(Algorithm::SHA1, 6, 1, 30, dotp)?;
                     if totpi.check(&totp, time) {
                         return Ok(UserLoginResult::Valid);
                     } else {
