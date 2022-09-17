@@ -443,13 +443,25 @@ impl Image {
         Ok(())
     }
 
+    pub async fn create_missing_image_metadata(client: &mut Client) -> Result<(), PhilomenaModelError> {
+        sqlx::query!(
+            "INSERT INTO images_metadata (id, views)
+            (SELECT i.id, 0 as views from images i WHERE i.id not IN (SELECT im2.id FROM images_metadata im2));"
+        ).execute(client).await?;
+        Ok(())
+    }
+
     pub async fn increment_views(&self, client: &mut Client) -> Result<(), PhilomenaModelError> {
-        query!(
+        let affected = query!(
             "UPDATE images_metadata SET views = views + 1 WHERE id = $1",
             self.id
         )
-        .execute(client)
-        .await?;
+        .execute(&mut *client)
+        .await?.rows_affected();
+        if affected == 0 {
+            warn!("Have to create missing metadata, check that the upload job queue is working");
+            Self::create_missing_image_metadata(client).await?;
+        }
         Ok(())
     }
 

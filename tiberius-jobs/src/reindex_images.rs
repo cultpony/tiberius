@@ -51,6 +51,9 @@ pub async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRe
         .expect("job requires configuration copy");
     info!("Job {}: Reindexing listed images ({:?})", current_job.id(), progress.image_ids);
     let mut client = sctx.client;
+    info!("Job {}: Creating missing metadata rows", current_job.id());
+    Image::create_missing_image_metadata(&mut client).await?;
+    info!("Job {}: Completed creating missing metadata rows", current_job.id());
     match progress.image_ids {
         None if !progress.only_new => reindex_all(pool, &mut client).await?,
         None if progress.only_new => {

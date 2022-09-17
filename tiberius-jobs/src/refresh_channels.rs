@@ -27,7 +27,7 @@ impl Default for PicartoConfig {
 }
 
 #[instrument(level = "trace")]
-#[sqlxmq::job]
+#[sqlxmq::job(retries = 1)]
 pub async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
     let pool = current_job.pool();
     let progress: PicartoConfig = current_job
@@ -50,10 +50,11 @@ pub async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRe
             progress
         }
     };
+    info!("Loading checkpoint for channel refresh");
     let mut checkpoint = Checkpoint::new();
-    //TODO: allow recovering broken jobs
     checkpoint.set_json(&progress)?;
     for mut channel in progress.all_channels.clone() {
+        debug!("Job {}: refreshing channel {}", current_job.id(), channel.id);
         if progress.done_channels.contains(&channel.id) {
             continue;
         }
@@ -61,6 +62,7 @@ pub async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRe
         progress.done_channels.push(channel.id);
         checkpoint.set_json(&progress)?;
         current_job.checkpoint(&checkpoint).await?;
+        debug!("Completed refresh for channel {}", channel.id);
     }
     info!("Job {}: Completed refresh", current_job.id());
     current_job.complete().await?;

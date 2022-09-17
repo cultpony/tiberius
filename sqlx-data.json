@@ -1,5 +1,15 @@
 {
   "db": "PostgreSQL",
+  "01a2e92c5ceee99eb3d76cee0b2acabad646442f59a2f0ba26a3e58b6dafdc6c": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "INSERT INTO images_metadata (id, views)\n            (SELECT i.id, 0 as views from images i WHERE i.id not IN (SELECT im2.id FROM images_metadata im2));"
+  },
   "0814fc1a50ae18ae0df95ea2ca89abe291f4c63488494c367c454a29e26d67cf": {
     "describe": {
       "columns": [
@@ -7359,6 +7369,24 @@
       }
     },
     "query": "UPDATE images SET file_name_cache = $1 WHERE id = $2"
+  },
+  "d00509cd31170e2ed638f0235b0542a94f8ddc6eb2fd47aa1cce86b611781305": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT id FROM images ORDER BY created_at DESC LIMIT 1"
   },
   "d27460d5d01f0960c3a8247dd0f5f80d4d03ee4990c32557422a6cb21f8fde75": {
     "describe": {
