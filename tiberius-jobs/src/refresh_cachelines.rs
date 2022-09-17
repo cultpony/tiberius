@@ -10,8 +10,8 @@ pub struct RefreshCachelineConfig {
     pub image_id_range: Range<u64>,
 }
 
-#[instrument(level = "trace")]
-#[sqlxmq::job(retries = 100, backoff_secs = 10)]
+#[instrument(skip(current_job, sctx))]
+#[sqlxmq::job(retries = 3, backoff_secs = 10)]
 pub async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
     info!("Job {}: Refreshing Cachelines", current_job.id());
     let start = std::time::Instant::now();

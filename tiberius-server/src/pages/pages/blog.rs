@@ -11,6 +11,7 @@ pub struct PathBlogPage {
     pub page: String,
 }
 
+#[tracing::instrument]
 pub async fn show(PathBlogPage { page }: PathBlogPage) -> TiberiusResult<HtmlResponse> {
     todo!()
 }

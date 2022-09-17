@@ -4,7 +4,7 @@ use tracing::info;
 
 use crate::SharedCtx;
 
-#[instrument(level = "trace")]
+#[instrument(skip(current_job, sctx))]
 #[sqlxmq::job]
 pub async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
     let pool = current_job.pool();

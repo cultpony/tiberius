@@ -40,7 +40,7 @@ pub async fn reindex_images<'a, E: sqlx::Executor<'a, Database = sqlx::Postgres>
     Ok(())
 }
 
-#[instrument(level = "trace")]
+#[instrument(skip(current_job, sctx))]
 #[sqlxmq::job]
 pub async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
     info!("Job {}: Reindexing images", current_job.id());
@@ -51,8 +51,6 @@ pub async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRe
         .expect("job requires configuration copy");
     info!("Job {}: Reindexing listed images ({:?})", current_job.id(), progress.image_ids);
     let mut client = sctx.client;
-    info!("Job {}: Creating missing metadata rows", current_job.id());
-    Image::create_missing_image_metadata(&mut client).await?;
     info!("Job {}: Completed creating missing metadata rows", current_job.id());
     match progress.image_ids {
         None if !progress.only_new => reindex_all(pool, &mut client).await?,
@@ -79,7 +77,7 @@ pub async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRe
     Ok(())
 }
 
-#[instrument(level = "trace")]
+#[instrument]
 pub async fn reindex_many(client: &mut Client, ids: Vec<i64>) -> TiberiusResult<()> {
     let images = Image::get_many(client, ids, ImageSortBy::Random).await?;
     let index_writer = client.index_writer::<Image>().await?;
@@ -120,7 +118,7 @@ pub async fn reindex_new(client: &mut Client) -> TiberiusResult<()> {
     Ok(())
 }
 
-#[instrument(level = "trace")]
+#[instrument]
 pub async fn reindex_all(pool: &Pool<Postgres>, client: &mut Client) -> TiberiusResult<()> {
     let image_count = Image::count(&mut Client::new(pool.clone(), None), None, None).await?;
     let mut images = Image::get_all(pool.clone(), None, None).await?;

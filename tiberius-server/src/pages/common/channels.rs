@@ -1,9 +1,12 @@
-use crate::pages::common::pluralize;
+use crate::pages::common::{pluralize, camoed_url};
+use crate::pages::tags::{PathTagsByNameShowTag, PathTagsShowTag};
+use axum_extra::routing::TypedPath;
 use maud::{html, Markup};
 use tiberius_core::error::TiberiusResult;
+use tiberius_core::state::TiberiusState;
 use tiberius_models::{Channel, Client};
 
-pub async fn channel_box(client: &mut Client, channel: &Channel) -> TiberiusResult<Markup> {
+pub async fn channel_box(state: &TiberiusState, client: &mut Client, channel: &Channel) -> TiberiusResult<Markup> {
     let channel_route = "";
     let link_class = "media-box__header media-box__header--channel media-box__header--link";
     let artist_tag = channel.associated_artist_tag(client).await?;
@@ -22,22 +25,22 @@ pub async fn channel_box(client: &mut Client, channel: &Channel) -> TiberiusResu
         }
     };
     let title = html! {
-        a.media-box__header.media-box__header--channel.media-box__header-link href=(channel_route) title=(channel.title()) {
+        a.media-box__header.media-box__header--channel.media-box__header--link href=(channel_route) title=(channel.title()) {
             (channel.title())
         }
     };
     let content = html! {
         .media-box__content.media-box__content--channel {
             a href=(channel_route) {
-                .image-constrainted.media-box__content--channel {
-                    img src=(channel.image()) alt=(channel.title());
+                .image-constrained.media-box__content--channel {
+                    img src=(camoed_url(state, &url::Url::parse(&channel.image())?).await) alt=(channel.title());
                 }
             }
         }
     };
     let artist = html! {
         @if let Some(artist_tag) = artist_tag {
-            a.(link_class) href=(todo!("artist tag route")) {
+            a.(link_class) href=(PathTagsShowTag{ tag_id: artist_tag.id as i64 }.to_uri()) {
                 i.fa.fa-fw.fa-tags { }
                 (artist_tag.name);
             }

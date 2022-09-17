@@ -27,6 +27,7 @@ pub fn session_pages(r: Router) -> Router {
 #[typed_path("/sessions/new")]
 pub struct PathNewSession {}
 
+#[instrument(skip(state, rstate))]
 pub async fn new_session(
     _: PathNewSession,
     Extension(state): Extension<TiberiusState>,
@@ -87,6 +88,7 @@ pub async fn new_session(
 #[typed_path("/session/forgot_pw")]
 pub struct PathSessionForgotPw {}
 
+#[tracing::instrument]
 pub async fn forgot_password(_: PathSessionForgotPw) -> TiberiusResult<String> {
     todo!()
 }
@@ -95,13 +97,16 @@ pub async fn forgot_password(_: PathSessionForgotPw) -> TiberiusResult<String> {
 #[typed_path("/sessions/new")]
 pub struct PathSessionsLogin {}
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, securefmt::Debug)]
 pub struct NewSession {
     email: String,
+    #[sensitive]
     password: String,
+    #[sensitive]
     totp: Option<String>,
 }
 
+#[instrument(skip(state, rstate))]
 pub async fn post_new_session(
     _: PathSessionsLogin,
     Extension(state): Extension<TiberiusState>,
@@ -158,6 +163,7 @@ pub async fn post_new_session(
 #[typed_path("/sessions/register")]
 pub struct PathRegistration {}
 
+#[tracing::instrument]
 pub async fn post_registration(_: PathRegistration) -> TiberiusResult<String> {
     todo!()
 }
@@ -166,6 +172,7 @@ pub async fn post_registration(_: PathRegistration) -> TiberiusResult<String> {
 #[typed_path("/sessions/logout")]
 pub struct PathSessionLogout {}
 
+#[instrument(skip(state, rstate))]
 pub async fn get_destroy_session(
     _: PathSessionLogout,
     Extension(state): Extension<TiberiusState>,

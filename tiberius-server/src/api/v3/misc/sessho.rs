@@ -15,7 +15,7 @@ use tiberius_models::{Image, User};
 #[typed_path("/api/v3/misc/session/handover")]
 pub struct PathApiV3MiscSessionHandover {}
 
-#[instrument(level = "trace")]
+#[instrument(skip(state, rstate))]
 pub async fn session_handover_user(
     Extension(state): Extension<TiberiusState>,
     rstate: TiberiusRequestState<Unauthenticated>,

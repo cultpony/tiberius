@@ -24,6 +24,7 @@ pub fn api_key_pages(r: Router) -> Router {
 #[typed_path("/api/v3/manage/keys")]
 pub struct PathManageAPIKeys {}
 
+#[instrument(skip(state, rstate))]
 pub async fn manage_keys_page(
     _: PathManageAPIKeys,
     Extension(state): Extension<TiberiusState>,
@@ -99,6 +100,7 @@ pub async fn manage_keys_page(
 #[typed_path("/api/v3/manage/keys/create")]
 pub struct PathApiCreateAPIKey {}
 
+#[instrument(skip(state, rstate))]
 pub async fn create_api_key(
     _: PathApiCreateAPIKey,
     Extension(state): Extension<TiberiusState>,
@@ -138,6 +140,7 @@ pub struct PathDeleteApiKey {
     uuid: Uuid,
 }
 
+#[instrument(skip(state, rstate))]
 pub async fn delete_api_key(
     PathDeleteApiKey { uuid }: PathDeleteApiKey,
     Extension(state): Extension<TiberiusState>,

@@ -1,6 +1,8 @@
 use std::fmt;
 
+use axum::Router;
 use axum::{extract::Query, response::Redirect, Extension, Form};
+use axum_extra::routing::RouterExt;
 use axum_extra::{extract::cookie::Cookie, routing::TypedPath};
 use maud::{html, Markup};
 use serde::Deserialize;
@@ -15,10 +17,17 @@ use tiberius_core::{
 };
 use tiberius_dependencies::axum_flash::Flash;
 use tiberius_models::{Channel, Client, Image};
+use axum_extra::extract::CookieJar;
 
 use crate::pages::common::{channels::channel_box, pagination::PaginationCtl};
 
-#[derive(serde::Deserialize)]
+pub fn channel_pages(r: Router) -> Router {
+    r
+     .typed_get(list_channels)
+     .typed_post(set_nsfw)
+}
+
+#[derive(serde::Deserialize, Debug)]
 pub struct ChannelQuery {
     cq: Option<String>,
 }
@@ -29,58 +38,60 @@ impl ChannelQuery {
     }
 }
 
-#[derive(TypedPath, Deserialize)]
+#[derive(TypedPath, Deserialize, Debug)]
 #[typed_path("/channels/nsfw")]
 pub struct PathSetChannelNsfw {}
+
+#[instrument(skip(rstate))]
 pub async fn set_nsfw(
-    mut rstate: TiberiusRequestState<Unauthenticated>,
     _: PathSetChannelNsfw,
+    rstate: TiberiusRequestState<Unauthenticated>,
     fd: Form<ApiFormDataEmpty>,
-) -> TiberiusResult<(TiberiusRequestState<Unauthenticated>, Redirect)> {
+) -> TiberiusResult<(CookieJar, Redirect)> {
+    let mut rstate = rstate;
     let fd = fd.into_afd();
     match fd.method() {
         Some(FormMethod::Create) => {
-            rstate.cookie_jar = rstate.cookie_jar.add(Cookie::new("chan_nsfw", "true"));
             rstate.flash_mut().error("NSFW Channels are now visible");
-            Ok((
-                rstate,
-                Redirect::to(PathChannelsList {}.to_uri().to_string().as_str()),
-            ))
+            let cookie_jar = rstate.cookie_jar.add(Cookie::new("chan_nsfw", "true"));
+            Ok((cookie_jar, Redirect::to(PathChannelsList {}.to_uri().to_string().as_str())))
         }
         Some(FormMethod::Delete) => {
-            rstate.cookie_jar = rstate.cookie_jar.add(Cookie::new("chan_nsfw", "false"));
             rstate
                 .flash_mut()
                 .error("NSFW Channels are now no longer visible");
+            let cookie_jar = rstate.cookie_jar.add(Cookie::new("chan_nsfw", "false"));
             Ok((
-                rstate,
-                Redirect::to(PathChannelsList {}.to_uri().to_string().as_str()),
+                cookie_jar,
+                Redirect::to(PathChannelsList {}.to_uri().to_string().as_str())
             ))
         }
         _ => Ok((
-            rstate,
-            Redirect::to(PathChannelsList {}.to_uri().to_string().as_str()),
+            rstate.cookie_jar,
+            Redirect::to(PathChannelsList {}.to_uri().to_string().as_str())
         )),
     }
 }
 
-#[derive(TypedPath, Deserialize)]
+#[derive(TypedPath, Deserialize, Debug)]
 #[typed_path("/channels/read")]
 pub struct PathChannelsRead {}
 
+#[tracing::instrument]
 /// POST
 pub async fn read(_: PathChannelsRead) -> String {
     todo!()
 }
 
-#[derive(TypedPath, Deserialize)]
+#[derive(TypedPath, Deserialize, Debug)]
 #[typed_path("/channels")]
 pub struct PathChannelsList {}
 
+#[instrument(skip(state, rstate))]
 pub async fn list_channels(
+    _: PathChannelsList,
     Extension(state): Extension<TiberiusState>,
     rstate: TiberiusRequestState<Unauthenticated>,
-    _: PathChannelsList,
     Query(cq): Query<ChannelQuery>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let mut client = state.get_db_client();
@@ -96,6 +107,7 @@ pub async fn list_channels(
         "",
     )?;
     let show_hide_nsfw_uri = PathSetChannelNsfw {}.to_uri();
+    let show_nsfw_state = rstate.cookie_jar.get("chan_nsfw").map(|x| x.value()).unwrap_or("false") == "true";
     let body = html! {
         h1 { "Livestreams" }
         form.hform {
@@ -110,7 +122,7 @@ pub async fn list_channels(
                     (pages.pagination())
                 }
 
-                @if rstate.cookie_jar.get("chan_nsfw").map(|x| x.value()).unwrap_or("false") == "true" {
+                @if show_nsfw_state {
                     a href=(show_hide_nsfw_uri) data-method="delete" {
                         i.fa.fa-eye-slash {}
                         "Hide NSFW streams"
@@ -124,8 +136,8 @@ pub async fn list_channels(
             }
 
             .block__content {
-                @for channel in channels {
-                    (channel_box(&mut client, &channel).await?)
+                @for channel in channels.iter().filter(|x| x.nsfw == show_nsfw_state || !x.nsfw) {
+                    (channel_box(&state, &mut client, &channel).await?)
                 }
             }
 

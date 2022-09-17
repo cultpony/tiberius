@@ -15,7 +15,7 @@ pub struct ApiV3ImageGetImageData {
     image: u64,
 }
 
-#[instrument]
+#[instrument(skip(state, rstate))]
 pub async fn get_image_data(
     Extension(state): Extension<TiberiusState>,
     Extension(rstate): Extension<TiberiusRequestState<Unauthenticated>>,

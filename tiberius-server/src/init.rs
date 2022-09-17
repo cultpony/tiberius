@@ -9,11 +9,9 @@ pub fn logging(config: &Configuration) {
     better_panic::install();
     let def_level = config.log_level.into();
     use tracing::Level;
-    //let console_layer = console_subscriber::spawn();
     let filter = EnvFilter::from_default_env();
     let fmt_layer = tracing_subscriber::fmt::layer();
     tracing_subscriber::registry()
-        //.with(console_layer)
         .with(
             fmt_layer
                 .with_filter(tracing::metadata::LevelFilter::from_level(def_level))

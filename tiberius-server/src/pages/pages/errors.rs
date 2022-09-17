@@ -6,6 +6,7 @@ use tiberius_core::{
 
 use crate::pages::error_page;
 
+#[tracing::instrument]
 pub async fn server_error() -> TiberiusResponse<()> {
     let content = error_page(&TiberiusError::Other(format!(
         "Sorry for that, we encountered an issue with your request."
@@ -15,6 +16,7 @@ pub async fn server_error() -> TiberiusResponse<()> {
     TiberiusResponse::Html(HtmlResponse { content })
 }
 
+#[tracing::instrument]
 pub async fn access_denied() -> String {
     format!("Access Denied")
 }

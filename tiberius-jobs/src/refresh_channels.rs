@@ -26,7 +26,7 @@ impl Default for PicartoConfig {
     }
 }
 
-#[instrument(level = "trace")]
+#[instrument(skip(current_job, sctx))]
 #[sqlxmq::job(retries = 1)]
 pub async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
     let pool = current_job.pool();
@@ -58,11 +58,18 @@ pub async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRe
         if progress.done_channels.contains(&channel.id) {
             continue;
         }
-        refresh_channel(&progress.config, &mut client, &mut channel).await?;
-        progress.done_channels.push(channel.id);
-        checkpoint.set_json(&progress)?;
-        current_job.checkpoint(&checkpoint).await?;
-        debug!("Completed refresh for channel {}", channel.id);
+        match refresh_channel(&progress.config, &mut client, &mut channel).await {
+            Ok(_) => {
+                progress.done_channels.push(channel.id);
+                checkpoint.set_json(&progress)?;
+                current_job.checkpoint(&checkpoint).await?;
+                debug!("Completed refresh for channel {}", channel.id);
+            },
+            Err(e) => {
+                error!("Failed refresh on channel {} ({:?})", channel.id, channel.short_name);
+                current_job.checkpoint(&checkpoint).await?;
+            }
+        };
     }
     info!("Job {}: Completed refresh", current_job.id());
     current_job.complete().await?;
@@ -76,6 +83,7 @@ pub struct Progress {
     done_channels: Vec<i32>,
 }
 
+#[tracing::instrument]
 async fn refresh_channel(
     config: &Configuration,
     client: &mut Client,
@@ -90,7 +98,7 @@ async fn refresh_channel(
     }
 }
 
-#[instrument(level = "trace")]
+#[instrument]
 async fn refresh_picarto_channel(
     config: &Configuration,
     client: &mut Client,

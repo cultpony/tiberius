@@ -30,6 +30,7 @@ pub fn tags_pages(r: Router) -> Router {
 #[typed_path("/tags")]
 pub struct PathTagsListTags {}
 
+#[tracing::instrument]
 pub async fn list_tags(_: PathTagsListTags) -> TiberiusResult<HtmlResponse> {
     Ok(HtmlResponse {
         content: todo_page("list_tags").await?.into_string(),
@@ -42,6 +43,7 @@ pub struct PathTagsShowTag {
     pub tag_id: i64,
 }
 
+#[tracing::instrument]
 pub async fn show_tag(PathTagsShowTag { tag_id }: PathTagsShowTag) -> TiberiusResult<HtmlResponse> {
     Ok(HtmlResponse {
         content: todo_page("show_tags").await?.into_string(),
@@ -72,6 +74,7 @@ pub struct PathTagsByNameShowTag {
     pub tag: String,
 }
 
+#[tracing::instrument]
 pub async fn show_tag_by_name(
     PathTagsByNameShowTag { tag }: PathTagsByNameShowTag,
 ) -> TiberiusResult<HtmlResponse> {
@@ -84,6 +87,7 @@ pub struct TagsByIdEditTag {
     tag_id: i64,
 }
 
+#[tracing::instrument]
 pub async fn edit_tag(TagsByIdEditTag { tag_id }: TagsByIdEditTag) -> TiberiusResult<String> {
     Ok(todo_page("edit_tags").await?.into_string())
 }
@@ -94,6 +98,7 @@ pub struct TagsByIdTagChanges {
     tag_id: i64,
 }
 
+#[tracing::instrument]
 pub async fn tag_changes(
     TagsByIdTagChanges { tag_id }: TagsByIdTagChanges,
 ) -> TiberiusResult<HtmlResponse> {
@@ -108,6 +113,7 @@ pub struct TagsByIdTagUsage {
     tag_id: i64,
 }
 
+#[tracing::instrument]
 pub async fn usage(TagsByIdTagUsage { tag_id }: TagsByIdTagUsage) -> TiberiusResult<HtmlResponse> {
     Ok(HtmlResponse {
         content: todo_page("usage_tags").await?.into_string(),
@@ -120,6 +126,7 @@ pub struct TagsByIdTagReindex {
     tag_id: i64,
 }
 
+#[tracing::instrument]
 pub async fn reindex(
     TagsByIdTagReindex { tag_id }: TagsByIdTagReindex,
 ) -> TiberiusResult<TiberiusResponse<()>> {
@@ -133,6 +140,7 @@ pub struct TagsByIdTagAlias {
     tag_id: i64,
 }
 
+#[tracing::instrument]
 pub async fn alias(
     TagsByIdTagAlias { tag_id }: TagsByIdTagAlias,
 ) -> TiberiusResult<TiberiusResponse<()>> {
@@ -156,6 +164,7 @@ pub struct TagsAutocompleteQuery {
     term: String,
 }
 
+#[instrument(skip(state))]
 pub async fn autocomplete(
     _: TagsAutocompletePath,
     Extension(state): Extension<TiberiusState>,

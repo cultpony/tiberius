@@ -58,7 +58,7 @@ where
     }
 }
 
-#[instrument(level = "trace")]
+#[instrument(skip(state, rstate))]
 pub async fn fetch(
     _: PathTagsFetch,
     Extension(state): Extension<TiberiusState>,

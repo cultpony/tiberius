@@ -78,7 +78,7 @@ pub async fn scheduler(db: DBPool, config: Configuration) -> ! {
         let db = db.clone();
         sched
             .add(
-                Job::new("0 0/10 * * * * *", move |uuid, l| {
+                Job::new("0 0,30 * * * * *", move |uuid, l| {
                     info!("Starting picarto_tv job on scheduler UUID {}", uuid);
                     let db = db.clone();
                     let config = refresh_channels::PicartoConfig::default();
@@ -116,7 +116,7 @@ pub async fn scheduler(db: DBPool, config: Configuration) -> ! {
         let db = db.clone();
         sched
             .add(
-                Job::new("0 2/10 * * * * *", move |uuid, l| {
+                Job::new("0 * * * * * *", move |uuid, l| {
                     info!("Starting reindex_images job on scheduler UUID {}", uuid);
                     let db = db.clone();
                     let config = reindex_images::ImageReindexConfig{

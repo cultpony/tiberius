@@ -20,7 +20,7 @@ pub async fn process_image<'a, E: sqlx::Executor<'a, Database = sqlx::Postgres>>
     Ok(())
 }
 
-#[instrument(level = "trace")]
+#[instrument(skip(current_job, sctx))]
 #[sqlxmq::job(retries = 3, backoff_secs = 10)]
 pub(crate) async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
     info!("Job {}: Processing image", current_job.id());

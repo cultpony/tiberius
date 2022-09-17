@@ -41,6 +41,7 @@ pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResu
     let router = pages::activity::activity_pages(router);
     let router = pages::apikeys::api_key_pages(router);
     let router = pages::images::image_pages(router);
+    let router = pages::channels::channel_pages(router);
     let router = pages::session::session_pages(router);
     let router = pages::static_file_pages(router);
     let router = pages::tags::tags_pages(router);
@@ -118,21 +119,10 @@ pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResu
 }
 
 /*
-crate::api::int::image::favorite,
-crate::api::int::oembed::fetch,
-crate::api::int::tag::fetch,
 crate::api::v3::images::change_image_uploader_user,
 crate::api::v3::images::change_image_uploader,
 crate::api::v3::images::get_image_data,
 crate::api::v3::misc::sessho::session_handover_user,
-crate::api::well_known::imageboard_type::imageboardapiflavor_philomena_int,
-crate::api::well_known::imageboard_type::imageboardapiflavor_philomena_v1,
-crate::api::well_known::imageboard_type::imageboardapiflavor,
-crate::api::well_known::imageboard_type::imageboardtype,
-crate::pages::activity::index,
-crate::pages::apikeys::create_api_key,
-crate::pages::apikeys::delete_api_key,
-crate::pages::apikeys::manage_keys_page,
 crate::pages::blog::staff_page::add_user_to_category,
 crate::pages::blog::staff_page::edit_user_entry,
 crate::pages::blog::staff_page::new_category,
@@ -140,12 +130,6 @@ crate::pages::blog::staff_page::show,
 crate::pages::channels::list_channels,
 crate::pages::channels::read,
 crate::pages::channels::set_nsfw,
-crate::pages::images::new_image,
-crate::pages::images::search_empty,
-crate::pages::images::search_reverse_page,
-crate::pages::images::search,
-crate::pages::images::show_image,
-crate::pages::images::upload_image,
 crate::pages::session::alt_url_destroy_session,
 crate::pages::session::alt_url_new_session_post,
 crate::pages::session::alt_url_new_session,

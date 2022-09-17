@@ -111,14 +111,17 @@ pub struct PathEmbedImageNoFlag {
     image: u64,
 }
 
+#[tracing::instrument]
 pub async fn embed_image_no_flag(_: PathEmbedImageNoFlag) -> TiberiusResult<()> {
     todo!()
 }
 
+#[tracing::instrument]
 pub async fn embed_image(_: PathEmbedImage) -> TiberiusResult<()> {
     todo!()
 }
 
+#[instrument(skip(state, rstate))]
 pub async fn show_random_image(
     _: PathRandomImage,
     Extension(state): Extension<TiberiusState>,
@@ -130,6 +133,7 @@ pub async fn show_random_image(
     Ok(TiberiusResponse::Redirect(Redirect::temporary(PathShowImage{image: image.id().into()}.to_uri().to_string().as_str())))
 }
 
+#[instrument(skip(state, rstate))]
 pub async fn show_navigate_image(
     PathNavigateImage{ image: id }: PathNavigateImage,
     raw_query: RawQuery,
@@ -155,6 +159,7 @@ pub struct PathShowImageSpecific {
     pub image: u64,
 }
 
+#[instrument(skip(state, rstate))]
 pub async fn specific_show_image(
     PathShowImageSpecific { image }: PathShowImageSpecific,
     query_search: Query<QuerySearchQuery>,
@@ -184,6 +189,7 @@ pub struct QuerySearchQuery {
 
 impl PathQuery for QuerySearchQuery {}
 
+#[instrument(skip(state, rstate))]
 pub async fn show_image(
     PathShowImage { image }: PathShowImage,
     Query(query_search): Query<QuerySearchQuery>,
@@ -512,10 +518,11 @@ pub async fn show_image(
     }))
 }
 
-#[derive(TypedPath, Deserialize)]
+#[derive(TypedPath, Deserialize, Debug)]
 #[typed_path("/images/new")]
 pub struct PathUploadImagePage {}
 
+#[instrument(skip(state, rstate))]
 pub async fn upload_image(
     Extension(state): Extension<TiberiusState>,
     rstate: TiberiusRequestState<Authenticated>,
@@ -685,11 +692,12 @@ where
     }
 }
 
-#[derive(TypedPath, Deserialize)]
+#[derive(TypedPath, Deserialize, Debug)]
 #[typed_path("/image")]
 pub struct PathImageUpload {}
 
 #[cfg(feature = "process-images")]
+#[instrument(skip(state, rstate))]
 pub async fn new_image(
     Extension(state): Extension<TiberiusState>,
     mut rstate: TiberiusRequestState<Authenticated>,
@@ -947,16 +955,17 @@ pub async fn new_image(
     )));
 }
 
-#[derive(TypedPath, Deserialize)]
+#[derive(TypedPath, Deserialize, Debug)]
 #[typed_path("/image/:image/source_changes")]
 pub struct PathChangeImageSource {
     image: u64,
 }
 
-#[derive(TypedPath, Deserialize)]
+#[derive(TypedPath, Deserialize, Debug)]
 #[typed_path("/search")]
 pub struct PathSearchEmpty {}
 
+#[tracing::instrument]
 pub async fn search_empty(_: PathSearchEmpty) -> TiberiusResult<HtmlResponse> {
     Ok(search(
         PathSearchEmpty {},
@@ -969,15 +978,16 @@ pub async fn search_empty(_: PathSearchEmpty) -> TiberiusResult<HtmlResponse> {
     .await?)
 }
 
-#[derive(TypedPath, Deserialize)]
+#[derive(TypedPath, Deserialize, Debug)]
 #[typed_path("/search/reverse")]
 pub struct PathSearchReverse {}
 
+#[tracing::instrument]
 pub async fn search_reverse_page(_: PathSearchReverse) -> TiberiusResult<HtmlResponse> {
     todo!()
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct QuerySearch {
     search: String,
     order: Option<String>,
@@ -990,6 +1000,7 @@ impl QuerySearch {
     }
 }
 
+#[derive(Debug)]
 pub struct PathQuerySearch {
     pub search: String,
     pub order: Option<String>,
@@ -1011,6 +1022,7 @@ impl PathQuerySearch {
     }
 }
 
+#[tracing::instrument]
 pub async fn search(_: PathSearchEmpty, query: Query<QuerySearch>) -> TiberiusResult<HtmlResponse> {
     todo!()
 }
@@ -1018,6 +1030,7 @@ pub async fn search(_: PathSearchEmpty, query: Query<QuerySearch>) -> TiberiusRe
 /// Spools a multipart of image upload type onto the disk
 ///
 /// If the upload exceeds the limit number of bytes, an error is returned
+#[tracing::instrument]
 pub async fn spool_multipart(mut multipart: Multipart, limit: u64) -> TiberiusResult<ImageUpload> {
     let tmpfile: tempfile::NamedTempFile = tempfile::NamedTempFile::new()?;
     let mut upload: ImageUpload = ImageUpload {
@@ -1068,6 +1081,7 @@ pub struct PathImageComment {
     comment: i64,
 }
 
+#[instrument(skip(state))]
 pub async fn get_image_comment(
     PathImageComment {
         image,

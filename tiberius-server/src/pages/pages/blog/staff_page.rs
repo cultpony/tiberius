@@ -16,7 +16,7 @@ use crate::pages::common::frontmatter::{
     csrf_input_tag, form_submit_button, user_attribution, user_attribution_avatar,
 };
 
-#[derive(TypedPath, Deserialize)]
+#[derive(TypedPath, Deserialize, Debug)]
 #[typed_path("/pages/staff")]
 pub struct PathShowStaffPage {}
 
@@ -227,7 +227,7 @@ pub async fn show(
     }))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct NewCategoryRequest {
     role: String,
     ordering: i64,
@@ -236,14 +236,15 @@ pub struct NewCategoryRequest {
     text: String,
 }
 
-#[derive(TypedPath, Deserialize)]
+#[derive(TypedPath, Deserialize, Debug)]
 #[typed_path("/pages/staff/category")]
 pub struct PathNewCategory {}
 
+#[tracing::instrument]
 pub async fn new_category(
+    _: PathNewCategory,
     Extension(state): Extension<TiberiusState>,
     mut rstate: TiberiusRequestState<Authenticated>,
-    _: PathNewCategory,
     new_category_request: Form<NewCategoryRequest>,
 ) -> TiberiusResult<Redirect> {
     let mut client: Client = state.get_db_client();
@@ -283,21 +284,22 @@ pub async fn new_category(
     ))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct AddUserCategoryRequest {
     user_email: String,
 }
 
-#[derive(TypedPath, Deserialize)]
+#[derive(TypedPath, Deserialize, Debug)]
 #[typed_path("/pages/staff/category/:category")]
 pub struct PathAddUserToCategory {
     category: i64,
 }
 
+#[tracing::instrument]
 pub async fn add_user_to_category(
+    PathAddUserToCategory { category }: PathAddUserToCategory,
     Extension(state): Extension<TiberiusState>,
     mut rstate: TiberiusRequestState<Authenticated>,
-    PathAddUserToCategory { category }: PathAddUserToCategory,
     new_user_request: Form<AddUserCategoryRequest>,
 ) -> TiberiusResult<Redirect> {
     let mut client: Client = state.get_db_client();
@@ -345,17 +347,19 @@ pub async fn add_user_to_category(
     ))
 }
 
+#[derive(Debug)]
 pub struct EditUserCategoryRequest {
     display_name: String,
     text: String,
 }
 
-#[derive(TypedPath, Deserialize)]
+#[derive(TypedPath, Deserialize, Debug)]
 #[typed_path("/pages/staff/entry/:entry_id")]
 pub struct PathEditUserEntry {
     entry_id: i64,
 }
 
+#[tracing::instrument]
 pub async fn edit_user_entry(
     Extension(state): Extension<TiberiusState>,
     mut rstate: TiberiusRequestState<Authenticated>,

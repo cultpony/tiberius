@@ -23,13 +23,13 @@ pub struct PathApiV3ImageChangeUploader {
     image: u64,
 }
 
-#[instrument]
+#[instrument(skip(state, rstate))]
 pub async fn change_image_uploader_user(
     Extension(state): Extension<TiberiusState>,
-    Extension(mut client): Extension<Client>,
     rstate: TiberiusRequestState<Authenticated>,
     PathApiV3ImageChangeUploader { image }: PathApiV3ImageChangeUploader,
 ) -> TiberiusResult<TiberiusResponse<()>> {
+    let mut client = state.get_db_client();
     let body = html! {
         form action=(PathApiV3ImageChangeUploader{ image }.to_uri().to_string()) method="POST" {
             label for="old_uploader" { "Old Uploader" }
@@ -53,14 +53,14 @@ pub async fn change_image_uploader_user(
     }))
 }
 
-#[instrument(level = "trace")]
+#[instrument(skip(state, rstate))]
 pub async fn change_image_uploader(
     Extension(state): Extension<TiberiusState>,
-    Extension(mut client): Extension<Client>,
     rstate: TiberiusRequestState<Authenticated>,
     PathApiV3ImageChangeUploader { image }: PathApiV3ImageChangeUploader,
     Form(change_uploader): Form<ChangeUploader>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
+    let mut client = state.get_db_client();
     let verify_acl = verify_acl(
         &state,
         &rstate,

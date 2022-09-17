@@ -30,6 +30,7 @@ pub fn activity_pages(r: Router) -> Router {
 #[typed_path("/")]
 pub struct PathActivityIndex {}
 
+#[instrument(skip(state, rstate))]
 pub async fn index(
     _: PathActivityIndex,
     Extension(state): Extension<TiberiusState>,

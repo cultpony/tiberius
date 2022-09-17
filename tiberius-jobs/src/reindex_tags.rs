@@ -20,7 +20,7 @@ impl Default for TagReindexConfig {
     }
 }
 
-#[instrument(level = "trace")]
+#[instrument(skip(current_job, sctx))]
 #[sqlxmq::job]
 pub async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
     info!("Job {}: Reindexing all tags", current_job.id());
@@ -51,13 +51,14 @@ async fn reindex_many(client: &mut Client, ids: Vec<i64>) -> TiberiusResult<()> 
     todo!()
 }
 
+#[tracing::instrument]
 pub async fn reindex_all(pool: &Pool<Postgres>, client: &mut Client) -> TiberiusResult<()> {
     let mut tags = Tag::get_all(pool.clone(), None, None).await?;
     let index_writer = client.index_writer::<Tag>().await?;
     info!("Reindexing all tags, streaming from DB...");
     while let Some(tag) = tags.next().await.transpose()? {
         let tag: Tag = Tag::from_row(&tag)?;
-        info!("Reindexing tag {}: {}", tag.id, tag.full_name());
+        trace!("Reindexing tag {}: {}", tag.id, tag.full_name());
         tag.delete_from_index(index_writer.clone()).await?;
         tag.index(index_writer.clone(), client).await?;
     }

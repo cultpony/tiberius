@@ -56,7 +56,7 @@ macro_rules! set_scope_user {
 
 fn main() -> TiberiusResult<()> {
     if let Err(e) = kankyo::load(false) {
-        info!("couldn't load .env file: {}, this is probably fine", e);
+        println!("couldn't load .env file: {}, this is probably fine", e);
     }
     let app = cli::AppCli::parse();
     crate::init::logging(&app.config);

@@ -20,7 +20,7 @@ pub fn user_attribution_avatar(
                     @match &user.avatar {
                         Some(avatar) => {
                             @let av_root = state.config.static_host::<Unauthenticated>(None);
-                                img src=(format!("{}avatars/{}", av_root, avatar.clone()));
+                                img src=(format!("{}/avatars/{}", av_root, avatar.clone()));
                         },
                         None => (no_avatar_svg()),
                     }

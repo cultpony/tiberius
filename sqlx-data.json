@@ -1,15 +1,5 @@
 {
   "db": "PostgreSQL",
-  "01a2e92c5ceee99eb3d76cee0b2acabad646442f59a2f0ba26a3e58b6dafdc6c": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "INSERT INTO images_metadata (id, views)\n            (SELECT i.id, 0 as views from images i WHERE i.id not IN (SELECT im2.id FROM images_metadata im2));"
-  },
   "0814fc1a50ae18ae0df95ea2ca89abe291f4c63488494c367c454a29e26d67cf": {
     "describe": {
       "columns": [
@@ -1538,6 +1528,18 @@
       }
     },
     "query": "SELECT * FROM images WHERE id < $1 ORDER BY id DESC LIMIT 1"
+  },
+  "25a87edc74ae7e277506ed17863aa75a04fabb6c563457595bc082955b85fb14": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "INSERT INTO images_metadata (id, views) VALUES ($1, 0)\n                ON CONFLICT (id) DO NOTHING"
   },
   "2a6310f500369199f231a6f6bef02d95e7519785091ba1ea6bb9d45ccda9ee65": {
     "describe": {

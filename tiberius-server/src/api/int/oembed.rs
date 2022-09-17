@@ -7,7 +7,7 @@ use tiberius_core::error::TiberiusResult;
 #[typed_path("/oembed")]
 pub struct PathOembed {}
 
-#[instrument(level = "trace")]
+#[instrument]
 pub async fn fetch(_: PathOembed) -> TiberiusResult<Json<()>> {
     todo!()
 }

@@ -7,7 +7,7 @@ use serde::Deserialize;
 #[typed_path("/image/favorite")]
 pub struct PathFavoriteImage {}
 
-#[instrument(level = "trace")]
+#[instrument]
 pub async fn favorite(_: PathFavoriteImage) -> String {
     todo!();
 }

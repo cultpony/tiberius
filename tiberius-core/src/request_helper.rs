@@ -52,8 +52,8 @@ impl ToString for FormMethod {
     }
 }
 
-#[derive(serde::Deserialize)]
-pub struct ApiFormData<T> {
+#[derive(serde::Deserialize, Debug)]
+pub struct ApiFormData<T: std::fmt::Debug> {
     #[serde(rename = "_csrf_token")]
     csrf_token: String,
     #[serde(rename = "_method")]
@@ -62,7 +62,7 @@ pub struct ApiFormData<T> {
     pub data: T,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Debug)]
 pub struct ApiFormDataEmpty {
     #[serde(rename = "_csrf_token")]
     csrf_token: String,
@@ -80,7 +80,7 @@ impl ApiFormDataEmpty {
     }
 }
 
-impl<T> ApiFormData<T> {
+impl<T: std::fmt::Debug> ApiFormData<T> {
     pub fn verify_csrf<R: SessionMode>(
         &self,
         method: Option<FormMethod>,

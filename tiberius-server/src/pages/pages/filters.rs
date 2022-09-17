@@ -18,6 +18,7 @@ pub fn setup_filters(r: Router) -> Router {
 #[typed_path("/filters")]
 pub struct PathFilters;
 
+#[instrument(skip(state, rstate))]
 pub async fn index(
     _: PathFilters,
     Extension(state): Extension<TiberiusState>,
@@ -109,6 +110,7 @@ pub struct FormSetSessionFilter {
     session_only: bool,
 }
 
+#[instrument(skip(state, rstate))]
 pub async fn set_filter(
     _: PathFilters,
     Extension(state): Extension<TiberiusState>,
