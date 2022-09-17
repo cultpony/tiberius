@@ -112,6 +112,8 @@ pub enum TiberiusError {
 
     #[error("ACL Error: {0:?}")]
     ACLError(#[from] tiberius_dependencies::casbin::Error),
+    #[error("Query Error: {0:?}")]
+    QueryError(#[from] tiberius_search::QueryError),
 }
 
 pub type TiberiusResult<T> = std::result::Result<T, TiberiusError>;

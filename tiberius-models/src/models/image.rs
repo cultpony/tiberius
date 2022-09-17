@@ -862,6 +862,12 @@ impl Image {
         .fetch_optional(client)
         .await?)
     }
+    pub async fn get_newest(client: &mut Client) -> Result<Option<Self>, PhilomenaModelError> {
+        let id = query!(
+            "SELECT id FROM images ORDER BY created_at DESC LIMIT 1",
+        ).fetch_one(&mut *client).await?.id;
+        Self::get_id(client, id as i64).await
+    }
     pub async fn get_all(
         pool: PgPool,
         start_id: Option<u64>,

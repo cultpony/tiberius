@@ -34,6 +34,7 @@ thiserror = "1.0.30"
 tiberius-core = { path = "../tiberius-core" }
 tiberius-models = { path = "../tiberius-models" }
 tiberius-dependencies = { path = "../tiberius-dependencies" }
+tiberius-search = { path = "../tiberius-search" }
 tokio = { version = "1.10", features = ["full"] }
 tokio-cron-scheduler = "0.2.1"
 tracing = "0.1.29"
@@ -43,9 +44,9 @@ sentry = { version = "0.27.0", features = ["tracing", "anyhow", "tower", "panic"
 futures-util = "0.3.24"
 
 [features]
-default = ["all-jobs"]
+default = ["stable-jobs"]
 all-jobs = ["cleanup-jobs", "online-jobs", "reindex-jobs", "processing-jobs"]
-stable-jobs = ["cleanup-jobs", "job_refresh_channels"]
+stable-jobs = ["cleanup-jobs", "job_refresh_channels", "reindex-jobs"]
 
 cleanup-jobs = ["job_cleanup_sessions"]
 online-jobs = ["job_refresh_channels"]

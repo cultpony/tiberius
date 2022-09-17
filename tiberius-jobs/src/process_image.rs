@@ -164,6 +164,7 @@ pub(crate) async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> Tib
     );
     let reindex_config = crate::reindex_images::ImageReindexConfig {
         image_ids: Some(vec![img.id as i64]),
+        ..Default::default()
     };
     crate::reindex_images::reindex_images(pool, reindex_config).await?;
     current_job.complete().await?;

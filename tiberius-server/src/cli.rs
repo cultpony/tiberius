@@ -4,6 +4,7 @@ pub mod grant_acl;
 pub mod list_users;
 pub mod run_job;
 pub mod server;
+pub mod worker;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about = "The Lunar Image Board", long_about = None)]
@@ -33,6 +34,9 @@ pub enum Command {
     GrantAcl(GrantAclCli),
     /// Run a specific job manually. Note that you will only schedule the job, a worker must be available
     RunJob(RunJobCli),
+    /// Executes a specific job outside the scheduler, not all jobs allow this
+    ExecJob(ExecJobCli),
+    Worker(WorkerCli),
 }
 
 #[derive(Args, Debug)]
@@ -94,6 +98,12 @@ pub struct RunJobCli {
     pub job: RunJobSelect,
 }
 
+#[derive(Args, Debug)]
+pub struct ExecJobCli {
+    #[clap(subcommand)]
+    pub job: ExecJobSelect,
+}
+
 #[derive(Subcommand, Debug)]
 pub enum RunJobSelect {
     RefreshCachelines {
@@ -101,4 +111,17 @@ pub enum RunJobSelect {
         #[clap(requires("image-start"))]
         image_end: Option<u64>,
     },
+    ReindexImages {
+        #[clap(short, long)]
+        only_new: bool,
+    }
+}
+
+#[derive(Subcommand, Debug)]
+pub enum ExecJobSelect {
+    ReindexNewImages,
+}
+#[derive(Args, Debug)]
+pub struct WorkerCli {
+    // nothign yet, TODO:
 }

@@ -36,6 +36,7 @@ sqlx = { version = "0.6", features = ["postgres", "chrono", "time", "macros", "j
 thiserror = "1.0.30"
 tiberius-models = { path = "../tiberius-models" }
 tiberius-dependencies = { path = "../tiberius-dependencies" }
+tiberius-search = { path = "../tiberius-search" }
 tokio = { version = "1.10", features = ["full"] }
 url = { version = "2.2", features = ["serde"] }
 uuid = "1"

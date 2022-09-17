@@ -414,7 +414,7 @@ mod test {
         .expect("could not decrypt session");
         let term = erlang_term::Term::from_bytes(&decrypted).unwrap();
         println!("{:?}", term);
-        let term = term.as_map().expect("must be a toplevel map");
+        let term = term.as_atom_map().expect("must be a toplevel map");
         assert!(term.contains_key("live_socket_id"));
         assert!(term.contains_key("_csrf_token"));
         assert!(term.contains_key("user_token"));

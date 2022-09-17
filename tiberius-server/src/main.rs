@@ -115,6 +115,18 @@ fn main() -> TiberiusResult<()> {
             drop(guard);
             Ok(())
         }
+        Command::Worker(_) => {
+            info!("Starting {} worker", package_full());
+            runtime.block_on(async move {
+                tokio::spawn(async move {
+                    crate::cli::worker::worker_start(global_config).await
+                })
+                .await
+            })??;
+            runtime.shutdown_timeout(std::time::Duration::from_secs(10));
+            drop(guard);
+            Ok(())
+        }
         Command::GenKeys(config) => {
             let base_path = std::path::PathBuf::from_str(&config.key_directory)?;
             if !base_path.exists() {
@@ -160,6 +172,13 @@ fn main() -> TiberiusResult<()> {
         Command::RunJob(runjob) => {
             runtime.block_on(async move {
                 crate::cli::run_job::run_job(runjob, global_config).await
+            })?;
+            drop(guard);
+            Ok(())
+        }
+        Command::ExecJob(runjob) => {
+            runtime.block_on(async move {
+                crate::cli::run_job::exec_job(runjob, global_config).await
             })?;
             drop(guard);
             Ok(())

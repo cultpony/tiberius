@@ -119,7 +119,10 @@ pub async fn scheduler(db: DBPool, config: Configuration) -> ! {
                 Job::new("0 2/10 * * * * *", move |uuid, l| {
                     info!("Starting reindex_images job on scheduler UUID {}", uuid);
                     let db = db.clone();
-                    let config = reindex_images::ImageReindexConfig::default();
+                    let config = reindex_images::ImageReindexConfig{
+                        only_new: true,
+                        ..Default::default()
+                    };
                     tokio::spawn(async move {
                         let mut jb: sqlxmq::JobBuilder = reindex_images::run_job.builder();
                         let jb = jb.set_json(&config);
@@ -142,7 +145,7 @@ pub async fn scheduler(db: DBPool, config: Configuration) -> ! {
         let db = db.clone();
         sched
             .add(
-                Job::new("0 3/10 * * * * *", move |uuid, l| {
+                Job::new("0 0 * * * * *", move |uuid, l| {
                     info!("Starting reindex_tags job on scheduler UUID {}", uuid);
                     let db = db.clone();
                     let config = reindex_tags::TagReindexConfig::default();
@@ -164,6 +167,7 @@ pub async fn scheduler(db: DBPool, config: Configuration) -> ! {
             .expect("could not add job to scheduler");
     }
 
+    info!("Starting scheduler");
     sched.start().await.expect("scheduler failed");
     error!("scheduler exited");
     drop(sched);

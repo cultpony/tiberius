@@ -1,4 +1,5 @@
 use futures_util::stream::StreamExt;
+use itertools::Itertools;
 use sqlx::{FromRow, Pool, Postgres};
 use sqlxmq::{job, Checkpoint, CurrentJob};
 use tiberius_core::{config::Configuration, error::TiberiusResult, state::TiberiusState};
@@ -11,12 +12,23 @@ use crate::SharedCtx;
 
 #[derive(serde::Deserialize, serde::Serialize, Clone, Debug)]
 pub struct ImageReindexConfig {
+    /// If none and only_new is false, all images are reindexed
+    /// If none and only_new is true, only new images are reindex
+    /// If some then listed images are indexed in addition to new images if only_new is true
     pub image_ids: Option<Vec<i64>>,
+    /// If set true, only images that are newer than the latest indexed image are reindexed
+    /// in addition to all images listed in the image_ids list
+    /// 
+    /// If no image IDs are listed, this will result in indexing only new images
+    pub only_new: bool,
 }
 
 impl Default for ImageReindexConfig {
     fn default() -> Self {
-        Self { image_ids: None }
+        Self {
+            image_ids: None,
+            only_new: false,
+        }
     }
 }
 
@@ -31,16 +43,25 @@ pub async fn reindex_images<'a, E: sqlx::Executor<'a, Database = sqlx::Postgres>
 #[instrument(level = "trace")]
 #[sqlxmq::job]
 pub async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
-    info!("Job {}: Reindexing all images", current_job.id());
+    info!("Job {}: Reindexing images", current_job.id());
     let start = std::time::Instant::now();
     let pool = current_job.pool();
     let progress: ImageReindexConfig = current_job
         .json()?
         .expect("job requires configuration copy");
+    info!("Job {}: Reindexing listed images ({:?})", current_job.id(), progress.image_ids);
     let mut client = sctx.client;
     match progress.image_ids {
-        None => reindex_all(pool, &mut client).await?,
-        Some(v) => reindex_many(&mut client, v).await?,
+        None if !progress.only_new => reindex_all(pool, &mut client).await?,
+        None if progress.only_new => {
+            reindex_new(&mut client).await?;
+        }
+        Some(v) if !progress.only_new => reindex_many(&mut client, v).await?,
+        Some(v) if progress.only_new => {
+            reindex_many(&mut client, v).await?;
+            reindex_new(&mut client).await?;
+        },
+        _ => unreachable!(),
     }
     info!("Job {}: Reindex complete!", current_job.id());
     current_job.complete().await?;
@@ -56,7 +77,7 @@ pub async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRe
 }
 
 #[instrument(level = "trace")]
-async fn reindex_many(client: &mut Client, ids: Vec<i64>) -> TiberiusResult<()> {
+pub async fn reindex_many(client: &mut Client, ids: Vec<i64>) -> TiberiusResult<()> {
     let images = Image::get_many(client, ids, ImageSortBy::Random).await?;
     let index_writer = client.index_writer::<Image>().await?;
     info!("Reindexing all images, streaming from DB...");
@@ -68,6 +89,31 @@ async fn reindex_many(client: &mut Client, ids: Vec<i64>) -> TiberiusResult<()> 
     let mut index_writer = index_writer.write().await;
     index_writer.commit()?;
     drop(index_writer);
+    Ok(())
+}
+
+#[instrument]
+pub async fn reindex_new(client: &mut Client) -> TiberiusResult<()> {
+    let i = client.index_reader::<Image>()?;
+    let dir = ImageSortBy::CreatedAt(tiberius_models::SortDirection::Descending);
+    let (_, last_image) = Image::search_item(&i, tiberius_search::Query::True, Vec::new(), Vec::new(), 1, 0, dir)?;
+    if last_image.is_empty() {
+        warn!("Reindex new failed, no images in index?");
+        return Ok(());
+    }
+    let last_db_image = Image::get_newest(client).await?.expect("this job requires atleast one image in the database");
+    info!("Latest indexed image is {}, latest image in database is {}", last_image[0].1, last_db_image.id);
+    if last_image[0].1 as u64 == last_db_image.id as u64 {
+        info!("No new images, reindex job step complete");
+    } else {
+        let images = Image::get_range(client, (last_image[0].1 as u64)..(last_db_image.id as u64))
+            .await?
+            .iter()
+            .map(|x| x.id as i64)
+            .collect_vec();
+        reindex_many(client, images).await?;
+        info!("New images have been indexed");
+    }
     Ok(())
 }
 
