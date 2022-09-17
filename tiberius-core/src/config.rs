@@ -170,6 +170,10 @@ pub struct Configuration {
     #[clap(long, env = "SENTRY_URL")]
     #[sensitive]
     pub sentry_url: Option<String>,
+    /// The ratio of transactions to send to sentry. If not given all transactions are sent.
+    /// Value is clamped to the range 0..1
+    #[clap(long, env = "SENTRY_RATIO")]
+    pub sentry_ratio: Option<f64>,
     #[clap(long, env, default_value = "104857600")]
     pub upload_max_size: u64,
     #[serde(skip_serializing, default)]
@@ -267,6 +271,7 @@ impl Default for Configuration {
             alt_dbconn: None,
             otp_secret: None,
             sentry_url: None,
+            sentry_ratio: None,
             log_level: LogLevel::default(),
             bind_to: "127.0.0.1:8081".parse().unwrap(),
             strangle_to: None,
