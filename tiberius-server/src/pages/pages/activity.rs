@@ -45,7 +45,7 @@ pub async fn index(
                     @if let Some(featured_image) = featured_image {
                         @if !featured_image.hidden(&mut client)? {
                             .center {
-                                h4.remove-top-margin { "Featured Image" }
+                                h4.remove-top-margin { "Manebooru Spotlight" }
                                 (image_box(&state, &rstate, &mut client, featured_image, ImageSize::Medium, HeaderSize::None, DisplaySize::Featured).await?)
                             }
                         }
