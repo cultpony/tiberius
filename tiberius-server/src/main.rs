@@ -79,7 +79,7 @@ fn main() -> TiberiusResult<()> {
         Some(guard_url) => {
             let opts = sentry::ClientOptions {
                 release: sentry::release_name!(),
-                traces_sample_rate: 1.0,
+                traces_sample_rate: app.config.sentry_ratio.unwrap_or(1.0) as f32,
                 auto_session_tracking: false,
                 session_mode: sentry::SessionMode::Request,
                 ..Default::default()
