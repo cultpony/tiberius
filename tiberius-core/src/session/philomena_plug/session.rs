@@ -107,24 +107,24 @@ impl TryFrom<Term> for PhilomenaCookie {
     type Error = TiberiusError;
 
     fn try_from(value: Term) -> Result<Self, Self::Error> {
-        let value = value.as_atom_map().ok_or(TiberiusError::ErlangTermDecode(
+        let value = value.as_map().ok_or(TiberiusError::ErlangTermDecode(
             "Philomena Cookie invalid".to_string(),
         ))?;
         let live_socket_id: Option<String>;
         let csrf_token: Option<String>;
         let user_token: Option<Vec<u8>>;
         live_socket_id = value
-            .get("live_socket_id")
+            .get(&erlang_term::Term::from("live_socket_id"))
             .cloned()
             .map(|x| x.as_string())
             .flatten();
         csrf_token = value
-            .get("_csrf_token")
+            .get(&erlang_term::Term::from("_csrf_token"))
             .cloned()
             .map(|x| x.as_string())
             .flatten();
         user_token = value
-            .get("user_token")
+            .get(&erlang_term::Term::from("user_token"))
             .cloned()
             .map(|x| x.as_bytes())
             .flatten();
@@ -414,10 +414,10 @@ mod test {
         .expect("could not decrypt session");
         let term = erlang_term::Term::from_bytes(&decrypted).unwrap();
         println!("{:?}", term);
-        let term = term.as_atom_map().expect("must be a toplevel map");
-        assert!(term.contains_key("live_socket_id"));
-        assert!(term.contains_key("_csrf_token"));
-        assert!(term.contains_key("user_token"));
+        let term = term.as_map().expect("must be a toplevel map");
+        assert!(term.contains_key(&erlang_term::Term::from("live_socket_id")), "{term:?} contains live socket id");
+        assert!(term.contains_key(&erlang_term::Term::from("_csrf_token")), "{term:?} contains csrf token");
+        assert!(term.contains_key(&erlang_term::Term::from("user_token")), "{term:?} contains user token");
         Ok(())
     }
 
