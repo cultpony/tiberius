@@ -35,4 +35,4 @@ tiberius-common-html = { path = "../tiberius-common-html" }
 maud = { version = "*", features = ["axum"] }
 
 [dev-dependencies]
-sqlx-database-tester = { version = "0.2.0", features = ["runtime-tokio"] }
+sqlx-database-tester = { version = "0.4.2", features = ["runtime-tokio"] }
