@@ -14,7 +14,7 @@ base64 = "0.13"
 bcrypt = "0.13.0"
 chrono = "0.4.20"
 # casbin = "2.0.7" # needs tobe 2.0.8 until sqlxmq is replaced or updated
-csp = "0.1.0"
+csp = "1.0.1"
 either = { version = "1.6.1", features = ["serde"] }
 #envy = "0.4"
 image = "0.23"
