@@ -17,7 +17,7 @@ http = "^0.2"
 totp-rs = "3"
 headers = "0.3"
 mime = "0.3"
-rust-embed = { version = "6.4.0", features = ["compression", "axum", "tokio"] }
+rust-embed = { version = "6.4.1", features = ["compression", "axum", "tokio"] }
 maud = { version = "*", features = ["axum"] }
 tempfile = "3"
 serde_qs = { version = "0.10.1", features = ["axum"] }
