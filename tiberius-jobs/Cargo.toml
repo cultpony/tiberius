@@ -38,7 +38,7 @@ tiberius-search = { path = "../tiberius-search" }
 tokio = { version = "1.10", features = ["full"] }
 tokio-cron-scheduler = "0.2.1"
 tracing = "0.1.29"
-url = { version = "2.2", features = ["serde"] }
+url = { version = "2.3", features = ["serde"] }
 uuid = "1"
 sentry = { version = "0.27.0", features = ["tracing", "anyhow", "tower", "panic", "contexts"] }
 futures-util = "0.3.24"
