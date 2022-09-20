@@ -12,7 +12,7 @@ async-trait = "0.1.50"
 base64 = "0.13"
 bcrypt = "0.13.0"
 chrono = "0.4.20"
-csp = "0.1.0"
+csp = "1.0.1"
 either = { version = "1.6.1", features = ["serde"] }
 image = "0.23"
 itertools = "0.10.1"
@@ -30,7 +30,7 @@ serde_json = "1.0"
 sha2 = "0.10.2"
 sqlx = { version = "0.6", features = ["postgres", "chrono", "time", "macros", "json", "runtime-tokio-rustls", "offline", "migrate"] }
 sqlxmq = { version = "0.4", default-features = false, features = ["runtime-tokio-rustls"] }
-thiserror = "1.0.30"
+thiserror = "1.0.35"
 tiberius-core = { path = "../tiberius-core" }
 tiberius-models = { path = "../tiberius-models" }
 tiberius-dependencies = { path = "../tiberius-dependencies" }
@@ -38,7 +38,7 @@ tiberius-search = { path = "../tiberius-search" }
 tokio = { version = "1.10", features = ["full"] }
 tokio-cron-scheduler = "0.2.1"
 tracing = "0.1.29"
-url = { version = "2.2", features = ["serde"] }
+url = { version = "2.3", features = ["serde"] }
 uuid = "1"
 sentry = { version = "0.27.0", features = ["tracing", "anyhow", "tower", "panic", "contexts"] }
 futures-util = "0.3.24"
