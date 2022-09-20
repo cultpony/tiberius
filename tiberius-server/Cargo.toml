@@ -22,7 +22,7 @@ csp = "1.0.1"
 either = { version = "1.6.1", features = ["serde"] }
 human_bytes = "0.3.0"
 image = "0.23.14"
-itertools = "0.10.1"
+itertools = "0.10.4"
 kankyo = "0.3"
 lazy_static = "1.4"
 maud = { version = "*", features = ["axum"] }
@@ -41,13 +41,13 @@ sha2 = "0.10.2"
 sha3 = "0.10.5"
 sqlx = { version = "0.6", features = ["postgres", "chrono", "time", "macros", "json", "runtime-tokio-rustls", "offline", "migrate"] }
 sqlxmq = { version = "0.4", default-features = false, features = ["runtime-tokio-rustls"] }
-thiserror = "1.0.30"
+thiserror = "1.0.35"
 tiberius-core = { path = "../tiberius-core" }
 tiberius-common-html = { path = "../tiberius-common-html" }
 tiberius-jobs = { path = "../tiberius-jobs", default-features = false }
 tiberius-models = { path = "../tiberius-models" }
 tiberius-dependencies = { path = "../tiberius-dependencies" }
-tokio = { version = "1.10", features = ["full", "tracing"] }
+tokio = { version = "1.21", features = ["full", "tracing"] }
 tokio-cron-scheduler = "0.2.1"
 tracing = { version = "0.1", features = [] }
 tracing-log = { version = "0.1.2" }
