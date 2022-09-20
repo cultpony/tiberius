@@ -18,11 +18,11 @@ camo-url = "0.1.2"
 chrono = "0.4.20"
 chrono-humanize = "0.2.1"
 clap = { version = "3.0", features = ["derive", "env"] }
-csp = "0.1.0"
+csp = "1.0.1"
 either = { version = "1.6.1", features = ["serde"] }
 human_bytes = "0.3.0"
 image = "0.23.14"
-itertools = "0.10.1"
+itertools = "0.10.4"
 kankyo = "0.3"
 lazy_static = "1.4"
 maud = { version = "*", features = ["axum"] }
@@ -52,7 +52,7 @@ tokio-cron-scheduler = "0.2.1"
 tracing = { version = "0.1", features = [] }
 tracing-log = { version = "0.1.2" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-url = { version = "2.2", features = ["serde"] }
+url = { version = "2.3", features = ["serde"] }
 uuid = "1"
 textile = "0.2.1"
 pulldown-cmark = "0.9.2"
@@ -68,7 +68,7 @@ tower-cookies = "0.7.0"
 maplit = "1.0.2"
 
 [dev-dependencies]
-sqlx-database-tester = { version = "0.2.0", features = ["runtime-tokio"] }
+sqlx-database-tester = { version = "0.4.2", features = ["runtime-tokio"] }
 
 [features]
 default = ["full-release"]
