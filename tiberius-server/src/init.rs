@@ -12,11 +12,12 @@ pub fn logging(config: &Configuration) {
     let filter = EnvFilter::from_default_env();
     let fmt_layer = tracing_subscriber::fmt::layer();
     tracing_subscriber::registry()
-        .with(
-            fmt_layer
-                .with_filter(tracing::metadata::LevelFilter::from_level(def_level))
-                .with_filter(filter_fn(|metadata| -> bool {
-                    //println!("MODULE: metadata.module: {:?}", metadata.module_path());
+        .with({
+            let f = fmt_layer
+                .with_filter(tracing::metadata::LevelFilter::from_level(def_level));
+                #[cfg(not(debug_assertions))]
+                let f = f.with_filter(filter_fn(|metadata| -> bool {
+                    // We filter these in debugging as most of them are a bit noisy
                     match metadata.module_path() {
                         None => true,
                         Some(v) => !{
@@ -32,8 +33,9 @@ pub fn logging(config: &Configuration) {
                                 || v.contains("sqlx")
                         },
                     }
-                })),
-        )
+                }));
+                f
+        })
         .with(sentry::integrations::tracing::layer())
         .init();
 }
