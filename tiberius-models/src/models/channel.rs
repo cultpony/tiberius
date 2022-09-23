@@ -79,7 +79,7 @@ impl Channel {
                 created_at, updated_at, associated_artist_tag_id, viewer_minutes_today,
                 viewer_minutes_thisweek, viewer_minutes_thismonth, total_viewer_minutes,
                 banner_image, remote_Stream_id, thumbnail_url
-                FROM channels WHERE nsfw = false AND last_fetched_at is not null"
+                FROM channels WHERE nsfw = false AND last_fetched_at is not null ORDER BY short_name"
         )
         .fetch_all(client.db().await?.deref_mut())
         .await?)
@@ -99,7 +99,7 @@ impl Channel {
                     last_live_at, watcher_ids, watcher_count, type as \"type: ChannelType\",
                     created_at, updated_at, associated_artist_tag_id, viewer_minutes_today,
                     viewer_minutes_thisweek, viewer_minutes_thismonth, total_viewer_minutes,
-                    banner_image, remote_Stream_id, thumbnail_url FROM channels WHERE type = $1",
+                    banner_image, remote_Stream_id, thumbnail_url FROM channels WHERE type = $1 ORDER BY short_name",
                     channel_type
                 )
                 .fetch_all(client.db().await?.deref_mut())
@@ -113,7 +113,7 @@ impl Channel {
                 last_live_at, watcher_ids, watcher_count, type as \"type: ChannelType\",
                 created_at, updated_at, associated_artist_tag_id, viewer_minutes_today,
                 viewer_minutes_thisweek, viewer_minutes_thismonth, total_viewer_minutes,
-                banner_image, remote_Stream_id, thumbnail_url FROM channels",
+                banner_image, remote_Stream_id, thumbnail_url FROM channels ORDER BY short_name",
                 )
                 .fetch_all(client.db().await?.deref_mut())
                 .await?
