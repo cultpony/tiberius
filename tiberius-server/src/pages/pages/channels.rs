@@ -118,8 +118,10 @@ pub async fn list_channels(
         }
         .block {
             .block__header.page__header {
-                .page__pagination {
-                    (pages.pagination())
+                @if pages.need_pagination() {
+                    .page__pagination {
+                        (pages.pagination())
+                    }
                 }
 
                 @if show_nsfw_state {
@@ -141,9 +143,11 @@ pub async fn list_channels(
                 }
             }
 
-            .block__header.page__header {
-                .page__pagination {
-                    (pages.pagination())
+            @if pages.need_pagination() {
+                .block__header.page__header {
+                    .page__pagination {
+                        (pages.pagination())
+                    }
                 }
             }
         }

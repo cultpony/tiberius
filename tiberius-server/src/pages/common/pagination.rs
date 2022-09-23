@@ -54,6 +54,19 @@ impl PaginationCtl {
         })
     }
 
+    pub fn estimated_item_count(&self) -> u64 {
+        self.pages * self.page_size as u64
+    }
+
+    pub fn page_size(&self) -> u64 {
+        self.page_size as u64
+    }
+
+    /// Returns true if pagination should be used for this page
+    pub fn need_pagination(&self) -> bool {
+        self.pages > 1
+    }
+
     fn current_page(&self) -> u64 {
         self.current_page + 1
     }
