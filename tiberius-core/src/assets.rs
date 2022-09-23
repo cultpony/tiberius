@@ -2,10 +2,12 @@ use std::{borrow::Cow, collections::BTreeMap, path::PathBuf, str::FromStr};
 
 use anyhow::Context;
 use async_std::sync::RwLock;
-use axum::Router;
+use axum::{Router, Extension};
 use tiberius_dependencies::axum::headers::{ContentType, HeaderMapExt};
+use tokio::io::AsyncReadExt;
 use tracing::info;
 
+use crate::state::TiberiusState;
 use crate::{
     config::Configuration,
     error::{TiberiusError, TiberiusResult},
@@ -32,15 +34,29 @@ pub struct Assets;
 #[typed_path("/favicon.ico")]
 pub struct GetFaviconIco {}
 
-pub async fn serve_favicon_ico(_: GetFaviconIco) -> TiberiusResult<FileResponse> {
+pub async fn serve_favicon_ico(_: GetFaviconIco, Extension(state): Extension<TiberiusState>) -> TiberiusResult<FileResponse> {
+    if state.config().try_use_ondisk_favicon {
+        let base = PathBuf::from_str(&state.config().static_root)?;
+        let favicon = base.join("favicon.ico");
+        if favicon.exists() {
+            return serve_disk_file(&state, favicon).await;
+        }
+    }
     serve_static_file(PathBuf::from_str("/favicon.ico")?).await
 }
 
 #[derive(TypedPath, serde::Deserialize)]
 #[typed_path("/favicon.svg")]
 pub struct GetFaviconSvg {}
-pub async fn serve_favicon_svg(_: GetFaviconSvg) -> TiberiusResult<FileResponse> {
-    serve_static_file(PathBuf::from_str("/favicon.ico")?).await
+pub async fn serve_favicon_svg(_: GetFaviconSvg, Extension(state): Extension<TiberiusState>) -> TiberiusResult<FileResponse> {
+    if state.config().try_use_ondisk_favicon {
+        let base = PathBuf::from_str(&state.config().static_root)?;
+        let favicon = base.join("favicon.svg");
+        if favicon.exists() {
+            return serve_disk_file(&state, favicon).await;
+        }
+    }
+    serve_static_file(PathBuf::from_str("/favicon.svg")?).await
 }
 
 #[derive(TypedPath, serde::Deserialize)]
@@ -76,7 +92,7 @@ pub async fn serve_static_file(file: PathBuf) -> TiberiusResult<FileResponse> {
         Some(file) => {
             let content_type =
                 new_mime_guess::from_ext(&path.extension().unwrap_or_default().to_string_lossy());
-            let content_type = content_type.first().unwrap_or(mime::TEXT_HTML_UTF_8);
+            let content_type = content_type.first().unwrap_or(mime::TEXT_PLAIN_UTF_8);
             trace!(
                 "Serving static file {} with content type {}",
                 path.display(),
@@ -87,6 +103,43 @@ pub async fn serve_static_file(file: PathBuf) -> TiberiusResult<FileResponse> {
             hm.typed_insert(ContentType::from(content_type));
             FileResponse {
                 content: file.data,
+                headers: hm,
+            }
+        }
+    })
+}
+
+pub async fn serve_disk_file(state: &TiberiusState, file: PathBuf) -> TiberiusResult<FileResponse> {
+    trace!("Serving disk file {:?}", file);
+    assert!(file.starts_with(state.config().static_root.clone()), "Disk Files must come from Static Root");
+    let path = file.clone();
+    let file = tokio::fs::File::open(file).await;
+    Ok(match file {
+        Err(e) => {
+            warn!("Static File serving failed: {}, pretending 404", e);
+            return Err(TiberiusError::Other(format!(
+                "file {} not found",
+                path.display()
+            )))
+        }
+        Ok(mut file) => {
+            let content_type =
+                new_mime_guess::from_ext(&path.extension().unwrap_or_default().to_string_lossy());
+            let content_type = content_type.first().unwrap_or(mime::TEXT_PLAIN_UTF_8);
+            trace!(
+                "Serving static file {} with content type {}",
+                path.display(),
+                content_type
+            );
+            use tiberius_dependencies::http::HeaderMap;
+            let mut hm = HeaderMap::new();
+            hm.typed_insert(ContentType::from(content_type));
+            let mut buffer = Vec::with_capacity(file.metadata().await?.len() as usize);
+            let read = file.read_to_end(&mut buffer).await?;
+            assert!(read == buffer.len(), "Under or overread, wanted {} bytes got {} bytes", buffer.len(), read);
+            let buffer = Cow::from(buffer);
+            FileResponse {
+                content: buffer,
                 headers: hm,
             }
         }

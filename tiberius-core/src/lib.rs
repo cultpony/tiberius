@@ -69,18 +69,6 @@ pub fn http_client(config: &Configuration) -> TiberiusResult<reqwest::Client> {
     };
     Ok(client.default_headers(common_headers()).build()?)
 }
-pub struct StatelessPaths {}
-
-impl StatelessPaths {
-    pub fn contains(path: &str) -> bool {
-        match path {
-            "/favicon.svg" => true,
-            "/favicon.ico" => true,
-            "/robots.txt" => true,
-            _ => path.starts_with("/static/") || path.starts_with("/img/"),
-        }
-    }
-}
 
 fn common_headers() -> HeaderMap {
     let mut hm = HeaderMap::new();

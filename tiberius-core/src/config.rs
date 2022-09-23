@@ -184,6 +184,10 @@ pub struct Configuration {
     /// If false, the middleware regulating access this way is not activated on bootup
     #[clap(long, default_value = "false")]
     pub enable_lock_down: bool,
+    /// Will check if the resource folder on disk contains a favicon and use that over the compiled in version if possible
+    /// The following path is checked here: /res/favicon.ico
+    #[clap(long, default_value = "false")]
+    pub try_use_ondisk_favicon: bool,
 }
 
 impl Configuration {
@@ -278,6 +282,7 @@ impl Default for Configuration {
             upload_max_size: 104857600,
             rebuild_index_on_startup: false,
             enable_lock_down: false,
+            try_use_ondisk_favicon: true,
         }
     }
 }
