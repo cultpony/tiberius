@@ -35,7 +35,7 @@ tiberius-core = { path = "../tiberius-core" }
 tiberius-models = { path = "../tiberius-models" }
 tiberius-dependencies = { path = "../tiberius-dependencies" }
 tiberius-search = { path = "../tiberius-search" }
-tokio = { version = "1.10", features = ["full"] }
+tokio = { version = "1.21", features = ["full"] }
 tokio-cron-scheduler = "0.2.1"
 tracing = "0.1.29"
 url = { version = "2.3", features = ["serde"] }

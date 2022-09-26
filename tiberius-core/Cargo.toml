@@ -37,7 +37,7 @@ thiserror = "1.0.35"
 tiberius-models = { path = "../tiberius-models" }
 tiberius-dependencies = { path = "../tiberius-dependencies" }
 tiberius-search = { path = "../tiberius-search" }
-tokio = { version = "1.10", features = ["full"] }
+tokio = { version = "1.21", features = ["full"] }
 url = { version = "2.3", features = ["serde"] }
 uuid = "1"
 erlang-term = "1.0.0"

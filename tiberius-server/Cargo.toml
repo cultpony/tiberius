@@ -47,7 +47,7 @@ tiberius-common-html = { path = "../tiberius-common-html" }
 tiberius-jobs = { path = "../tiberius-jobs", default-features = false }
 tiberius-models = { path = "../tiberius-models" }
 tiberius-dependencies = { path = "../tiberius-dependencies" }
-tokio = { version = "1.10", features = ["full", "tracing"] }
+tokio = { version = "1.21", features = ["full", "tracing"] }
 tokio-cron-scheduler = "0.2.1"
 tracing = { version = "0.1", features = [] }
 tracing-log = { version = "0.1.2" }
