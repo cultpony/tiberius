@@ -109,7 +109,7 @@ dependencies = [
  "maplit",
  "once_cell",
  "tendril",
- "url 2.3.0",
+ "url 2.3.1",
 ]
 
 [[package]]
@@ -354,9 +354,9 @@ dependencies = [
 
 [[package]]
 name = "axum"
-version = "0.5.15"
+version = "0.5.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9de18bc5f2e9df8f52da03856bf40e29b747de5a84e43aefff90e3dc4a21529b"
+checksum = "c9e3356844c4d6a6d6467b8da2cffb4a2820be256f50a3a386c9d152bab31043"
 dependencies = [
  "async-trait",
  "axum-core",
@@ -373,7 +373,7 @@ dependencies = [
  "memchr 2.5.0",
  "mime",
  "multer",
- "percent-encoding 2.1.0",
+ "percent-encoding 2.2.0",
  "pin-project-lite",
  "serde",
  "serde_json",
@@ -390,9 +390,9 @@ dependencies = [
 
 [[package]]
 name = "axum-core"
-version = "0.2.7"
+version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4f44a0e6200e9d11a1cdc989e4b358f6e3d354fbf48478f345a17f4e43f8635"
+checksum = "d9f0c0a60006f2a293d82d571f635042a72edf927539b7685bd62d361963839b"
 dependencies = [
  "async-trait",
  "bytes",
@@ -400,6 +400,8 @@ dependencies = [
  "http",
  "http-body",
  "mime",
+ "tower-layer",
+ "tower-service",
 ]
 
 [[package]]
@@ -408,14 +410,14 @@ version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "69034b3b0fd97923eee2ce8a47540edb21e07f48f87f67d44bb4271cec622bdb"
 dependencies = [
- "axum 0.5.15",
+ "axum 0.5.16",
  "axum-macros",
  "bytes",
  "cookie",
  "futures-util",
  "http",
  "mime",
- "percent-encoding 2.1.0",
+ "percent-encoding 2.2.0",
  "pin-project-lite",
  "serde",
  "tokio",
@@ -437,7 +439,7 @@ dependencies = [
  "base64",
  "cookie",
  "http",
- "percent-encoding 2.1.0",
+ "percent-encoding 2.2.0",
  "serde",
  "serde_json",
  "tower-cookies 0.6.0",
@@ -463,7 +465,7 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec48fcd1a470ee66562eb8c0013682b6fe3a8e679b6c95453c6280bfd8e00446"
 dependencies = [
- "axum 0.5.15",
+ "axum 0.5.16",
  "futures-util",
  "hyper",
  "reqwest",
@@ -480,7 +482,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "beb3c976e846ac2848a2f693189caa86627c16cd2f4e703ca5d8dd64deab24a1"
 dependencies = [
  "async-trait",
- "axum 0.5.15",
+ "axum 0.5.16",
  "base64",
  "bcrypt",
  "cookie",
@@ -749,7 +751,7 @@ dependencies = [
  "hex",
  "hmac 0.10.1",
  "securefmt",
- "url 2.3.0",
+ "url 2.3.1",
 ]
 
 [[package]]
@@ -987,7 +989,7 @@ dependencies = [
  "aes-gcm",
  "base64",
  "hmac 0.12.1",
- "percent-encoding 2.1.0",
+ "percent-encoding 2.2.0",
  "rand",
  "sha2 0.10.6",
  "subtle",
@@ -1008,7 +1010,7 @@ dependencies = [
  "serde",
  "serde_json",
  "time 0.3.13",
- "url 2.3.0",
+ "url 2.3.1",
 ]
 
 [[package]]
@@ -1547,12 +1549,11 @@ checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
 
 [[package]]
 name = "form_urlencoded"
-version = "1.0.1"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fc25a87fa4fd2094bffb06925852034d90a17f0d1e05197d4956d3555752191"
+checksum = "a9c384f161156f5260c24a097c56119f9be8c798586aecc13afbcbe7b7e26bf8"
 dependencies = [
- "matches",
- "percent-encoding 2.1.0",
+ "percent-encoding 2.2.0",
 ]
 
 [[package]]
@@ -2110,6 +2111,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "418a0a6fab821475f634efe3ccc45c013f742efe03d853e8d3355d5cb850ecf8"
 dependencies = [
  "matches",
+ "unicode-bidi",
+ "unicode-normalization",
+]
+
+[[package]]
+name = "idna"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e14ddfc70884202db2244c223200c204c2bda1bc6e0998d11b5e024d657209e6"
+dependencies = [
  "unicode-bidi",
  "unicode-normalization",
 ]
@@ -3058,9 +3069,9 @@ checksum = "31010dd2e1ac33d5b46a5b413495239882813e0369f8ed8a5e266f173602f831"
 
 [[package]]
 name = "percent-encoding"
-version = "2.1.0"
+version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4fd5641d01c8f18a23da7b6fe29298ff4b55afcccdf78973b24cf3175fee32e"
+checksum = "478c572c3d73181ff3c2539045f6eb99e5491218eae919370993b890cdbdd98e"
 
 [[package]]
 name = "pest"
@@ -3531,7 +3542,7 @@ dependencies = [
  "mime",
  "mime_guess",
  "native-tls",
- "percent-encoding 2.1.0",
+ "percent-encoding 2.2.0",
  "pin-project-lite",
  "proc-macro-hack",
  "serde",
@@ -3541,7 +3552,7 @@ dependencies = [
  "tokio-native-tls",
  "tokio-socks",
  "tower-service",
- "url 2.3.0",
+ "url 2.3.1",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -3653,7 +3664,7 @@ version = "6.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e26934cd67a1da1165efe61cba4047cc1b4a526019da609fcce13a1000afb5fa"
 dependencies = [
- "axum 0.5.15",
+ "axum 0.5.16",
  "include-flate",
  "rust-embed-impl",
  "rust-embed-utils",
@@ -3939,7 +3950,7 @@ dependencies = [
  "sentry-core",
  "tower-layer",
  "tower-service",
- "url 2.3.0",
+ "url 2.3.1",
 ]
 
 [[package]]
@@ -3966,7 +3977,7 @@ dependencies = [
  "serde_json",
  "thiserror",
  "time 0.3.13",
- "url 2.3.0",
+ "url 2.3.1",
  "uuid 1.1.2",
 ]
 
@@ -4002,9 +4013,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.83"
+version = "1.0.85"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38dd04e3c8279e75b31ef29dbdceebfe5ad89f4d0937213c53f7d49d01b3d5a7"
+checksum = "e55a28e3aaef9d5ce0506d0a14dbba8054ddc7e499ef522dd8b26859ec9d4a44"
 dependencies = [
  "itoa 1.0.3",
  "ryu",
@@ -4017,9 +4028,9 @@ version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8cac3f1e2ca2fe333923a1ae72caca910b98ed0630bb35ef6f8c8517d6e81afa"
 dependencies = [
- "axum 0.5.15",
+ "axum 0.5.16",
  "futures",
- "percent-encoding 2.1.0",
+ "percent-encoding 2.2.0",
  "serde",
  "thiserror",
 ]
@@ -4276,7 +4287,7 @@ dependencies = [
  "memchr 2.5.0",
  "once_cell",
  "paste",
- "percent-encoding 2.1.0",
+ "percent-encoding 2.2.0",
  "rand",
  "rustls",
  "rustls-pemfile",
@@ -4291,7 +4302,7 @@ dependencies = [
  "thiserror",
  "time 0.3.13",
  "tokio-stream",
- "url 2.3.0",
+ "url 2.3.1",
  "uuid 1.1.2",
  "webpki-roots",
  "whoami",
@@ -4340,7 +4351,7 @@ dependencies = [
  "sqlx-core",
  "sqlx-rt",
  "syn",
- "url 2.3.0",
+ "url 2.3.1",
 ]
 
 [[package]]
@@ -4729,7 +4740,7 @@ dependencies = [
  "anyhow",
  "async-std",
  "async-trait",
- "axum 0.5.15",
+ "axum 0.5.16",
  "axum-extra",
  "base64",
  "bcrypt",
@@ -4762,7 +4773,7 @@ dependencies = [
  "tiberius-search",
  "tokio",
  "tracing",
- "url 2.3.0",
+ "url 2.3.1",
  "uuid 1.1.2",
 ]
 
@@ -4772,7 +4783,7 @@ version = "0.1.0"
 dependencies = [
  "ammonia",
  "async-once-cell",
- "axum 0.5.15",
+ "axum 0.5.16",
  "axum-extra",
  "axum-flash",
  "axum-strangler",
@@ -4839,7 +4850,7 @@ dependencies = [
  "tokio",
  "tokio-cron-scheduler",
  "tracing",
- "url 2.3.0",
+ "url 2.3.1",
  "uuid 1.1.2",
 ]
 
@@ -4872,7 +4883,7 @@ dependencies = [
  "tiberius-search",
  "tokio",
  "tracing",
- "url 2.3.0",
+ "url 2.3.1",
 ]
 
 [[package]]
@@ -4902,7 +4913,7 @@ dependencies = [
  "anyhow",
  "async-std",
  "async-trait",
- "axum 0.5.15",
+ "axum 0.5.16",
  "axum-extra",
  "base64",
  "bcrypt",
@@ -4954,7 +4965,7 @@ dependencies = [
  "tracing",
  "tracing-log",
  "tracing-subscriber",
- "url 2.3.0",
+ "url 2.3.1",
  "uuid 1.1.2",
 ]
 
@@ -5026,9 +5037,9 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "tokio"
-version = "1.20.1"
+version = "1.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a8325f63a7d4774dd041e363b2409ed1c5cbbd0f867795e661df066b2b0a581"
+checksum = "0020c875007ad96677dcc890298f4b942882c5d4eb7cc8f439fc3bf813dc9c95"
 dependencies = [
  "autocfg",
  "bytes",
@@ -5354,7 +5365,7 @@ dependencies = [
  "rand",
  "sha-1 0.10.0",
  "thiserror",
- "url 2.3.0",
+ "url 2.3.1",
  "utf-8",
 ]
 
@@ -5456,13 +5467,13 @@ dependencies = [
 
 [[package]]
 name = "url"
-version = "2.3.0"
+version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22fe195a4f217c25b25cb5058ced57059824a678474874038dc88d211bf508d3"
+checksum = "0d68c799ae75762b8c3fe375feb6600ef5602c883c5d21eb51c09f22b83c4643"
 dependencies = [
  "form_urlencoded",
- "idna 0.2.3",
- "percent-encoding 2.1.0",
+ "idna 0.3.0",
+ "percent-encoding 2.2.0",
  "serde",
 ]
 
