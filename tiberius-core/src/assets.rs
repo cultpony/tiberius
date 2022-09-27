@@ -111,12 +111,12 @@ pub async fn serve_static_file(file: PathBuf) -> TiberiusResult<FileResponse> {
 
 pub async fn serve_disk_file(state: &TiberiusState, file: PathBuf) -> TiberiusResult<FileResponse> {
     trace!("Serving disk file {:?}", file);
-    assert!(file.starts_with(state.config().static_root.clone()), "Disk Files must come from Static Root");
+    assert!(file.starts_with(state.config().static_root.clone()), "Disk Files must come from Static Root or known safe file location");
     let path = file.clone();
     let file = tokio::fs::File::open(file).await;
     Ok(match file {
         Err(e) => {
-            warn!("Static File serving failed: {}, pretending 404", e);
+            warn!("Static File serving failed : {}, pretending 404", e);
             return Err(TiberiusError::Other(format!(
                 "file {} not found",
                 path.display()
@@ -127,7 +127,7 @@ pub async fn serve_disk_file(state: &TiberiusState, file: PathBuf) -> TiberiusRe
                 new_mime_guess::from_ext(&path.extension().unwrap_or_default().to_string_lossy());
             let content_type = content_type.first().unwrap_or(mime::TEXT_PLAIN_UTF_8);
             trace!(
-                "Serving static file {} with content type {}",
+                "Serving static file '{}' with content type {}",
                 path.display(),
                 content_type
             );
