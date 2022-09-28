@@ -53,7 +53,7 @@ where
                     strong {
                         @match source.user_id() {
                             Some(user_id) => {
-                                a href=(PathUserProfileId{ user_id }) {
+                                a href=(PathUserProfileId{ user_id }.to_uri().to_string()) {
                                     @let user = User::get_id(client, user_id).await?.expect("user linked to comment does not exist");
                                     (user.displayname())
                                     // todo render awards

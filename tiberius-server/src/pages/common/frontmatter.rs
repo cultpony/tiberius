@@ -120,7 +120,7 @@ pub async fn open_graph(state: &TiberiusState, image: Option<Image>) -> Tiberius
             meta name="keywords" content=(image.tag_list_cache.as_ref().map(|x| x.as_str()).unwrap_or(""));
             meta name="description" content=(description);
             meta property="og:title" content=(description);
-            meta property="og:url" content=(PathShowImage{ image: (image.id as u64) }.to_uri());
+            meta property="og:url" content=(PathShowImage{ image: (image.id as u64) }.to_uri().to_string());
 
             @for tag in artist_tags(&image.tags(&mut client).await?) {
                 meta property="dc:creator" content=(tag.full_name());
@@ -132,23 +132,23 @@ pub async fn open_graph(state: &TiberiusState, image: Option<Image>) -> Tiberius
                 }
             }
 
-            link rel="alternate" type="application/json-oembed" href=(PathOembed{}.to_uri()) title="oEmbed JSON Profile";
-            link rel="canonical" href=(PathShowImage{ image: (image.id as u64) }.to_uri());
+            link rel="alternate" type="application/json-oembed" href=(PathOembed{}.to_uri().to_string()) title="oEmbed JSON Profile";
+            link rel="canonical" href=(PathShowImage{ image: (image.id as u64) }.to_uri().to_string());
 
             @match (image.image_mime_type.as_ref().map(|x| x.as_str()), filtered) {
                 (Some("video/webm"), false) => {
                     meta property="og:type" content="video.other";
 
-                    meta property="og:image" content=(PathImageThumbGetSimple{ id: image.id as u64, thumbtype : "".to_string(), filename : image.filetypef("rendered")}.to_uri());
-                    meta property="og:video" content=(PathImageThumbGetSimple{ id: image.id as u64, thumbtype : "".to_string(), filename : image.filetypef("large")}.to_uri());
+                    meta property="og:image" content=(PathImageThumbGetSimple{ id: image.id as u64, thumbtype : "".to_string(), filename : image.filetypef("rendered")}.to_uri().to_string());
+                    meta property="og:video" content=(PathImageThumbGetSimple{ id: image.id as u64, thumbtype : "".to_string(), filename : image.filetypef("large")}.to_uri().to_string());
                 },
                 (Some("image/svg+xml"), false) => {
                     meta property="og:type" content="website";
-                    meta property="og:image" content=(PathImageThumbGetSimple{ id: image.id as u64, thumbtype : "".to_string(), filename : image.filetypef("rendered")}.to_uri());
+                    meta property="og:image" content=(PathImageThumbGetSimple{ id: image.id as u64, thumbtype : "".to_string(), filename : image.filetypef("rendered")}.to_uri().to_string());
                 },
                 (_, false) => {
                     meta property="og:type" content="website";
-                    meta property="og:image" content=(PathImageThumbGetSimple{ id: image.id as u64, thumbtype : "large".to_string(), filename : image.filename()}.to_uri());
+                    meta property="og:image" content=(PathImageThumbGetSimple{ id: image.id as u64, thumbtype : "large".to_string(), filename : image.filename()}.to_uri().to_string());
                 },
                 _ => { meta property="og:type" content="website"; },
             }
@@ -335,7 +335,7 @@ pub async fn header<T: SessionMode>(
                     }
                 }
 
-                form.header__search.flex.flex--nowrap.flex--centered.hform action=(PathSearchEmpty{}.to_uri()) method="GET" {
+                form.header__search.flex.flex--nowrap.flex--centered.hform action=(PathSearchEmpty{}.to_uri().to_string()) method="GET" {
                     input.input.header__input.header__input--search #q name="q" title="For terms all required, separate with ',' or 'AND'; also supports 'OR' for optional terms and '-' or 'NOT' for negation. Search with a blank query for more options or click the ? for syntax help."
                         value=(rstate.search_query().await?.to_string()) placeholder="Search" autocapitalize="none";
 
@@ -388,7 +388,7 @@ pub async fn header<T: SessionMode>(
 
 
                         .dropdown.header_dropdown {
-                            a.header__link.header__link-user href=(PathRegistration{}.to_uri()) {
+                            a.header__link.header__link-user href=(PathRegistration{}.to_uri().to_string()) {
                                 //TODO: render user attribution view
                                 .image-constrained."avatar--28px" {
                                     (no_avatar_svg())
@@ -396,19 +396,19 @@ pub async fn header<T: SessionMode>(
                                 span.header__link-user__dropdown__content.hide-mobile data-click-preventdefault="true";
                             }
                             nav.dropdown__content.dropdown__content-right.hide-mobile.js-burger-links {
-                                a.header__link href=(PathRegistration{}.to_uri()) { (user.name); }
+                                a.header__link href=(PathRegistration{}.to_uri().to_string()) { (user.name); }
                                 a.header__link href="/search?q=my:watched" { i.fa.fa-fw.fa-eye { "Watched"; } }
                                 a.header__link href="/search?q=my:faves" { i.fa.fa-fw.fa-start { "Faves"; } }
                                 a.header__link href="/search?q=my:upvotes" { i.fa.fa-fw.fa-arrow-up { "Upvotes"; } }
-                                a.header__link href=(PathRegistration{}.to_uri()) { i.fa.fa-fw.fa-image { "Galleries"; }}
+                                a.header__link href=(PathRegistration{}.to_uri().to_string()) { i.fa.fa-fw.fa-image { "Galleries"; }}
                                 a.header__link href="/search?q=my:uploads" { i.fa.fa-fw.fa-upload { "Uploads"; } }
                                 a.header__link href="/comments?cq=my:comments" { i.fa.fa-fw.fa-comments { "Comments"; } }
                                 a.header__link href="/posts?pq=my:watched" { i.fa.fa-fw.fa-pen-square { "Posts"; } }
-                                a.header__link href=(PathRegistration{}.to_uri()) { i.fa.fa-fw.fa-link { "Links"; } }
+                                a.header__link href=(PathRegistration{}.to_uri().to_string()) { i.fa.fa-fw.fa-link { "Links"; } }
                                 a.header__link href="/settings/edit" { i.fa.fa-fw.fa-cogs { "Settings"; } }
                                 a.header__link href="/conversations" { i.fa.fa-fw.fa-envelope { "Messages"; } }
-                                a.header__link href=(PathRegistration{}.to_uri()) { i.fa.fa-fw.fa-user { "Account"; } }
-                                a.header__link href=(PathSessionLogout{}.to_uri()) { i.fa.fa-fw.fa-sign-out-alt { "Logout"; } }
+                                a.header__link href=(PathRegistration{}.to_uri().to_string()) { i.fa.fa-fw.fa-user { "Account"; } }
+                                a.header__link href=(PathSessionLogout{}.to_uri().to_string()) { i.fa.fa-fw.fa-sign-out-alt { "Logout"; } }
                             }
                         }
                     } @else {
@@ -418,8 +418,8 @@ pub async fn header<T: SessionMode>(
                                 i.fa.fa-fw.fa-cogs.hide-desktop { "Settings" }
                             }
                         }
-                        a.header__link href=(PathRegistration{}.to_uri()) { "Register" }
-                        a.header__link href=(PathNewSession{}.to_uri()) { "Login" }
+                        a.header__link href=(PathRegistration{}.to_uri().to_string()) { "Register" }
+                        a.header__link href=(PathNewSession{}.to_uri().to_string()) { "Login" }
                     }
                 }
             }
@@ -473,7 +473,7 @@ pub async fn header_navigation_links<'a>(client: &mut Client) -> TiberiusResult<
                 }
                 .dropdown__content {
                     @for forum in Forum::all(client).await? {
-                        a.header__link href=(PathRegistration{}.to_uri())  {
+                        a.header__link href=(PathRegistration{}.to_uri().to_string())  {
                             (forum.name)
                         }
                     }

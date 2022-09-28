@@ -63,10 +63,10 @@ pub async fn manage_keys_page(
             @for api_key in keys {
                 tr {
                     td { (api_key.user(&mut client).await?.expect("key has no user").displayname()) }
-                    td { (api_key.id()) }
+                    td { (api_key.id().to_string()) }
                     td { (api_key.secret()) }
                     td {
-                        form method="POST" action=(PathDeleteApiKey{uuid: api_key.id().clone()}.to_uri()) {
+                        form method="POST" action=(PathDeleteApiKey{uuid: api_key.id().clone()}.to_uri().to_string()) {
                             (csrf_input_tag(&rstate).await);
                             (form_method(FormMethod::Delete));
                             (form_submit_button("Delete Key"));
@@ -76,7 +76,7 @@ pub async fn manage_keys_page(
             }
         }
         @if edit_api_key {
-            form method="POST" action=(PathApiCreateAPIKey{}.to_uri()) {
+            form method="POST" action=(PathApiCreateAPIKey{}.to_uri().to_string()) {
                 (csrf_input_tag(&rstate).await);
                 input type="submit" value="Create new Key";
             }

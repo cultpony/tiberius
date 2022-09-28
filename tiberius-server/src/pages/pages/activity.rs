@@ -53,14 +53,14 @@ pub async fn index(
                     }
                     .block.block--fixed.block--fixed--sub.block--success.center.hide-mobile {
                         "Enjoy the site? "
-                        a href=(PathBlogPage{page: "donations".to_string()}.to_uri()) { "Donate to keep it going!" }
+                        a href=(PathBlogPage{page: "donations".to_string()}.to_uri().to_string()) { "Donate to keep it going!" }
                     }
                     .block.block--fixed.block--fixed--sub.center.hide-mobile {
                         "Issues? Want to chat? "
-                        a href=(PathBlogPage{page: "context".to_string()}.to_uri()) { "Contact us!" }
+                        a href=(PathBlogPage{page: "context".to_string()}.to_uri().to_string()) { "Contact us!" }
                     }
                     .block.hide-mobile {
-                        a.block__header--single-item.center href=(PathQuerySearch{search: "created_at.gte:10 minutes ago".to_string(), order: Some("wilson_score".to_string()), direction: Some("desc".to_string())}.to_uri()?) {
+                        a.block__header--single-item.center href=(PathQuerySearch{search: "created_at.gte:10 minutes ago".to_string(), order: Some("wilson_score".to_string()), direction: Some("desc".to_string())}.to_uri()?.to_string()) {
                             "Trending Images"
                         }
                         .block__content.flex.flex--centered.flex--wrap.image-flex-grid {
@@ -68,7 +68,7 @@ pub async fn index(
                                 (image_box(&state, &rstate, &mut client, image, ImageSize::Medium, HeaderSize::ThumbSmall, DisplaySize::Normal).await?)
                             }
                         }
-                        a.block__header--single-item.center href=(PathQuerySearch{search: "".to_string(), order: Some("score".to_string()), direction: Some("desc".to_string())}.to_uri()?) { "All Time Top Scoring" }
+                        a.block__header--single-item.center href=(PathQuerySearch{search: "".to_string(), order: Some("score".to_string()), direction: Some("desc".to_string())}.to_uri()?.to_string()) { "All Time Top Scoring" }
                     }
                     .block.hide-mobile {
                         a.block__header--single-item.center href="/channels" { "Streams" }
@@ -81,7 +81,7 @@ pub async fn index(
                     .block.hide-mobile {
                         a.block__header--single-item.center href="/comments" { "Recent Comments" }
                         //TODO: show recent comments
-                        a.block__header--single-item.center href=(PathQuerySearch{search: "created_at.gte:10 minutes ago".to_string(), order: Some("comment_count".to_string()), direction: Some("desc".to_string())}.to_uri()?) {
+                        a.block__header--single-item.center href=(PathQuerySearch{search: "created_at.gte:10 minutes ago".to_string(), order: Some("comment_count".to_string()), direction: Some("desc".to_string())}.to_uri()?.to_string()) {
                             "Most Commented-on Images"
                         }
                     }

@@ -106,7 +106,7 @@ pub async fn list_channels(
         "channel",
         "",
     )?;
-    let show_hide_nsfw_uri = PathSetChannelNsfw {}.to_uri();
+    let show_hide_nsfw_uri = PathSetChannelNsfw {}.to_uri().to_string();
     let show_nsfw_state = rstate.cookie_jar.get("chan_nsfw").map(|x| x.value()).unwrap_or("false") == "true";
     let body = html! {
         h1 { "Livestreams" }

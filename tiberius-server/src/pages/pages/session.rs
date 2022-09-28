@@ -37,11 +37,11 @@ pub async fn new_session(
     let body = html! {
         h1 { "Sign in" }
 
-        form action=(PathNewSession{}.to_uri()) method="POST" {
+        form action=(PathNewSession{}.to_uri().to_string()) method="POST" {
             //TODO: include flash messages
             //TODO: CSRF protection
             p {
-                a href=(PathSessionForgotPw{}.to_uri()) { "Forgot your password?"}
+                a href=(PathSessionForgotPw{}.to_uri().to_string()) { "Forgot your password?"}
             }
 
             input type="hidden" name="alt_r" value="false";

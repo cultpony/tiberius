@@ -235,16 +235,16 @@ pub async fn show_image(
         .block.block__header {
             .flex.flex--wrap.image-metabar.center--layout id=(format!("image_meta_{}", image.id)) {
                 .stretched-mobile-links {
-                    a.js-prev href=(path_and_query(PathNavigateImage{image: image.id as u64}, Some(&QueryNavigateImage{ rel: NavigateRelation::Prev, search_query: Some(query_search.clone())}))?) title="Previous Image (j)" {
+                    a.js-prev href=(path_and_query(PathNavigateImage{image: image.id as u64}, Some(&QueryNavigateImage{ rel: NavigateRelation::Prev, search_query: Some(query_search.clone())}))?.to_string()) title="Previous Image (j)" {
                         i.fa.fa-chevron-left {}
                     }
-                    a.js-up href=(path_and_query(PathNavigateImage{image: image.id as u64}, Some(&QueryNavigateImage{ rel: NavigateRelation::Find, search_query: Some(query_search.clone())}))?) title="Find this image in the global image list (i)" {
+                    a.js-up href=(path_and_query(PathNavigateImage{image: image.id as u64}, Some(&QueryNavigateImage{ rel: NavigateRelation::Find, search_query: Some(query_search.clone())}))?.to_string()) title="Find this image in the global image list (i)" {
                         i.fa.fa-chevron-up {}
                     }
-                    a.js-next href=(path_and_query(PathNavigateImage{image: image.id as u64}, Some(&QueryNavigateImage{ rel: NavigateRelation::Next, search_query: Some(query_search.clone())}))?) title="Next image (k)" {
+                    a.js-next href=(path_and_query(PathNavigateImage{image: image.id as u64}, Some(&QueryNavigateImage{ rel: NavigateRelation::Next, search_query: Some(query_search.clone())}))?.to_string()) title="Next image (k)" {
                         i.fa.fa-chevron-right {}
                     }
-                    a.js-rand href=(path_and_query(PathRandomImage{}, Some(&query_search))?) title="Random (r)" {
+                    a.js-rand href=(path_and_query(PathRandomImage{}, Some(&query_search))?.to_string()) title="Random (r)" {
                         i.fa.fa-random {}
                     }
                 }
@@ -291,10 +291,10 @@ pub async fn show_image(
                     }
                 }
                 .stretched-mobile-links {
-                    a href=(PathImageGetFull::from_image(&mut image, &mut client).await?.to_uri()) rel="nofollow" title="View (tags in filename)" {
+                    a href=(PathImageGetFull::from_image(&mut image, &mut client).await?.to_uri().to_string()) rel="nofollow" title="View (tags in filename)" {
                         i.fa.fa-eye { " View" }
                     }
-                    a href=(PathImageGetShort::from(&image)) rel="nofollow" title="View (no tags in filename)" {
+                    a href=(PathImageGetShort::from(&image).to_uri().to_string()) rel="nofollow" title="View (no tags in filename)" {
                         i.fa.fa-eye { " VS" }
                     }
                     a href="TODO://download" rel="nofollow" title="Download (tags in filename)" {
@@ -469,7 +469,7 @@ pub async fn show_image(
                     }
 
                     @if image.source_change_count().await > 1 {
-                        a.button.button--link.button--separate-left href=(PathChangeImageSource{image: image.id as u64}.to_uri()) title="Source history" {
+                        a.button.button--link.button--separate-left href=(PathChangeImageSource{image: image.id as u64}.to_uri().to_string()) title="Source history" {
                             i.fa.fa-history {
                                 "History (" (image.source_change_count().await) ")"
                             }
@@ -484,7 +484,7 @@ pub async fn show_image(
     let comments = html! {
         h4 { "Comments" }
         //(comment_form(&mut client, rstate.user(&state).await?, &image).await?)
-        #comments data-current-url=(PathShowImage{ image: image.id as u64}.to_uri()) data-loaded="true" {
+        #comments data-current-url=(PathShowImage{ image: image.id as u64}.to_uri().to_string()) data-loaded="true" {
             (comment_view(&state, &mut client, &image).await?)
         }
     };
@@ -604,7 +604,7 @@ pub async fn upload_image(
     };
 
     let body = html! {
-        form action=(PathImageUpload{}.to_uri()) enctype="multipart/form-data" method="post" {
+        form action=(PathImageUpload{}.to_uri().to_string()) enctype="multipart/form-data" method="post" {
             @match user {
                 None  => {
                     p {
@@ -619,7 +619,7 @@ pub async fn upload_image(
                     .dnp-warning {
                         h4 {
                             "Read the ";
-                            a href=(PathBlogPage{ page: "rules".to_string() }.to_uri()) { " site rules " }
+                            a href=(PathBlogPage{ page: "rules".to_string() }.to_uri().to_string()) { " site rules " }
                             " and check our ";
                             a href="// TODO: dnp list link" { " do-not-post list" }
                         }
@@ -632,7 +632,7 @@ pub async fn upload_image(
                     p {
                         strong {
                             "Please check it isn't already here with "
-                            a href=(PathSearchReverse{}.to_uri()) {
+                            a href=(PathSearchReverse{}.to_uri().to_string()) {
                                 " reverse search "
                             }
                         }

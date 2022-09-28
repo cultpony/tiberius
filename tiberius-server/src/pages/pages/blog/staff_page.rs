@@ -120,7 +120,7 @@ pub async fn show(
             }
             @if acl_can_admin_categories {
                 div.block.block--fixed {
-                    form action=(PathNewCategory{}.to_uri()) method="POST" {
+                    form action=(PathNewCategory{}.to_uri().to_string()) method="POST" {
                         (csrf_input_tag(&rstate).await);
                         .field {
                             input.input #category_name name="name" type="text" required="true" placeholder="Name";
@@ -161,7 +161,7 @@ pub async fn show(
                                     .block__content.staff-block__user {
                                         @if can_edit_this(user) {
                                             div.block.block--fixed {
-                                                form action=(PathEditUserEntry{ entry_id: user.user_id }.to_uri()) method="POST" {
+                                                form action=(PathEditUserEntry{ entry_id: user.user_id }.to_uri().to_string()) method="POST" {
                                                         (csrf_input_tag(&rstate).await);
                                                         .field {
                                                             input.input #user_email name="display_name" type="text" placeholder="Display Name" value=(user.display_name.as_ref().unwrap_or(&"".to_string())) required="true";
@@ -202,7 +202,7 @@ pub async fn show(
                     } else if acl_can_admin_categories {
                     }
                     @if acl_can_admin_categories {
-                        form action=(PathAddUserToCategory{ category: header.id }.to_uri()) method="POST" {
+                        form action=(PathAddUserToCategory{ category: header.id }.to_uri().to_string()) method="POST" {
                                 (csrf_input_tag(&rstate).await);
                                 .field {
                                     input.input #user_email name="user_email" type="email" placeholder="User E-Mail" required="true";

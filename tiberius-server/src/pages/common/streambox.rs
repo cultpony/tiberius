@@ -18,7 +18,7 @@ pub async fn stream_box(
         @for channel in channels {
             div.block__content.flex.alternating-color {
                 div.flex__grow {
-                    a href=(channel_path(&channel)) {
+                    a href=(channel_path(&channel).to_string()) {
                         @match channel.channel_image {
                             Some(channel_image_url) => {
                                 img width="16" height="16"
