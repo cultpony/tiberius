@@ -21,7 +21,7 @@ clap = { version = "3.0", features = ["derive", "env"] }
 csp = "1.0.1"
 either = { version = "1.6.1", features = ["serde"] }
 human_bytes = "0.3.0"
-image = "0.23.14"
+image = "0.24.4"
 itertools = "0.10.4"
 kankyo = "0.3"
 lazy_static = "1.4"
