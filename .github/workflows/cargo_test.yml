@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v2
         
       - name: Install Mold linker
-        run: apt update && apt install mold
+        run: sudo apt update && sudo apt install mold
 
       - uses: harmon758/postgresql-action@v1
         with:
@@ -94,7 +94,7 @@ jobs:
         uses: actions/checkout@v2
         
       - name: Install Mold linker
-        run: apt update && apt install mold
+        run: sudo apt update && sudo apt install mold
 
       - uses: harmon758/postgresql-action@v1
         with:
