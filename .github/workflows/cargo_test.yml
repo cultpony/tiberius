@@ -21,6 +21,9 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
+        
+      - name: Install Mold linker
+        run: apt update && apt install mold
 
       - uses: harmon758/postgresql-action@v1
         with:
@@ -89,6 +92,9 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
+        
+      - name: Install Mold linker
+        run: apt update && apt install mold
 
       - uses: harmon758/postgresql-action@v1
         with:
