@@ -42,7 +42,7 @@ url = { version = "2.3", features = ["serde"] }
 uuid = "1"
 erlang-term = "1.0.0"
 anyhow = "1.0"
-moka = { version = "0.8", features = ["future"] }
+moka = { version = "0.9", features = ["future"] }
 sentry = { version = "0.27.0", features = ["tracing", "anyhow", "tower", "panic", "contexts"] }
 axum = "0.5"
 axum-extra = { version = "^0.3", features = ["typed-routing", "cookie-lib", "cookie-signed", "cookie-private"] }
