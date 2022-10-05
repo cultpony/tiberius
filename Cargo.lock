@@ -490,9 +490,9 @@ dependencies = [
 
 [[package]]
 name = "axum_sessions_auth"
-version = "3.0.0"
+version = "4.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ee3079ea8cf6dde479277a1835463a44edd99579ebbd9d4dd0ca835b345f0ec"
+checksum = "e4337c334e0c5c52bc264a334d209e75f75f802622404aaf5108faa6e6134043"
 dependencies = [
  "anyhow",
  "async-recursion",
@@ -500,9 +500,13 @@ dependencies = [
  "axum-core",
  "axum_database_sessions",
  "bytes",
+ "chrono",
+ "dashmap",
  "futures",
  "http",
  "http-body",
+ "serde",
+ "tokio",
  "tower-layer",
  "tower-service",
 ]
