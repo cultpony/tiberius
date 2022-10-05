@@ -14,7 +14,7 @@ base64 = "0.13"
 bcrypt = "0.13.0"
 chrono = "0.4.20"
 # casbin = "2.0.7" # needs tobe 2.0.8 until sqlxmq is replaced or updated
-csp = "1.0.1"
+csp = "1.1.0"
 either = { version = "1.6.1", features = ["serde"] }
 #envy = "0.4"
 image = "0.24"
@@ -46,7 +46,7 @@ moka = { version = "0.9", features = ["future"] }
 sentry = { version = "0.27.0", features = ["tracing", "anyhow", "tower", "panic", "contexts"] }
 axum = "0.5"
 axum-extra = { version = "^0.3", features = ["typed-routing", "cookie-lib", "cookie-signed", "cookie-private"] }
-clap = { version = "3.0", features = ["derive", "env"] }
+clap = { version = "4.0", features = ["derive", "env"] }
 
 [dev-dependencies]
 openssl = { version = "0.10.36", features = ["vendored", "v111"] }
