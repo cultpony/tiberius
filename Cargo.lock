@@ -402,9 +402,9 @@ dependencies = [
 
 [[package]]
 name = "axum-flash"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a275fb6eae76a65216caec6e548cc6d646afce390e6cabf85823e926b0f21c9a"
+checksum = "d7921cf899d4750767a02787a26c5f6b462de923e5f4181d3bb96903683fff5f"
 dependencies = [
  "async-trait",
  "axum-core",
@@ -414,7 +414,7 @@ dependencies = [
  "percent-encoding 2.2.0",
  "serde",
  "serde_json",
- "tower-cookies 0.6.0",
+ "tower-cookies",
  "tower-layer",
  "tower-service",
 ]
@@ -1187,9 +1187,9 @@ dependencies = [
 
 [[package]]
 name = "csp"
-version = "1.0.1"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03027c65d4c978e0fb60f06c7157216d70b3127dd4cca7fce855d2ac40aa0f91"
+checksum = "57fbf2373c0d3e3f13320b6af56c1935277715a30dced6cb2fd86c8e671ea30d"
 
 [[package]]
 name = "csv"
@@ -2692,9 +2692,9 @@ checksum = "e4a24736216ec316047a1fc4252e27dabb04218aa4a3f37c6e7ddbf1f9782b54"
 
 [[package]]
 name = "new_mime_guess"
-version = "3.0.0"
+version = "4.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8c8e990db7ba41ce2b4b3a38380a0f3385d61c55b3d4999d6e00389562a79a2"
+checksum = "c2d684d1b59e0dc07b37e2203ef576987473288f530082512aff850585c61b1f"
 dependencies = [
  "mime",
  "unicase",
@@ -4891,7 +4891,7 @@ dependencies = [
  "tiberius-models",
  "tokio",
  "tokio-cron-scheduler",
- "tower-cookies 0.7.0",
+ "tower-cookies",
  "tracing",
  "tracing-log",
  "tracing-subscriber",
@@ -5106,23 +5106,6 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
-]
-
-[[package]]
-name = "tower-cookies"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5bf1904fcf965b948ece576eae3cf85e5cad94f99acb6b5834148b61fbecd38e"
-dependencies = [
- "async-trait",
- "axum-core",
- "cookie",
- "futures-util",
- "http",
- "parking_lot 0.12.1",
- "pin-project-lite",
- "tower-layer",
- "tower-service",
 ]
 
 [[package]]

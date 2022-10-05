@@ -18,7 +18,7 @@ camo-url = "0.1.2"
 chrono = "0.4.20"
 chrono-humanize = "0.2.1"
 clap = { version = "3.0", features = ["derive", "env"] }
-csp = "1.0.1"
+csp = "1.1.0"
 either = { version = "1.6.1", features = ["serde"] }
 human_bytes = "0.3.0"
 image = "0.24.4"
@@ -26,7 +26,7 @@ itertools = "0.10.4"
 kankyo = "0.3"
 lazy_static = "1.4"
 maud = { version = "*", features = ["axum"] }
-new_mime_guess = "3.0"
+new_mime_guess = "4.0"
 rand = "0.8.3"
 regex = "1.5.4"
 reqwest = { version = "0.11", features = ["json", "socks", "cookies"] }

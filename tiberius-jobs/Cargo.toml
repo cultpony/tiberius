@@ -12,13 +12,13 @@ async-trait = "0.1.50"
 base64 = "0.13"
 bcrypt = "0.13.0"
 chrono = "0.4.20"
-csp = "1.0.1"
+csp = "1.1.0"
 either = { version = "1.6.1", features = ["serde"] }
 image = "0.24"
 itertools = "0.10.4"
 lazy_static = "1.4"
 maud = { version = "*", features = ["axum"] }
-new_mime_guess = "3.0"
+new_mime_guess = "4.0"
 rand = "0.8.3"
 regex = "1.5.4"
 reqwest = { version = "0.11", features = ["json", "socks", "cookies"] }
