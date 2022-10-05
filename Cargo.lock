@@ -485,7 +485,7 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
- "uuid 1.1.2",
+ "uuid",
 ]
 
 [[package]]
@@ -1063,12 +1063,12 @@ dependencies = [
 
 [[package]]
 name = "cron"
-version = "0.9.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e009ed0b762cf7a967a34dfdc67d5967d3f828f12901d37081432c3dd1668f8f"
+checksum = "4ee7e5cc3c6b73959cef3412d3a185225eefd926286b4ea55be8bea0bd27d10f"
 dependencies = [
  "chrono",
- "nom 4.1.1",
+ "nom",
  "once_cell",
 ]
 
@@ -1287,7 +1287,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef552e6f588e446098f6ba40d89ac146c8c7b64aade83c051ee00bb5d2bc18d"
 dependencies = [
  "serde",
- "uuid 1.1.2",
+ "uuid",
 ]
 
 [[package]]
@@ -1397,7 +1397,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1c0960557027dfc1076607e22ef1fed3128c7ac72e1027fa5b3e17a816d2dded"
 dependencies = [
  "keylist",
- "nom 7.1.1",
+ "nom",
  "num-bigint",
  "num-traits",
  "ordered-float",
@@ -2627,7 +2627,7 @@ dependencies = [
  "tagptr",
  "thiserror",
  "triomphe",
- "uuid 1.1.2",
+ "uuid",
 ]
 
 [[package]]
@@ -2702,15 +2702,6 @@ dependencies = [
 
 [[package]]
 name = "nom"
-version = "4.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c349f68f25f596b9f44cf0e7c69752a5c633b0550c3ff849518bfba0233774a"
-dependencies = [
- "memchr 2.5.0",
-]
-
-[[package]]
-name = "nom"
 version = "7.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8903e5a29a317527874d0402f867152a3d21c908bb0b933e416c65e301d4c36"
@@ -2728,6 +2719,17 @@ dependencies = [
  "autocfg",
  "num-integer",
  "num-traits",
+]
+
+[[package]]
+name = "num-derive"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "876a53fff98e03a936a674b29568b0e605f06b29372c2489ff4de23f1949743d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -3896,7 +3898,7 @@ dependencies = [
  "thiserror",
  "time 0.3.14",
  "url 2.3.1",
- "uuid 1.1.2",
+ "uuid",
 ]
 
 [[package]]
@@ -4147,7 +4149,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f87e292b4291f154971a43c3774364e2cbcaec599d3f5bf6fa9d122885dbc38a"
 dependencies = [
  "itertools",
- "nom 7.1.1",
+ "nom",
  "unicode_categories",
 ]
 
@@ -4224,7 +4226,7 @@ dependencies = [
  "time 0.3.14",
  "tokio-stream",
  "url 2.3.1",
- "uuid 1.1.2",
+ "uuid",
  "webpki-roots",
  "whoami",
 ]
@@ -4238,7 +4240,7 @@ dependencies = [
  "dotenv",
  "sqlx",
  "sqlx-database-tester-macros",
- "uuid 1.1.2",
+ "uuid",
 ]
 
 [[package]]
@@ -4301,7 +4303,7 @@ dependencies = [
  "sqlx",
  "sqlxmq_macros",
  "tokio",
- "uuid 1.1.2",
+ "uuid",
 ]
 
 [[package]]
@@ -4478,7 +4480,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "time 0.3.14",
- "uuid 1.1.2",
+ "uuid",
  "winapi 0.3.9",
 ]
 
@@ -4704,7 +4706,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url 2.3.1",
- "uuid 1.1.2",
+ "uuid",
 ]
 
 [[package]]
@@ -4781,7 +4783,7 @@ dependencies = [
  "tokio-cron-scheduler",
  "tracing",
  "url 2.3.1",
- "uuid 1.1.2",
+ "uuid",
 ]
 
 [[package]]
@@ -4896,7 +4898,7 @@ dependencies = [
  "tracing-log",
  "tracing-subscriber",
  "url 2.3.1",
- "uuid 1.1.2",
+ "uuid",
 ]
 
 [[package]]
@@ -4988,14 +4990,18 @@ dependencies = [
 
 [[package]]
 name = "tokio-cron-scheduler"
-version = "0.2.4"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03e6eb09ad8fbfd23f6d2601120b65d5c88d335e5da806562beec86ca4c3ba32"
+checksum = "801494cc27a4e56850200256bc83681b45b4cb063be06090cdb844dfb2d0035c"
 dependencies = [
  "chrono",
  "cron",
+ "num-derive",
+ "num-traits",
+ "time 0.1.44",
  "tokio",
- "uuid 0.8.2",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -5375,15 +5381,6 @@ name = "utf8-ranges"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7fcfc827f90e53a02eaef5e535ee14266c1d569214c6aa70133a624d8a3164ba"
-
-[[package]]
-name = "uuid"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
-dependencies = [
- "getrandom",
-]
 
 [[package]]
 name = "uuid"
