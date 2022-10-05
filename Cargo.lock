@@ -402,9 +402,9 @@ dependencies = [
 
 [[package]]
 name = "axum-flash"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a275fb6eae76a65216caec6e548cc6d646afce390e6cabf85823e926b0f21c9a"
+checksum = "d7921cf899d4750767a02787a26c5f6b462de923e5f4181d3bb96903683fff5f"
 dependencies = [
  "async-trait",
  "axum-core",
@@ -414,7 +414,7 @@ dependencies = [
  "percent-encoding 2.2.0",
  "serde",
  "serde_json",
- "tower-cookies 0.6.0",
+ "tower-cookies",
  "tower-layer",
  "tower-service",
 ]
@@ -4891,7 +4891,7 @@ dependencies = [
  "tiberius-models",
  "tokio",
  "tokio-cron-scheduler",
- "tower-cookies 0.7.0",
+ "tower-cookies",
  "tracing",
  "tracing-log",
  "tracing-subscriber",
@@ -5106,23 +5106,6 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
-]
-
-[[package]]
-name = "tower-cookies"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5bf1904fcf965b948ece576eae3cf85e5cad94f99acb6b5834148b61fbecd38e"
-dependencies = [
- "async-trait",
- "axum-core",
- "cookie",
- "futures-util",
- "http",
- "parking_lot 0.12.1",
- "pin-project-lite",
- "tower-layer",
- "tower-service",
 ]
 
 [[package]]
