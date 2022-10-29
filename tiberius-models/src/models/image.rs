@@ -10,7 +10,8 @@ use std::{
 
 use async_std::{prelude::*, sync::RwLock};
 use async_trait::async_trait;
-use chrono::{DateTime, NaiveDateTime, Utc};
+use axum_extra::routing::TypedPath;
+use chrono::{DateTime, Datelike, NaiveDateTime, Utc};
 use futures::TryStreamExt;
 use itertools::Itertools;
 use sqlx::{
@@ -531,6 +532,36 @@ impl Image {
         Ok(image.upload(client).await?)
     }
 
+    #[cfg(test)]
+    pub async fn new_test_image_from_disk<P: AsRef<std::path::Path>>(
+        client: &mut Client,
+        id: i32,
+        timestamp: u64,
+        pid: u64,
+        path: P,
+    ) -> Result<Self, PhilomenaModelError> {
+        use std::path::Path;
+
+        let path: &Path = path.as_ref();
+        let timestamp: DateTime<Utc> = (std::time::UNIX_EPOCH + std::time::Duration::from_micros(timestamp))
+            .into();
+        let true_path = format!("{}{:09}.{}", timestamp.timestamp_micros(), pid, path.extension().unwrap().to_str().unwrap());
+        let true_path = format!("{}/{}/{}/{true_path}", timestamp.year(), timestamp.month(), timestamp.day());
+        let image = Image {
+            id,
+            created_at: timestamp.naive_utc(),
+            image: Some(true_path),
+            image_name: Some(path.file_name().unwrap().to_string_lossy().to_string()),
+            image_height: Some(20000),
+            image_width: Some(1500),
+            image_format: Some(path.extension().unwrap().to_string_lossy().to_string()),
+            ..Default::default()
+        };
+        let mut img = image.upload(client).await?;
+        img.id = id;
+        Ok(img)
+    }
+
     pub async fn save(mut self, client: &mut Client) -> Result<Self, PhilomenaModelError> {
         #[derive(sqlx::FromRow)]
         struct Returning {
@@ -740,21 +771,37 @@ impl Image {
     }
     #[instrument(skip(client))]
     pub async fn random(client: &mut Client) -> Result<Self, PhilomenaModelError> {
-        Ok(query_as!(
-            Image, "SELECT * FROM images ORDER BY random() LIMIT 1"
-        ).fetch_one(client).await?)
+        Ok(
+            query_as!(Image, "SELECT * FROM images ORDER BY random() LIMIT 1")
+                .fetch_one(client)
+                .await?,
+        )
     }
 
-    pub async fn get_next_from(client: &mut Client, id: i64) -> Result<Option<Self>, PhilomenaModelError> {
+    pub async fn get_next_from(
+        client: &mut Client,
+        id: i64,
+    ) -> Result<Option<Self>, PhilomenaModelError> {
         Ok(query_as!(
-            Image, "SELECT * FROM images WHERE id > $1 ORDER BY id LIMIT 1", id as i32
-        ).fetch_optional(client).await?)
+            Image,
+            "SELECT * FROM images WHERE id > $1 ORDER BY id LIMIT 1",
+            id as i32
+        )
+        .fetch_optional(client)
+        .await?)
     }
 
-    pub async fn get_previous_from(client: &mut Client, id: i64) -> Result<Option<Self>, PhilomenaModelError> {
+    pub async fn get_previous_from(
+        client: &mut Client,
+        id: i64,
+    ) -> Result<Option<Self>, PhilomenaModelError> {
         Ok(query_as!(
-            Image, "SELECT * FROM images WHERE id < $1 ORDER BY id DESC LIMIT 1", id as i32
-        ).fetch_optional(client).await?)
+            Image,
+            "SELECT * FROM images WHERE id < $1 ORDER BY id DESC LIMIT 1",
+            id as i32
+        )
+        .fetch_optional(client)
+        .await?)
     }
 
     #[instrument(skip(client))]
@@ -870,9 +917,10 @@ impl Image {
         .await?)
     }
     pub async fn get_newest(client: &mut Client) -> Result<Option<Self>, PhilomenaModelError> {
-        let id = query!(
-            "SELECT id FROM images ORDER BY created_at DESC LIMIT 1",
-        ).fetch_one(&mut *client).await?.id;
+        let id = query!("SELECT id FROM images ORDER BY created_at DESC LIMIT 1",)
+            .fetch_one(&mut *client)
+            .await?
+            .id;
         Self::get_id(client, id as i64).await
     }
     pub async fn get_all(
@@ -976,6 +1024,179 @@ impl Image {
         )
         .fetch_all(client)
         .await?)
+    }
+
+    pub async fn image_thumb_urls(&self) -> Result<ImageThumbUrl, PhilomenaModelError> {
+        Ok(ImageThumbUrl {
+            full: Uri::builder()
+                .path_and_query(
+                    PathBuf::from(
+                        PathImageGetFull {
+                            filename: self.filename(),
+                            year: self.created_at.year() as u16,
+                            month: self.created_at.month() as u8,
+                            day: self.created_at.day() as u8,
+                        }
+                        .to_uri()
+                        .to_string(),
+                    )
+                    .to_string_lossy()
+                    .to_string(),
+                )
+                .build()
+                .unwrap(),
+            large: Uri::builder()
+                .path_and_query(
+                    PathBuf::from(
+                        PathImageThumbGet {
+                            id: self.id as u64,
+                            filename: self.filetypef("large"),
+                            year: self.created_at.year() as u16,
+                            month: self.created_at.month() as u8,
+                            day: self.created_at.day() as u8,
+                        }
+                        .to_uri()
+                        .to_string(),
+                    )
+                    .to_string_lossy()
+                    .to_string(),
+                )
+                .build()
+                .unwrap(),
+            rendered: Uri::builder()
+                .path_and_query(
+                    PathBuf::from(
+                        PathImageThumbGet {
+                            id: self.id as u64,
+                            filename: self.filetypef("rendered"),
+                            year: self.created_at.year() as u16,
+                            month: self.created_at.month() as u8,
+                            day: self.created_at.day() as u8,
+                        }
+                        .to_uri()
+                        .to_string(),
+                    )
+                    .to_string_lossy()
+                    .to_string(),
+                )
+                .build()
+                .unwrap(),
+            tall: Uri::builder()
+                .path_and_query(
+                    PathBuf::from(
+                        PathImageThumbGet {
+                            id: self.id as u64,
+                            filename: self.filetypef("tall"),
+                            year: self.created_at.year() as u16,
+                            month: self.created_at.month() as u8,
+                            day: self.created_at.day() as u8,
+                        }
+                        .to_uri()
+                        .to_string(),
+                    )
+                    .to_string_lossy()
+                    .to_string(),
+                )
+                .build()
+                .unwrap(),
+            medium: Uri::builder()
+                .path_and_query(
+                    PathBuf::from(
+                        PathImageThumbGet {
+                            id: self.id as u64,
+                            filename: self.filetypef("medium"),
+                            year: self.created_at.year() as u16,
+                            month: self.created_at.month() as u8,
+                            day: self.created_at.day() as u8,
+                        }
+                        .to_uri()
+                        .to_string(),
+                    )
+                    .to_string_lossy()
+                    .to_string(),
+                )
+                .build()
+                .unwrap(),
+            small: Uri::builder()
+                .path_and_query(
+                    PathBuf::from(
+                        PathImageThumbGet {
+                            id: self.id as u64,
+                            filename: self.filetypef("small"),
+                            year: self.created_at.year() as u16,
+                            month: self.created_at.month() as u8,
+                            day: self.created_at.day() as u8,
+                        }
+                        .to_uri()
+                        .to_string(),
+                    )
+                    .to_string_lossy()
+                    .to_string(),
+                )
+                .build()
+                .unwrap(),
+            thumb: Uri::builder()
+                .path_and_query(
+                    PathBuf::from(
+                        PathImageThumbGet {
+                            id: self.id as u64,
+                            filename: self.filetypef("thumb"),
+                            year: self.created_at.year() as u16,
+                            month: self.created_at.month() as u8,
+                            day: self.created_at.day() as u8,
+                        }
+                        .to_uri()
+                        .to_string(),
+                    )
+                    .to_string_lossy()
+                    .to_string(),
+                )
+                .build()
+                .unwrap(),
+            thumb_small: Uri::builder()
+                .path_and_query(
+                    PathBuf::from(
+                        PathImageThumbGet {
+                            id: self.id as u64,
+                            filename: self.filetypef("thumb_small"),
+                            year: self.created_at.year() as u16,
+                            month: self.created_at.month() as u8,
+                            day: self.created_at.day() as u8,
+                        }
+                        .to_uri()
+                        .to_string(),
+                    )
+                    .to_string_lossy()
+                    .to_string(),
+                )
+                .build()
+                .unwrap(),
+            thumb_tiny: Uri::builder()
+                .path_and_query(
+                    PathBuf::from(
+                        PathImageThumbGet {
+                            id: self.id as u64,
+                            filename: self.filetypef("thumb_tiny"),
+                            year: self.created_at.year() as u16,
+                            month: self.created_at.month() as u8,
+                            day: self.created_at.day() as u8,
+                        }
+                        .to_uri()
+                        .to_string(),
+                    )
+                    .to_string_lossy()
+                    .to_string(),
+                )
+                .build()
+                .unwrap(),
+        })
+    }
+
+    pub async fn storage_path(&self) -> Result<Option<PathBuf>, PhilomenaModelError> {
+        match self.image {
+            Some(ref image) => Ok(Some(PathBuf::from(image))),
+            None => Ok(None),
+        }
     }
 }
 
@@ -1135,7 +1356,7 @@ impl Queryable for Image {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum ImageThumbType {
     Rendered,
     Full,
@@ -1267,10 +1488,11 @@ pub enum ImageSortBy {
 
 #[derive(Clone, Copy, Debug)]
 pub struct ResolutionLimit {
-    height: u32,
-    width: u32,
+    pub height: u32,
+    pub width: u32,
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct Resolution {
     pub height: u32,
     pub width: u32,
@@ -1290,30 +1512,42 @@ impl ResolutionLimit {
         (height, width).into()
     }
     pub fn clamp_resolution(&self, height: u32, width: u32) -> Resolution {
+        let aspect = {
+            assert!(
+                width > 0,
+                "Width of image was zero, cannot compute aspect ratio"
+            );
+            let height = height as f64;
+            let width = width as f64;
+            height / width
+        };
         if height <= self.height && width <= self.width {
             Resolution { height, width }
-        } else if height < self.height && width > self.width {
+        } else if aspect < 1.0 {
             let ratio = self.width as f64 / width as f64;
-            let nwidth = width as f64 * ratio;
             let nheight = height as f64 * ratio;
-            let height = nheight.floor() as u32;
-            let width = nwidth.floor() as u32;
-            Resolution { height, width }
-        } else if height > self.height && width < self.width {
+            let height = nheight.round() as u32;
+            Resolution {
+                height,
+                width: self.width,
+            }
+        } else if aspect > 1.0 {
             let ratio = self.height as f64 / height as f64;
             let nwidth = width as f64 * ratio;
-            let nheight = height as f64 * ratio;
-            let height = nheight.floor() as u32;
-            let width = nwidth.floor() as u32;
-            Resolution { height, width }
+            let width = nwidth.round() as u32;
+            Resolution {
+                height: self.height,
+                width,
+            }
         } else {
+            warn!("WARN: Using full-float resize, this indicates bad aspect compute");
             let aratio = self.height as f64 / height as f64;
             let bratio = self.width as f64 / width as f64;
             let ratio = aratio.min(bratio);
             let nwidth = width as f64 * ratio;
             let nheight = height as f64 * ratio;
-            let height = nheight.floor() as u32;
-            let width = nwidth.floor() as u32;
+            let height = nheight.round() as u32;
+            let width = nwidth.round() as u32;
             Resolution { height, width }
         }
     }
@@ -1325,7 +1559,7 @@ impl ImageThumbType {
         match self {
             Rendered => ImageThumbType::Full.to_resolution_limit(),
             Full => None,
-            Tall => Some((1024, 4096).into()),
+            Tall => Some((4096, 1024).into()),
             Large => Some((1280, 1024).into()),
             Medium => Some((800, 600).into()),
             Small => Some((320, 240).into()),
@@ -1354,9 +1588,44 @@ impl ToString for ImageThumbType {
     }
 }
 
+#[derive(TypedPath, serde::Deserialize)]
+#[typed_path("/img/:year/:month/:day/:id/:filename")]
+pub struct PathImageThumbGet {
+    pub year: u16,
+    pub month: u8,
+    pub day: u8,
+    pub id: u64,
+    pub filename: String,
+}
+
+#[derive(TypedPath, serde::Deserialize)]
+#[typed_path("/img/view/:year/:month/:day/:filename")]
+pub struct PathImageGetFull {
+    pub filename: String,
+    pub year: u16,
+    pub month: u8,
+    pub day: u8,
+}
+
+impl PathImageGetFull {
+    pub async fn from_image(
+        i: &mut Image,
+        client: &mut Client,
+    ) -> Result<Self, PhilomenaModelError> {
+        Ok(Self {
+            filename: i.long_filename(client).await?,
+            year: i.created_at.year() as u16,
+            month: i.created_at.month() as u8,
+            day: i.created_at.day() as u8,
+        })
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
+    use chrono::TimeZone;
+
     /// Test Philo Compat based on image 4020561 image file
     #[sqlx_database_tester::test(pool(variable = "pool", migrations = "../migrations"))]
     async fn test_long_filename_ex4020561() -> Result<(), PhilomenaModelError> {
@@ -1368,6 +1637,69 @@ mod test {
             "1__artist-colon-test_artist.png",
             image.long_filename(&mut client).await?
         );
+        Ok(())
+    }
+
+    #[sqlx_database_tester::test(pool(variable = "pool", migrations = "../migrations"))]
+    async fn test_filepath_generation_oldstyle() -> Result<(), PhilomenaModelError> {
+        let mut client = Client::new(pool, None);
+        let image = Image::new_test_image_from_disk(
+            &mut client,
+            4025092,
+            1666222412_405_906,
+            010_826_188,
+            "../test_data/very_tall_image_conversion.jpg",
+        )
+        .await?;
+
+        let image_thumb_url: ImageThumbUrl = image.image_thumb_urls().await?;
+
+        assert_eq!(
+            "/img/view/2022/10/19/4025092.jpg",
+            image_thumb_url.full.to_string(),
+            "Rendered Full-Size Path"
+        );
+        assert_eq!(
+            "/img/2022/10/19/4025092/large.jpg",
+            image_thumb_url.large.to_string(),
+            "Large Thumb Path"
+        );
+        assert_eq!(
+            "/img/2022/10/19/4025092/medium.jpg",
+            image_thumb_url.medium.to_string(),
+            "Medium Thumb Path"
+        );
+        assert_eq!(
+            "/img/2022/10/19/4025092/small.jpg",
+            image_thumb_url.small.to_string(),
+            "Small Thumb Path"
+        );
+        assert_eq!(
+            "/img/2022/10/19/4025092/tall.jpg",
+            image_thumb_url.tall.to_string(),
+            "Tall Thumb Path"
+        );
+        assert_eq!(
+            "/img/2022/10/19/4025092/thumb.jpg",
+            image_thumb_url.thumb.to_string(),
+            "Thumb Path"
+        );
+        assert_eq!(
+            "/img/2022/10/19/4025092/thumb_small.jpg",
+            image_thumb_url.thumb_small.to_string(),
+            "Small Thumb Path"
+        );
+        assert_eq!(
+            "/img/2022/10/19/4025092/thumb_tiny.jpg",
+            image_thumb_url.thumb_tiny.to_string(),
+            "Tiny Thumb Path"
+        );
+
+        assert_eq!(
+            Some(PathBuf::from("2022/10/19/1666222412405906010826188.jpg")),
+            image.storage_path().await?,
+        );
+
         Ok(())
     }
 }

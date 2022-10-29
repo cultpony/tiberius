@@ -22,7 +22,7 @@ use tiberius_core::{
     state::{TiberiusRequestState, TiberiusState},
 };
 use tiberius_dependencies::mime;
-use tiberius_models::{Client, Image, ImageThumbType};
+use tiberius_models::{Client, Image, ImageThumbType, PathImageThumbGet, PathImageGetFull};
 use tokio::fs::File;
 use tracing::trace;
 
@@ -63,25 +63,6 @@ pub async fn image_thumb_get_simple(
     }
 }
 
-#[derive(TypedPath, serde::Deserialize)]
-#[typed_path("/img/view/:year/:month/:day/:filename")]
-pub struct PathImageGetFull {
-    pub filename: String,
-    pub year: u16,
-    pub month: u8,
-    pub day: u8,
-}
-
-impl PathImageGetFull {
-    pub async fn from_image(i: &mut Image, client: &mut Client) -> TiberiusResult<Self> {
-        Ok(Self {
-            filename: i.long_filename(client).await?,
-            year: i.created_at.year() as u16,
-            month: i.created_at.month() as u8,
-            day: i.created_at.day() as u8,
-        })
-    }
-}
 
 #[derive(TypedPath, serde::Deserialize)]
 #[typed_path("/img/view/:year/:month/:day/:filename")]
@@ -166,15 +147,6 @@ pub async fn image_full_get(
     }))
 }
 
-#[derive(TypedPath, serde::Deserialize)]
-#[typed_path("/img/:year/:month/:day/:id/:filename")]
-pub struct PathImageThumbGet {
-    pub year: u16,
-    pub month: u8,
-    pub day: u8,
-    pub id: u64,
-    pub filename: String,
-}
 
 #[instrument]
 pub async fn image_thumb_get(

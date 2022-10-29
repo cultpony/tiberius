@@ -85,9 +85,7 @@ pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResu
             ))
             .layer(axum_flash::layer(flash_key).with_cookie_manager())
             .layer(
-                axum_csrf::CsrfLayerBuilder::new()
-                    .config(csrf_config)
-                    .finish(),
+                axum_csrf::CsrfLayer::new(csrf_config),
             )
             .layer(CookieManagerLayer::new()),
     );

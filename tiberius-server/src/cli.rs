@@ -1,4 +1,4 @@
-use clap::{ArgEnum, Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 
 pub mod grant_acl;
 pub mod list_users;
@@ -57,16 +57,8 @@ pub struct GenKeysCli {
 #[derive(Args, Debug)]
 pub struct ListUsersCli {
     /// Test to search in user database table, must be 5 characters or more
-    #[clap(value_name = "TERM", validator = validate_search)]
+    #[clap(value_name = "TERM")]
     pub search: String,
-}
-
-fn validate_search(x: &str) -> Result<(), String> {
-    if x.len() > 5 {
-        Ok(())
-    } else {
-        Err("Search term must be 5 characters or more".to_string())
-    }
 }
 
 #[derive(Args, Debug)]

@@ -497,7 +497,7 @@ impl Into<sentry::User> for User {
 }
 
 #[async_trait]
-impl Authentication<User, PgPool> for User {
+impl Authentication<User, i64, PgPool> for User {
     async fn load_user(userid: i64, pool: Option<&PgPool>) -> anyhow::Result<User> {
         let pool = match pool {
             None => anyhow::bail!("no database pool for session layer"),

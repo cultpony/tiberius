@@ -196,10 +196,65 @@ pub async fn make_thumb(
                     res.width,
                     res.height,
                 );
-                img.thumbnail(res.width, res.height)
+                img.thumbnail_exact(res.width, res.height)
             })
             .await?
         }
         None => (**img).clone(),
     })
+}
+
+#[cfg(test)]
+mod test {
+    use std::sync::Arc;
+
+    use tiberius_core::error::TiberiusResult;
+    use tiberius_models::ImageThumbType;
+    use tokio::io::AsyncReadExt;
+
+    use crate::process_image::make_thumb;
+
+
+    #[tokio::test]
+    async fn test_very_tall_image() -> TiberiusResult<()> {
+        let image_path = "../test_data/very_tall_image_conversion.jpg";
+        let f = image::ImageFormat::Jpeg;
+        let start = std::time::Instant::now();
+        let r = tokio::fs::File::open(image_path).await?;
+        let mut r = tokio::io::BufReader::new(r);
+        let mut buf = Vec::new();
+        r.read_to_end(&mut buf).await?;
+        println!("Took {:.5} seconds to read image", start.elapsed().as_secs_f32());
+        let img = image::load_from_memory_with_format(&buf, f)?;
+        assert!(img.height() >= 20000, "Image should be atleast 20k pixels tall, was {}", img.height());
+        assert!(img.width() >= 1500, "Image should be atleast 1500 pixels wide, was {}", img.width());
+        println!("Took {:.5} seconds to load image", start.elapsed().as_secs_f32());
+        let img = Arc::new(Box::new(img));
+
+        // Test Small Thumb
+        let thumb_type = ImageThumbType::Small;
+        testfun_make_thumb(ImageThumbType::Rendered, img.clone()).await?;
+        testfun_make_thumb(ImageThumbType::Full, img.clone()).await?;
+        testfun_make_thumb(ImageThumbType::Tall, img.clone()).await?;
+        testfun_make_thumb(ImageThumbType::Large, img.clone()).await?;
+        testfun_make_thumb(ImageThumbType::Medium, img.clone()).await?;
+        testfun_make_thumb(ImageThumbType::Small, img.clone()).await?;
+        testfun_make_thumb(ImageThumbType::Thumb, img.clone()).await?;
+        testfun_make_thumb(ImageThumbType::ThumbSmall, img.clone()).await?;
+        testfun_make_thumb(ImageThumbType::ThumbTiny, img.clone()).await?;
+        
+        Ok(())
+    }
+
+    async fn testfun_make_thumb(thumb_type: ImageThumbType, img: Arc<Box<image::DynamicImage>>) -> TiberiusResult<()> {
+        println!("Clamping to {:?}, {:?}", thumb_type, thumb_type.to_resolution_limit());
+        println!("Expected resolution: {:?}", thumb_type.to_resolution_limit().map(|x| x.clamp_resolution(img.height(), img.width())));
+        let start = std::time::Instant::now();
+        let thumb = make_thumb(img, thumb_type).await?;
+        let elapsed = start.elapsed();
+        println!("Took {:.5} seconds", elapsed.as_secs_f32());
+        assert!(thumb.width() <= thumb_type.to_resolution_limit().map(|x| x.width).unwrap_or(thumb.width()), "Thumbnail Width should have been clamped to {} but was clamped to {}", thumb_type.to_resolution_limit().unwrap().width, thumb.width());
+        assert!(thumb.height() == thumb_type.to_resolution_limit().map(|x| x.height).unwrap_or(thumb.height()), "Thumbnail Height should have been clamped to {} but was clamped to {}", thumb_type.to_resolution_limit().unwrap().height, thumb.height());
+        Ok(())
+    }
 }

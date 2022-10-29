@@ -20,10 +20,7 @@ use tiberius_dependencies::axum_flash::{Flash, IncomingFlashes};
 use crate::{
     api::int::oembed::PathOembed,
     pages::{
-        common::{
-            image::image_thumb_urls,
-            routes::{cdn_host, dark_stylesheet_path, static_path, stylesheet_path},
-        },
+        common::routes::{cdn_host, dark_stylesheet_path, static_path, stylesheet_path},
         images::{PathSearchEmpty, PathShowImage},
         session::{PathNewSession, PathRegistration, PathSessionLogout},
         tags::PathTagsByNameShowTag,
@@ -669,7 +666,7 @@ async fn uncached_image_clientside_data<T: SessionMode>(
     insert_csd!(data, size, "full");
     insert_csd!(data, source_url, image.source_url);
     insert_csd!(data, upvotes, image.upvotes_count);
-    insert_csd!(data, uris, image_thumb_urls(&image).await?);
+    insert_csd!(data, uris, image.image_thumb_urls().await?);
 
     Ok(csd_to_markup("image-show-container", data, inner).await?)
 }

@@ -12,7 +12,7 @@ extern crate tracing;
 
 use std::{path::Path, str::FromStr};
 
-use clap::{AppSettings, StructOpt};
+use clap::Parser;
 use tiberius_dependencies::sentry;
 use tracing::{debug, info};
 

@@ -28,6 +28,7 @@ use tiberius_core::{
 };
 use tiberius_dependencies::serde_urlencoded;
 use tiberius_dependencies::{axum_flash::Flash, mime, sentry};
+use tiberius_models::PathImageGetFull;
 use tiberius_models::{comment::Comment, Image, ImageMeta};
 use tokio::{
     fs::File,
@@ -43,12 +44,12 @@ use crate::{
             comment::{comment_form, comment_view, single_comment},
             frontmatter::{image_clientside_data, quick_tag_table, tag_editor},
             human_date,
-            image::{image_thumb_urls, show_vote_counts},
+            image::show_vote_counts,
             renderer::{textile::render_textile, textile_extensions},
             tag::tag_markup,
         },
         tags::{PathTagsByNameShowTag, PathTagsShowTag},
-        PathImageGetFull, PathImageGetShort, PathImageThumbGetSimple,
+        PathImageGetShort, PathImageThumbGetSimple,
     },
     set_scope_tx, set_scope_user, MAX_IMAGE_DIMENSION,
 };
@@ -345,7 +346,7 @@ pub async fn show_image(
     //TODO: compute this
     let use_fullsize = true;
     let scaled_value: f32 = 1.0;
-    let data_uris = image_thumb_urls(&image)
+    let data_uris = image.image_thumb_urls()
         .await?
         .with_host(Some(state.config().static_host(Some(&rstate))));
     let data_uris = serde_json::to_string(&data_uris)?;

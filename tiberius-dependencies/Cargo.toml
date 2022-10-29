@@ -6,12 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = { version = "0.5", features = ["http2", "headers"] }
+axum = { version = "0.5", features = ["http2", "headers", "multipart"] }
 axum-extra = { version = "^0.3", features = ["typed-routing", "cookie-lib", "cookie-signed", "cookie-private", "async-read-body"] }
 axum_database_sessions = "4.0.2"
-axum_sessions_auth = "3.0.0"
+axum_sessions_auth = "4.0.0"
 axum-flash = "0.5.0"
-axum_csrf = "0.4.1"
+axum_csrf = "0.5"
 tower = "^0.4"
 http = "^0.2"
 totp-rs = "3"

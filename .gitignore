@@ -9,3 +9,4 @@
 /proxy*.sh
 /Rocket.toml
 */target
+/test_data

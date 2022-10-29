@@ -11,13 +11,12 @@ use tiberius_core::{
     state::{TiberiusRequestState, TiberiusState},
 };
 use tiberius_models::{
-    Client, Image, ImageSortBy, ImageThumbType, ImageThumbUrl, SortDirection, User,
+    Client, Image, ImageSortBy, ImageThumbType, ImageThumbUrl, SortDirection, User, PathImageThumbGet,
 };
 
 use crate::pages::{
     common::{frontmatter::CSSWidth, pagination::PaginationCtl},
-    images::PathShowImage,
-    PathImageGetFull, PathImageThumbGet, PathImageThumbGetSimple,
+    images::PathShowImage, PathImageThumbGetSimple,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -201,171 +200,6 @@ pub async fn image_block<
     })
 }
 
-pub async fn image_thumb_urls(image: &Image) -> TiberiusResult<ImageThumbUrl> {
-    Ok(ImageThumbUrl {
-        full: Uri::builder()
-            .path_and_query(
-                PathBuf::from(
-                    PathImageGetFull {
-                        filename: image.filename(),
-                        year: image.created_at.year() as u16,
-                        month: image.created_at.month() as u8,
-                        day: image.created_at.day() as u8,
-                    }
-                    .to_uri()
-                    .to_string(),
-                )
-                .to_string_lossy()
-                .to_string(),
-            )
-            .build()
-            .unwrap(),
-        large: Uri::builder()
-            .path_and_query(
-                PathBuf::from(
-                    PathImageThumbGet {
-                        id: image.id as u64,
-                        filename: image.filetypef("full"),
-                        year: image.created_at.year() as u16,
-                        month: image.created_at.month() as u8,
-                        day: image.created_at.day() as u8,
-                    }
-                    .to_uri()
-                    .to_string(),
-                )
-                .to_string_lossy()
-                .to_string(),
-            )
-            .build()
-            .unwrap(),
-        rendered: Uri::builder()
-            .path_and_query(
-                PathBuf::from(
-                    PathImageThumbGet {
-                        id: image.id as u64,
-                        filename: image.filetypef("rendered"),
-                        year: image.created_at.year() as u16,
-                        month: image.created_at.month() as u8,
-                        day: image.created_at.day() as u8,
-                    }
-                    .to_uri()
-                    .to_string(),
-                )
-                .to_string_lossy()
-                .to_string(),
-            )
-            .build()
-            .unwrap(),
-        tall: Uri::builder()
-            .path_and_query(
-                PathBuf::from(
-                    PathImageThumbGet {
-                        id: image.id as u64,
-                        filename: image.filetypef("tall"),
-                        year: image.created_at.year() as u16,
-                        month: image.created_at.month() as u8,
-                        day: image.created_at.day() as u8,
-                    }
-                    .to_uri()
-                    .to_string(),
-                )
-                .to_string_lossy()
-                .to_string(),
-            )
-            .build()
-            .unwrap(),
-        medium: Uri::builder()
-            .path_and_query(
-                PathBuf::from(
-                    PathImageThumbGet {
-                        id: image.id as u64,
-                        filename: image.filetypef("medium"),
-                        year: image.created_at.year() as u16,
-                        month: image.created_at.month() as u8,
-                        day: image.created_at.day() as u8,
-                    }
-                    .to_uri()
-                    .to_string(),
-                )
-                .to_string_lossy()
-                .to_string(),
-            )
-            .build()
-            .unwrap(),
-        small: Uri::builder()
-            .path_and_query(
-                PathBuf::from(
-                    PathImageThumbGet {
-                        id: image.id as u64,
-                        filename: image.filetypef("small"),
-                        year: image.created_at.year() as u16,
-                        month: image.created_at.month() as u8,
-                        day: image.created_at.day() as u8,
-                    }
-                    .to_uri()
-                    .to_string(),
-                )
-                .to_string_lossy()
-                .to_string(),
-            )
-            .build()
-            .unwrap(),
-        thumb: Uri::builder()
-            .path_and_query(
-                PathBuf::from(
-                    PathImageThumbGet {
-                        id: image.id as u64,
-                        filename: image.filetypef("thumb"),
-                        year: image.created_at.year() as u16,
-                        month: image.created_at.month() as u8,
-                        day: image.created_at.day() as u8,
-                    }
-                    .to_uri()
-                    .to_string(),
-                )
-                .to_string_lossy()
-                .to_string(),
-            )
-            .build()
-            .unwrap(),
-        thumb_small: Uri::builder()
-            .path_and_query(
-                PathBuf::from(
-                    PathImageThumbGet {
-                        id: image.id as u64,
-                        filename: image.filetypef("thumb_small"),
-                        year: image.created_at.year() as u16,
-                        month: image.created_at.month() as u8,
-                        day: image.created_at.day() as u8,
-                    }
-                    .to_uri()
-                    .to_string(),
-                )
-                .to_string_lossy()
-                .to_string(),
-            )
-            .build()
-            .unwrap(),
-        thumb_tiny: Uri::builder()
-            .path_and_query(
-                PathBuf::from(
-                    PathImageThumbGet {
-                        id: image.id as u64,
-                        filename: image.filetypef("thumb_tiny"),
-                        year: image.created_at.year() as u16,
-                        month: image.created_at.month() as u8,
-                        day: image.created_at.day() as u8,
-                    }
-                    .to_uri()
-                    .to_string(),
-                )
-                .to_string_lossy()
-                .to_string(),
-            )
-            .build()
-            .unwrap(),
-    })
-}
 
 pub async fn show_vote_counts(
     state: &TiberiusState,

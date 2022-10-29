@@ -17,7 +17,7 @@ better-panic = "0.3"
 camo-url = "0.1.2"
 chrono = "0.4.20"
 chrono-humanize = "0.2.1"
-clap = { version = "3.0", features = ["derive", "env"] }
+clap = { version = "4.0", features = ["derive", "env"] }
 csp = "1.1.0"
 either = { version = "1.6.1", features = ["serde"] }
 human_bytes = "0.3.0"
@@ -48,7 +48,7 @@ tiberius-jobs = { path = "../tiberius-jobs", default-features = false }
 tiberius-models = { path = "../tiberius-models" }
 tiberius-dependencies = { path = "../tiberius-dependencies" }
 tokio = { version = "1.21", features = ["full", "tracing"] }
-tokio-cron-scheduler = "0.2.1"
+tokio-cron-scheduler = "0.8"
 tracing = { version = "0.1", features = [] }
 tracing-log = { version = "0.1.2" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
