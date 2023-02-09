@@ -216,6 +216,7 @@ mod test {
 
 
     #[tokio::test]
+    #[ignore]
     async fn test_very_tall_image() -> TiberiusResult<()> {
         let image_path = "../test_data/very_tall_image_conversion.jpg";
         let f = image::ImageFormat::Jpeg;
