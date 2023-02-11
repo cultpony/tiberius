@@ -33,8 +33,7 @@ pub async fn run_migrations(
     Ok(())
 }
 
-pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResult<axum::Router> {
-    let router = Router::new();
+pub fn setup_all_routes(router: Router) -> Router {
 
     let router = crate::api::int::setup_api_int(router);
     let router = crate::api::well_known::setup_well_known(router);
@@ -47,6 +46,15 @@ pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResu
     let router = pages::tags::tags_pages(router);
     let router = pages::filters::setup_filters(router);
     let router = tiberius_core::assets::embedded_file_pages(router);
+
+    router
+
+}
+
+pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResult<axum::Router> {
+    let router = Router::new();
+
+    let router = setup_all_routes(router);
 
     use tiberius_dependencies::{axum_csrf, axum_database_sessions, axum_flash};
 
@@ -191,4 +199,14 @@ pub async fn server_start(
     }
     println!("Tiberius exited.");
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    pub fn test_verify_routes_build() {
+        let router = axum::Router::new();
+
+        super::setup_all_routes(router);        
+    }
 }
