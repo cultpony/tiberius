@@ -41,7 +41,7 @@ sha3 = "0.10.6"
 sqlx-adapter = { git = "https://github.com/cultpony/sqlx-adapter.git", features = ["postgres", "runtime-tokio-rustls"], default-features = false }
 tempfile = "3"
 textile = "0.2.1"
-totp-rs = "2"
+totp-rs = "4"
 tower = "^0.4"
 tracing = "0.1.29"
 tracing-futures = { version = "0.2.5", features = ["std-future", "futures-03"] }
