@@ -2194,9 +2194,9 @@ checksum = "c4a1e36c821dbe04574f602848a19f742f4fb3c98d40449f11bcad18d6b17421"
 
 [[package]]
 name = "human_bytes"
-version = "0.3.1"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88a0d4dc39ec942e44c1c306aa196da67f2bd6a30dc7b4a475465c13ccf28817"
+checksum = "39b528196c838e8b3da8b665e08c30958a6f2ede91d79f2ffcd0d4664b9c64eb"
 
 [[package]]
 name = "hyper"
@@ -3098,9 +3098,9 @@ checksum = "ff011a302c396a5197692431fc1948019154afc178baf7d8e37367442a4601cf"
 
 [[package]]
 name = "openssl-src"
-version = "111.24.0+1.1.1s"
+version = "111.25.0+1.1.1t"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3498f259dab01178c6228c6b00dcef0ed2a2d5e20d648c017861227773ea4abd"
+checksum = "3173cd3626c43e3854b1b727422a276e568d9ec5fe8cec197822cf52cfb743d6"
 dependencies = [
  "cc",
 ]
@@ -4080,9 +4080,9 @@ dependencies = [
  "rustls",
  "sentry-anyhow",
  "sentry-contexts",
- "sentry-core 0.29.1",
+ "sentry-core",
  "sentry-panic",
- "sentry-tower 0.29.1",
+ "sentry-tower",
  "sentry-tracing",
  "tokio",
  "ureq",
@@ -4097,7 +4097,7 @@ checksum = "f55adcceaad4189af35d82c3c51613c0c372f15c25f42f70bf23c9c3ede223e1"
 dependencies = [
  "anyhow",
  "sentry-backtrace",
- "sentry-core 0.29.1",
+ "sentry-core",
 ]
 
 [[package]]
@@ -4109,7 +4109,7 @@ dependencies = [
  "backtrace",
  "once_cell",
  "regex 1.7.0",
- "sentry-core 0.29.1",
+ "sentry-core",
 ]
 
 [[package]]
@@ -4122,32 +4122,19 @@ dependencies = [
  "libc",
  "os_info",
  "rustc_version",
- "sentry-core 0.29.1",
+ "sentry-core",
  "uname",
 ]
 
 [[package]]
 name = "sentry-core"
-version = "0.27.0"
+version = "0.29.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a4591a2d128af73b1b819ab95f143bc6a2fbe48cd23a4c45e1ee32177e66ae6"
+checksum = "b5acbd3da4255938cf0384b6b140e6c07ff65919c26e4d7a989d8d90ee88fa91"
 dependencies = [
  "once_cell",
  "rand",
- "sentry-types 0.27.0",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "sentry-core"
-version = "0.29.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4df9b9d8de2658a1ecd4e45f7b06c80c5dd97b891bfbc7c501186189b7e9bbdf"
-dependencies = [
- "once_cell",
- "rand",
- "sentry-types 0.29.1",
+ "sentry-types",
  "serde",
  "serde_json",
 ]
@@ -4159,32 +4146,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0af37b8500f273e511ebd6eb0d342ff7937d64ce3f134764b2b4653112d48cb4"
 dependencies = [
  "sentry-backtrace",
- "sentry-core 0.29.1",
+ "sentry-core",
 ]
 
 [[package]]
 name = "sentry-tower"
-version = "0.27.0"
+version = "0.29.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "359fdd1be4c5ecf03ffa7b21bc865836159590d0f6d114bbabd1e9c9be4c513e"
+checksum = "bc353c0eda95e9e9e972476f669ab880861da353220139b75d88c5965088964c"
 dependencies = [
  "http",
  "pin-project",
- "sentry-core 0.27.0",
+ "sentry-core",
  "tower-layer",
  "tower-service",
  "url 2.3.1",
-]
-
-[[package]]
-name = "sentry-tower"
-version = "0.29.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eac2ab74919ee9ad3e6f5fc3fac0a4af2e8a6397b5fd7e0394f19928a4a3a3d3"
-dependencies = [
- "sentry-core 0.29.1",
- "tower-layer",
- "tower-service",
 ]
 
 [[package]]
@@ -4193,33 +4169,16 @@ version = "0.29.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "63fc83ec2cf38726bd18cb1943ff11555b07fd5034cb68b10958ab32e2863a1f"
 dependencies = [
- "sentry-core 0.29.1",
+ "sentry-core",
  "tracing-core",
  "tracing-subscriber",
 ]
 
 [[package]]
 name = "sentry-types"
-version = "0.27.0"
+version = "0.29.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "823923ae5f54a729159d720aa12181673044ee5c79cbda3be09e56f885e5468f"
-dependencies = [
- "debugid",
- "getrandom",
- "hex",
- "serde",
- "serde_json",
- "thiserror",
- "time 0.3.17",
- "url 2.3.1",
- "uuid",
-]
-
-[[package]]
-name = "sentry-types"
-version = "0.29.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ccc95faa4078768a6bf8df45e2b894bbf372b3dbbfb364e9429c1c58ab7545c6"
+checksum = "10d8587b12c0b8211bb3066979ee57af6e8657e23cf439dc6c8581fd86de24e8"
 dependencies = [
  "debugid",
  "getrandom",
@@ -5229,7 +5188,7 @@ dependencies = [
  "regex 1.7.0",
  "ring",
  "securefmt",
- "sentry-tower 0.27.0",
+ "sentry-tower",
  "serde",
  "serde_derive",
  "serde_json",
@@ -5341,9 +5300,9 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "tokio"
-version = "1.22.0"
+version = "1.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d76ce4a75fb488c605c54bf610f221cea8b0dafb53333c1a67e8ee199dcd2ae3"
+checksum = "c8e00990ebabbe4c14c08aca901caed183ecd5c09562a12c824bb53d3c3fd3af"
 dependencies = [
  "autocfg",
  "bytes",
@@ -5357,7 +5316,7 @@ dependencies = [
  "socket2",
  "tokio-macros",
  "tracing",
- "winapi 0.3.9",
+ "windows-sys 0.42.0",
 ]
 
 [[package]]
