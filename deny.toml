@@ -1,0 +1,88 @@
+targets = [
+    { triple = "x86_64-unknown-linux-gnu" },
+    { triple = "aarch64-unknown-linux-gnu" },
+    { triple = "x86_64-unknown-linux-musl" }
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+
+[advisories]
+vulnerability = "deny"
+unmaintained = "deny"
+notice = "deny"
+unsound = "deny"
+
+[bans]
+multiple-versions = "deny"
+
+[[bans.deny]]
+name = "openssl"
+wrappers = ["tiberius-core"]
+
+[[bans.skip]]
+name = "md-5"
+
+[[bans.skip]]
+name = "miniz_oxide"
+
+[[bans.skip]]
+name = "parking_lot"
+
+[[bans.skip]]
+name = "parking_lot_core"
+
+[[bans.skip]]
+name = "time"
+
+[[bans.skip]]
+name = "spin"
+
+[[bans.skip]]
+name = "sha3"
+
+[[bans.skip]]
+name = "sha2"
+
+[[bans.skip]]
+name = "sha-1"
+
+[[bans.skip]]
+name = "regex-syntax"
+
+[[bans.skip]]
+name = "itoa"
+
+[[bans.skip]]
+name = "idna"
+
+[[bans.skip]]
+name = "hmac"
+
+[[bans.skip]]
+name = "hashbrown"
+
+[[bans.skip]]
+name = "half"
+
+[[bans.skip]]
+name = "generic-array"
+
+[[bans.skip]]
+name = "digest"
+
+[[bans.skip]]
+name = "crypto-mac"
+
+[[bans.skip]]
+name = "clap"
+
+[[bans.skip]]
+name = "block-buffer"
+
+[[bans.skip]]
+name = "blake2"
+
+[[bans.skip]]
+name = "ahash"

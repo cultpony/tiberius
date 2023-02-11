@@ -151,6 +151,16 @@ where
     }
 }
 
+#[cfg(test)]
+impl TiberiusRequestState<session::Testing> {
+    pub async fn default() -> Self {
+        let request = axum::http::Request::builder().uri("/").body(axum::body::Body::empty()).unwrap();
+        let mut request_parts = axum::extract::RequestParts::new(request);
+        let self1 = TiberiusRequestState::<Unauthenticated>::from_request(&mut request_parts).await.unwrap();
+        self1.into_testing()
+    }
+}
+
 impl std::fmt::Debug for TiberiusRequestState<Authenticated> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("TiberiusRequestState")
@@ -175,7 +185,13 @@ impl std::fmt::Debug for TiberiusRequestState<Unauthenticated> {
 
 impl<A: SessionMode> TiberiusRequestState<A> {
     fn verify_staff_header<B: Send>(req: &RequestParts<B>) -> Result<(), axum::response::Response> {
-        let state: &TiberiusState = req.extensions().get().unwrap();
+        let state: &TiberiusState = match req.extensions().get() {
+            Some(v) => v,
+            None => {
+                error!("No state extension installed");
+                return Ok(())
+            }
+        };
         match state.staff_only() {
             None => Ok(()),
             Some(v) => {
@@ -204,6 +220,43 @@ impl<A: SessionMode> TiberiusRequestState<A> {
                     return Ok(());
                 }
             }
+        }
+    }
+}
+
+#[cfg(test)]
+impl TiberiusRequestState<Unauthenticated> {
+    pub fn into_testing(self) -> TiberiusRequestState<session::Testing> {
+        TiberiusRequestState::<session::Testing>{
+            cookie_jar: self.cookie_jar,
+            uri: self.uri,
+            session: self.session.into(),
+            db_session: self.db_session,
+            headers: self.headers,
+            flash: self.flash,
+            incoming_flashes: self.incoming_flashes,
+            started_at: self.started_at,
+            csrf_token: self.csrf_token,
+            cache_filter: self.cache_filter,
+        }
+    }
+}
+
+#[cfg(test)]
+impl TiberiusRequestState<Authenticated> {
+    
+    pub fn into_testing(self) -> TiberiusRequestState<session::Testing> {
+        TiberiusRequestState::<session::Testing>{
+            cookie_jar: self.cookie_jar,
+            uri: self.uri,
+            session: self.session.into(),
+            db_session: self.db_session,
+            headers: self.headers,
+            flash: self.flash,
+            incoming_flashes: self.incoming_flashes,
+            started_at: self.started_at,
+            csrf_token: self.csrf_token,
+            cache_filter: self.cache_filter,
         }
     }
 }
@@ -264,7 +317,10 @@ where
         };
         let state = req.extensions().get::<TiberiusState>().unwrap();
         if state.config().enable_lock_down {
-            if !verify_acl(state, &rstate, ACLObject::Site, ACLActionSite::Use).await.unwrap_or(false) {
+            if !verify_acl(state, &rstate, ACLObject::Site, ACLActionSite::Use)
+                .await
+                .unwrap_or(false)
+            {
                 return Err(TiberiusError::AccessDenied.into_response());
             }
         }
@@ -350,7 +406,10 @@ where
             let uri = state.url_directions.login_page.clone();
             if req.uri() != &uri {
                 // TODO: we should handle errors here but for the ACL it doesn't matter that much
-                if !verify_acl(&state, &rstate, ACLObject::Site, ACLActionSite::Use).await.unwrap_or(false) {
+                if !verify_acl(&state, &rstate, ACLObject::Site, ACLActionSite::Use)
+                    .await
+                    .unwrap_or(false)
+                {
                     return Err(TiberiusError::AccessDenied.into_response());
                 }
             }

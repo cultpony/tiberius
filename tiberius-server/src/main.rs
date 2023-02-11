@@ -10,6 +10,7 @@ compile_error!("Cannot enable \"stable-release\" and \"full-release\" features a
 #[macro_use]
 extern crate tracing;
 
+use std::sync::Arc;
 use std::{path::Path, str::FromStr};
 
 use clap::Parser;
@@ -75,13 +76,31 @@ fn main() -> TiberiusResult<()> {
         .build()
         .unwrap();
     let guard_url = app.config.sentry_url.clone();
+    debug!("Checking if Sentry is configured");
     let guard = match guard_url {
         Some(guard_url) => {
             let opts = sentry::ClientOptions {
                 release: sentry::release_name!(),
-                traces_sample_rate: app.config.sentry_ratio.unwrap_or(1.0) as f32,
-                auto_session_tracking: false,
+                traces_sample_rate: app.config.sentry_ratio.unwrap_or(0.0) as f32,
+                sample_rate: app.config.sentry_ratio.unwrap_or(1.0) as f32,
                 session_mode: sentry::SessionMode::Request,
+                http_proxy: app.config.proxy.clone().map(|x| std::borrow::Cow::from(x.to_string())),
+                https_proxy: app.config.proxy.clone().map(|x| std::borrow::Cow::from(x.to_string())),
+                in_app_include: vec![
+                    "tiberius-server", "tiberius-core", "tiberius-models", "tiberius-jobs",
+                    "tiberius-search", "tiberius-common-html", "tiberius-dependencies"
+                ],
+                before_send: Some(std::sync::Arc::new(|mut event: sentry::types::protocol::v7::Event| {
+                    // Modify event here
+                    event.request = event.request.map(|mut f| {
+                        f.cookies = None;
+                        // TODO: keep some important headers
+                        f.headers.clear();
+                        f
+                    });
+                    event.server_name = None; // Don't send server name
+                    Some(event)
+                })),
                 ..Default::default()
             };
             info!("Starting with sentry tracing");
@@ -112,8 +131,6 @@ fn main() -> TiberiusResult<()> {
                 .await
             })??;
             runtime.shutdown_timeout(std::time::Duration::from_secs(10));
-            drop(guard);
-            Ok(())
         }
         Command::Worker(_) => {
             info!("Starting {} worker", package_full());
@@ -124,8 +141,6 @@ fn main() -> TiberiusResult<()> {
                 .await
             })??;
             runtime.shutdown_timeout(std::time::Duration::from_secs(10));
-            drop(guard);
-            Ok(())
         }
         Command::GenKeys(config) => {
             let base_path = std::path::PathBuf::from_str(&config.key_directory)?;
@@ -157,31 +172,29 @@ fn main() -> TiberiusResult<()> {
             }
             warn!("Keys generated, you are ready to roll.");
             error!("MAKE BACKUPS OF THE {} DIRECTORY", base_path.display());
-            drop(guard);
-            Ok(())
         }
         Command::GrantAcl(config) => {
             runtime.block_on(async move { crate::cli::grant_acl::grant_acl(&config, global_config).await })?;
-            drop(guard);
-            Ok(())
         }
         Command::ListUsers(config) => {
-            drop(guard);
             todo!()
         }
         Command::RunJob(runjob) => {
             runtime.block_on(async move {
                 crate::cli::run_job::run_job(runjob, global_config).await
             })?;
-            drop(guard);
-            Ok(())
         }
         Command::ExecJob(runjob) => {
             runtime.block_on(async move {
                 crate::cli::run_job::exec_job(runjob, global_config).await
             })?;
-            drop(guard);
-            Ok(())
+        }
+        Command::GetConfRes => {
+            runtime.block_on(async move {
+                crate::cli::getconfres::getconfres(global_config).await
+            })?;
         }
     }
+    guard.map(|x| x.close(None));
+    Ok(())
 }

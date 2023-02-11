@@ -11,6 +11,7 @@ use tiberius_core::{
     state::{TiberiusRequestState, TiberiusState},
 };
 use tiberius_models::{Client, Tag, TagLike};
+use crate::set_scope_tx;
 
 use crate::pages::todo_page;
 
@@ -45,6 +46,7 @@ pub struct PathTagsShowTag {
 
 #[tracing::instrument]
 pub async fn show_tag(PathTagsShowTag { tag_id }: PathTagsShowTag) -> TiberiusResult<HtmlResponse> {
+    set_scope_tx!("GET /tags/:tag_id");
     Ok(HtmlResponse {
         content: todo_page("show_tags").await?.into_string(),
     })

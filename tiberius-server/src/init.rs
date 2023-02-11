@@ -12,10 +12,11 @@ pub fn logging(config: &Configuration) {
     let filter = EnvFilter::from_default_env();
     let fmt_layer = tracing_subscriber::fmt::layer();
     tracing_subscriber::registry()
+        .with(sentry::integrations::tracing::layer())
         .with({
             let f = fmt_layer
                 .with_filter(tracing::metadata::LevelFilter::from_level(def_level));
-                #[cfg(not(debug_assertions))]
+                //#[cfg(not(debug_assertions))]
                 let f = f.with_filter(filter_fn(|metadata| -> bool {
                     // We filter these in debugging as most of them are a bit noisy
                     match metadata.module_path() {
@@ -31,11 +32,13 @@ pub fn logging(config: &Configuration) {
                                 || v.contains("mio")
                                 || v.contains("tantivy")
                                 || v.contains("sqlx")
+                                || v.contains("h2")
+                                || v.contains("rustls")
+                                || v.contains("tantivy")
                         },
                     }
                 }));
                 f
         })
-        .with(sentry::integrations::tracing::layer())
         .init();
 }

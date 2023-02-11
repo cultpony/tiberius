@@ -6,33 +6,43 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+ammonia = "3.2.0"
+async-once-cell = "0.4.2"
+atomic = "0.5.1"
 axum = { version = "0.5", features = ["http2", "headers", "multipart"] }
-axum-extra = { version = "^0.3", features = ["typed-routing", "cookie-lib", "cookie-signed", "cookie-private", "async-read-body"] }
+axum_csrf = "0.5"
 axum_database_sessions = "4.0.2"
 axum_sessions_auth = "4.0.0"
+axum-extra = { version = "^0.3", features = ["typed-routing", "cookie-lib", "cookie-signed", "cookie-private", "async-read-body"] }
 axum-flash = "0.5.0"
-axum_csrf = "0.5"
-tower = "^0.4"
-http = "^0.2"
-totp-rs = "3"
-headers = "0.3"
-mime = "0.3"
-rust-embed = { version = "6.4.1", features = ["compression", "axum", "tokio"] }
-maud = { version = "*", features = ["axum"] }
-tempfile = "3"
-serde_qs = { version = "0.10.1", features = ["axum"] }
-http-serde = "1.1.2"
-ammonia = "3.2.0"
-once_cell = "1.14.0"
-async-once-cell = "0.4.2"
-moka = { version = "0.9", features = ["future"] }
-chrono-humanize = "0.2.1"
 blake2 = "0.10.4"
-hex = "0.4.3"
-sentry = { version = "0.27.0", features = ["tracing", "anyhow", "tower", "panic", "contexts"] }
-sqlx-adapter = { git = "https://github.com/cultpony/sqlx-adapter.git", features = ["postgres", "runtime-tokio-rustls"], default-features = false }
 casbin = "2.0.9"
-axum-strangler = "0.3.0"
-regex = "1.5.4"
+chrono-humanize = "0.2.1"
+comrak = { git = "https://github.com/philomena-dev/comrak", rev = "6f1ef6a" }
+cron = "0.12.0"
+flatiron = "1.0.5"
+gethostname = "0.4.0"
+headers = "0.3"
+hex = "0.4.3"
+http = "^0.2"
+http-serde = "1.1.2"
 lazy_static = "1.4"
+maud = { version = "*", features = ["axum"] }
+mime = "0.3"
+moka = { version = "0.9", features = ["future"] }
+once_cell = "1.14.0"
+regex = "1.5.4"
+reqwest = { version = "0.11", default-features = false, features = ["json", "socks", "cookies", "rustls-tls-native-roots", "tokio-rustls"] }
+rust-embed = { version = "6.4.1", features = ["compression", "axum", "tokio"] }
+sentry = { version = "0.29.0", default-features = false, features = ["tracing", "anyhow", "tower", "panic", "contexts", "rustls", "reqwest"] }
+serde_qs = { version = "0.10.1", features = ["axum"] }
 serde_urlencoded = "0.7.1"
+sha3 = "0.10.6"
+sqlx-adapter = { git = "https://github.com/cultpony/sqlx-adapter.git", features = ["postgres", "runtime-tokio-rustls"], default-features = false }
+tempfile = "3"
+textile = "0.2.1"
+totp-rs = "2"
+tower = "^0.4"
+tracing = "0.1.29"
+tracing-futures = { version = "0.2.5", features = ["std-future", "futures-03"] }
+uuid = { version = "1", features = ["v6", "std", "rng"] }

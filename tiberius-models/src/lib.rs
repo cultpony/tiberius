@@ -28,6 +28,7 @@ pub use models::*;
 
 use chrono::NaiveDateTime;
 pub use tantivy::TantivyError;
+use tiberius_dependencies::reqwest;
 use tiberius_dependencies::{
     moka::future::Cache,
     totp_rs::{self, TotpUrlError},
@@ -270,7 +271,9 @@ impl<'c> sqlx::Executor<'c> for &mut Client {
         'c: 'e,
         E: sqlx::Execute<'q, Self::Database>,
     {
-        self.db.fetch_many(query)
+        use tiberius_dependencies::tracing_futures::{Instrument, WithSubscriber};
+        Box::pin(self.db.fetch_many(query).instrument(tracing::span::Span::current()))
+        //Box::pin(self.db.fetch_many(query).instrument(tracing::debug_span!("fetch_many")))
     }
 
     #[instrument(skip(query), fields(query = query.sql()))]
@@ -285,7 +288,8 @@ impl<'c> sqlx::Executor<'c> for &mut Client {
         'c: 'e,
         E: sqlx::Execute<'q, Self::Database>,
     {
-        self.db.fetch_optional(query)
+        use tiberius_dependencies::tracing_futures::Instrument;
+        Box::pin(self.db.fetch_optional(query).instrument(tracing::span::Span::current()))
     }
 
     #[instrument(skip(parameters))]
@@ -300,7 +304,8 @@ impl<'c> sqlx::Executor<'c> for &mut Client {
     where
         'c: 'e,
     {
-        self.db.prepare_with(sql, parameters)
+        use tiberius_dependencies::tracing_futures::Instrument;
+        Box::pin(self.db.prepare_with(sql, parameters).instrument(tracing::span::Span::current()))
     }
 
     #[instrument]
@@ -311,7 +316,8 @@ impl<'c> sqlx::Executor<'c> for &mut Client {
     where
         'c: 'e,
     {
-        self.db.describe(sql)
+        use tiberius_dependencies::tracing_futures::Instrument;
+        Box::pin(self.db.describe(sql).instrument(tracing::span::Span::current()))
     }
 }
 

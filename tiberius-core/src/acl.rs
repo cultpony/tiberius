@@ -2,6 +2,7 @@ use std::marker::PhantomData;
 
 use axum::extract::{FromRequest, RequestParts};
 use reqwest::StatusCode;
+use tiberius_dependencies::reqwest;
 use tiberius_dependencies::{casbin, casbin::prelude::*};
 
 use crate::{
@@ -69,6 +70,7 @@ pub enum ACLActionImage {
     ChangeUploader,
     MergeDuplicate,
     IncrementView,
+    RepairImage,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -150,6 +152,7 @@ impl ACLActionTrait for ACLActionImage {
             ACLActionImage::ChangeUploader => "change_uploader".to_string(),
             ACLActionImage::MergeDuplicate => "merge_duplicate".to_string(),
             ACLActionImage::IncrementView => "increment_view".to_string(),
+            ACLActionImage::RepairImage => "repair_image".to_string(),
         }
     }
     fn action_of(&self, a: &ACLObject) -> bool {

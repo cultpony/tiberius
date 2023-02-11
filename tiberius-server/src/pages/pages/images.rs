@@ -61,6 +61,7 @@ pub fn image_pages(r: Router) -> Router {
     let r = r.typed_get(specific_show_image);
     let r = r.typed_get(show_random_image);
     let r = r.typed_get(show_image);
+    let r = r.typed_post(repair_image_thumbnail);
     r
 }
 
@@ -128,6 +129,7 @@ pub async fn show_random_image(
     Extension(state): Extension<TiberiusState>,
     rstate: TiberiusRequestState<Unauthenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
+    set_scope_tx!("GET /images/random");
     // TODO: ensure acceptable by filter
     let mut client = state.get_db_client();
     let image = Image::random(&mut client).await?;
@@ -142,6 +144,7 @@ pub async fn show_navigate_image(
     Extension(state): Extension<TiberiusState>,
     rstate: TiberiusRequestState<Unauthenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
+    set_scope_tx!("GET /images/:image/navigate");
     let query = raw_query.0.unwrap_or_default();
     let QueryNavigateImage{ rel, .. } = serde_urlencoded::from_str(&query)?;
     // TODO: ensure acceptable by filter
@@ -225,6 +228,13 @@ pub async fn show_image(
         &rstate,
         ACLObject::Image,
         ACLActionImage::IncrementView,
+    )
+    .await?;
+    let allow_repair_image: bool = verify_acl(
+        &state,
+        &rstate,
+        ACLObject::Image,
+        ACLActionImage::RepairImage,
     )
     .await?;
     if allow_count_view {
@@ -477,6 +487,13 @@ pub async fn show_image(
                         }
                     }
                     // TODO: source staff tools
+                }
+                @if allow_repair_image {
+                    p {
+                        form method="POST" action=(PathImageRepairThumbnails{image: image.id as i64}.to_uri().to_string()) {
+                            button.button autocomplete="off" type="submit" { "Repair Thumbnails" }
+                        }
+                    }
                 }
             }
         }
@@ -1110,6 +1127,36 @@ pub async fn get_image_comment(
             comment_id.to_string(),
         ))
     }
+}
+
+#[derive(TypedPath, Deserialize)]
+#[typed_path("/images/:image/repair/thumbnails")]
+pub struct PathImageRepairThumbnails {
+    image: i64,
+}
+
+#[instrument(skip(state, rstate))]
+pub async fn repair_image_thumbnail(
+    PathImageRepairThumbnails {
+        image,
+    }: PathImageRepairThumbnails,
+    Extension(state): Extension<TiberiusState>,
+    rstate: TiberiusRequestState<Unauthenticated>,
+) -> TiberiusResult<TiberiusResponse<()>> {
+    set_scope_tx!("POST /images/:image/repair/thumbnails");
+    let allow_repair_image: bool = verify_acl(
+        &state,
+        &rstate,
+        ACLObject::Image,
+        ACLActionImage::RepairImage,
+    )
+    .await?;
+    assert!(allow_repair_image);
+    let config = tiberius_jobs::generate_thumbnails::GenerateThumbnailConfig{
+        image_id: image as u64,
+    };
+    tiberius_jobs::generate_thumbnails::generate_thumbnails(&mut state.get_db_client(), config).await?;
+    Ok(TiberiusResponse::Other(()))
 }
 
 #[cfg(test)]

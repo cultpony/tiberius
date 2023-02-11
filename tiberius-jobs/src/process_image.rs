@@ -4,8 +4,11 @@ use sqlxmq::{job, Checkpoint, CurrentJob};
 use tiberius_core::{config::Configuration, error::TiberiusResult, state::TiberiusState};
 use tiberius_dependencies::hex;
 use tiberius_models::{Channel, Client, Image, ImageThumbType, Queryable};
+use tiberius_dependencies::sentry;
+use tiberius_dependencies::prelude::*;
 
 use crate::SharedCtx;
+use crate::generate_thumbnails::make_thumb;
 
 #[derive(serde::Deserialize, serde::Serialize, Clone, Debug)]
 pub struct ImageProcessConfig {
@@ -22,7 +25,28 @@ pub async fn process_image<'a, E: sqlx::Executor<'a, Database = sqlx::Postgres>>
 
 #[instrument(skip(current_job, sctx))]
 #[sqlxmq::job(retries = 3, backoff_secs = 10)]
-pub(crate) async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
+pub(crate) async fn run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
+    sentry::configure_scope(|scope| {
+        scope.clear();
+    });
+    let tx = sentry::start_transaction(sentry::TransactionContext::new("process_image", "queue.task"));
+    match tx_run_job(current_job, sctx).await {
+        Ok(()) => {
+            tx.set_status(sentry::protocol::SpanStatus::Ok);
+            tx.finish();
+            Ok(())
+        },
+        Err(e) => {
+            tx.set_status(sentry::protocol::SpanStatus::InternalError);
+            tx.set_data("error_msg", serde_json::Value::String(e.to_string()));
+            tx.finish();
+            Err(e)
+        }
+    }
+}
+
+#[instrument(skip(current_job, sctx))]
+async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
     info!("Job {}: Processing image", current_job.id());
     let start = std::time::Instant::now();
     let pool = current_job.pool();
@@ -179,30 +203,6 @@ pub(crate) async fn run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> Tib
     Ok(())
 }
 
-pub async fn make_thumb(
-    img: std::sync::Arc<Box<image::DynamicImage>>,
-    thumb_size: ImageThumbType,
-) -> TiberiusResult<image::DynamicImage> {
-    let res = thumb_size.to_resolution_limit();
-    // TODO: handle gif, maybe
-    Ok(match res {
-        Some(res) => {
-            tokio::task::spawn_blocking(move || {
-                let res = res.clamp_resolution(img.height(), img.width());
-                debug!(
-                    "Clamping image from {}, {} -> {}, {}",
-                    img.width(),
-                    img.height(),
-                    res.width,
-                    res.height,
-                );
-                img.thumbnail_exact(res.width, res.height)
-            })
-            .await?
-        }
-        None => (**img).clone(),
-    })
-}
 
 #[cfg(test)]
 mod test {
@@ -211,8 +211,6 @@ mod test {
     use tiberius_core::error::TiberiusResult;
     use tiberius_models::ImageThumbType;
     use tokio::io::AsyncReadExt;
-
-    use crate::process_image::make_thumb;
 
 
     #[tokio::test]
@@ -243,6 +241,8 @@ mod test {
         testfun_make_thumb(ImageThumbType::Thumb, img.clone()).await?;
         testfun_make_thumb(ImageThumbType::ThumbSmall, img.clone()).await?;
         testfun_make_thumb(ImageThumbType::ThumbTiny, img.clone()).await?;
+
+        todo!();
         
         Ok(())
     }
@@ -251,7 +251,7 @@ mod test {
         println!("Clamping to {:?}, {:?}", thumb_type, thumb_type.to_resolution_limit());
         println!("Expected resolution: {:?}", thumb_type.to_resolution_limit().map(|x| x.clamp_resolution(img.height(), img.width())));
         let start = std::time::Instant::now();
-        let thumb = make_thumb(img, thumb_type).await?;
+        let thumb = crate::generate_thumbnails::make_thumb(img, thumb_type).await?;
         let elapsed = start.elapsed();
         println!("Took {:.5} seconds", elapsed.as_secs_f32());
         assert!(thumb.width() <= thumb_type.to_resolution_limit().map(|x| x.width).unwrap_or(thumb.width()), "Thumbnail Width should have been clamped to {} but was clamped to {}", thumb_type.to_resolution_limit().unwrap().width, thumb.width());

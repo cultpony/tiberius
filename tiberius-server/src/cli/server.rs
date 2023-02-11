@@ -15,7 +15,7 @@ use tiberius_core::{
 };
 use tiberius_dependencies::{
     axum_database_sessions::{AxumPgPool, AxumSessionConfig, AxumSessionStore},
-    axum_sessions_auth, axum_strangler, sentry,
+    axum_sessions_auth, sentry,
     tower::ServiceBuilder,
 };
 use tiberius_models::{Client, User};
@@ -65,8 +65,6 @@ pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResu
 
     let router = router.layer(
         ServiceBuilder::new()
-            .layer(sentry_tower::NewSentryLayer::new_from_top())
-            .layer(sentry_tower::SentryHttpLayer::with_transaction())
             .layer(Extension(
                 TiberiusState::new(
                     config.clone(),
@@ -87,31 +85,12 @@ pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResu
             .layer(
                 axum_csrf::CsrfLayer::new(csrf_config),
             )
-            .layer(CookieManagerLayer::new()),
+            .layer(CookieManagerLayer::new())
+            .layer(sentry_tower::NewSentryLayer::new_from_top())
+            .layer(sentry_tower::SentryHttpLayer::with_transaction()),
     );
 
-    let router = if let Some(strangle_to) = &config.strangle_to {
-        assert!(
-            strangle_to.has_authority(),
-            "STRANGLE_TO must have authority"
-        );
-        let uri = axum::http::uri::Uri::from_maybe_shared(strangle_to.to_string()).unwrap();
-        let authority = uri.authority().cloned().unwrap();
-        let scheme_security = uri.scheme().cloned().unwrap();
-        let scheme_security = match scheme_security.to_string().to_lowercase().as_str() {
-            "https+wss" => axum_strangler::SchemeSecurity::HttpsAndWss,
-            "https" => axum_strangler::SchemeSecurity::Https,
-            "wss" => axum_strangler::SchemeSecurity::Wss,
-            "http" => axum_strangler::SchemeSecurity::None,
-            _ => panic!("STRANGLE_TO protocol must be one of HTTPS+WSS, HTTPS, WSS or HTTP"),
-        };
-        router.fallback(axum_strangler::StranglerService::new(
-            authority,
-            scheme_security,
-        ))
-    } else {
-        router.fallback(not_found_page.into_service())
-    };
+    let router = router.fallback(not_found_page.into_service());
 
     Ok(router)
 }

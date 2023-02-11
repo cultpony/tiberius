@@ -23,6 +23,7 @@ use tiberius_dependencies::{
         Extension,
     },
     serde_qs,
+    reqwest,
     tower::{Layer, ServiceBuilder},
 };
 use tracing::trace;
@@ -38,6 +39,8 @@ pub mod footer;
 pub mod request_helper;
 pub mod session;
 pub mod state;
+pub mod nodeid;
+pub mod links;
 
 // How long to hold Subtext in Cache while they're being used
 pub const PAGE_SUBTEXT_CACHE_TTL: Duration = Duration::from_secs(5 * 60);
@@ -56,6 +59,8 @@ pub const COMMENT_CACHE_TTL: Duration = Duration::from_secs(5 * 60);
 pub const COMMENT_CACHE_TTI: Duration = Duration::from_secs(60);
 pub const COMMENT_CACHE_SIZE: u64 = 100;
 pub const COMMENT_CACHE_START_SIZE: usize = 10;
+
+pub use nodeid::NodeId;
 
 pub fn http_client(config: &Configuration) -> TiberiusResult<reqwest::Client> {
     let client = reqwest::Client::builder()

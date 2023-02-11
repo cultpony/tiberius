@@ -25,7 +25,6 @@ maud = { version = "*", features = ["axum"] }
 new_mime_guess = "4.0"
 rand = "0.8.3"
 regex = "1.5.4"
-reqwest = { version = "0.11", features = ["json", "socks", "cookies"] }
 ring = { version = "0.16.20", features = ["std"] }
 securefmt = "0.1.1"
 serde = { version = "1.0", features = ["derive"] }
@@ -39,11 +38,9 @@ tiberius-dependencies = { path = "../tiberius-dependencies" }
 tiberius-search = { path = "../tiberius-search" }
 tokio = { version = "1.25", features = ["full"] }
 url = { version = "2.3", features = ["serde"] }
-uuid = "1"
 erlang-term = "1.0.0"
 anyhow = "1.0"
 moka = { version = "0.9", features = ["future"] }
-sentry = { version = "0.27.0", features = ["tracing", "anyhow", "tower", "panic", "contexts"] }
 axum = "0.5"
 axum-extra = { version = "^0.3", features = ["typed-routing", "cookie-lib", "cookie-signed", "cookie-private"] }
 clap = { version = "4.0", features = ["derive", "env"] }

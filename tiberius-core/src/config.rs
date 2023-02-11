@@ -1,11 +1,14 @@
 use std::{net::SocketAddr, path::PathBuf, str::FromStr};
 
 use reqwest::header::HOST;
+use tiberius_dependencies::sha3::Digest;
+use tiberius_dependencies::{reqwest, sha3};
 use tiberius_dependencies::{
     axum::headers::{self, HeaderMapExt},
     http::uri::Authority,
 };
 
+use crate::NodeId;
 use crate::{
     app::DBPool,
     error::{TiberiusError, TiberiusResult},
@@ -94,14 +97,12 @@ impl Into<tracing::Level> for LogLevel {
     }
 }
 
-#[derive(serde::Deserialize, serde::Serialize, Clone, securefmt::Debug, clap::Args)]
+#[derive(serde::Deserialize, Clone, securefmt::Debug, clap::Args)]
 pub struct Configuration {
     #[clap(env, long, default_value = "warn")]
     pub log_level: LogLevel,
     #[clap(env = "LISTEN_ON", long, default_value = "0.0.0.0:8081")]
     pub bind_to: SocketAddr,
-    #[clap(env = "STRANGLE_TO", long)]
-    pub strangle_to: Option<url::Url>,
     #[sensitive]
     #[clap(env, long)]
     pub database_url: url::Url,
@@ -159,10 +160,6 @@ pub struct Configuration {
     #[clap(env, long)]
     #[sensitive]
     pub(crate) staff_secret: Option<String>,
-    #[serde(skip)]
-    #[clap(skip = None)]
-    #[sensitive]
-    pub alt_dbconn: Option<DBPool>,
     #[serde(skip_serializing, alias = "OTP_SECRET_KEY")]
     #[clap(env, long)]
     #[sensitive]
@@ -171,9 +168,12 @@ pub struct Configuration {
     #[sensitive]
     pub sentry_url: Option<String>,
     /// The ratio of transactions to send to sentry. If not given all transactions are sent.
-    /// Value is clamped to the range 0..1
+    /// Value is clamped to the range 0..1 and defaults to 1.0
     #[clap(long, env = "SENTRY_RATIO")]
     pub sentry_ratio: Option<f64>,
+    /// The trace sampling rate. If not specified defaults to 0.0
+    #[clap(long, env = "SENTRY_TX_RATIO")]
+    pub sentry_tx_ratio: Option<f64>,
     #[clap(long, env, default_value = "104857600")]
     pub upload_max_size: u64,
     #[serde(skip_serializing, default)]
@@ -188,14 +188,16 @@ pub struct Configuration {
     /// The following path is checked here: /res/favicon.ico
     #[clap(long, default_value = "false")]
     pub try_use_ondisk_favicon: bool,
+    /// The ID of the current node.
+    /// 
+    /// This must either be a 14 character string with a leading 0x like 0x000000000000 (ie, 6 bytes of data)
+    /// or it must be unique per node and will be hashed into 6 bytes.
+    #[clap(long)]
+    pub node_id: Option<String>,
 }
 
 impl Configuration {
     pub async fn db_conn(&self) -> TiberiusResult<DBPool> {
-        match &self.alt_dbconn {
-            Some(v) => return Ok(v.clone()),
-            None => (),
-        }
         let opts = sqlx::postgres::PgConnectOptions::from_str(&self.database_url.to_string())?
             .application_name(&crate::package_full());
         let conn = sqlx::PgPool::connect_with(opts).await?;
@@ -229,9 +231,6 @@ impl Configuration {
         self.philomena_secret.as_ref()
     }
 
-    pub unsafe fn set_alt_dbconn(&mut self, db: DBPool) {
-        self.alt_dbconn = Some(db);
-    }
     pub unsafe fn set_staff_key(&mut self, staff_secret: Option<String>) {
         self.staff_secret = staff_secret
     }
@@ -248,6 +247,39 @@ impl Configuration {
     }
     pub fn password_pepper(&self) -> Option<&str> {
         self.password_pepper.as_ref().map(|x| x.as_str())
+    }
+
+    pub fn image_base(&self) -> PathBuf {
+        self.data_root.as_ref().expect("image root was needed but not set").join("images")
+    }
+
+    /// Return the Node ID. If no node-id is configured, returns the hash of the hostname of the system
+    /// and the PID of the current process
+    pub fn node_id(&self) -> NodeId {
+        match &self.node_id {
+            Some(s) if s.starts_with("0x") => {
+                todo!("implement raw node id")
+            },
+            Some(s) => {
+                todo!("implement hashed node id")
+            },
+            None => {
+                let hostname = tiberius_dependencies::gethostname();
+                let hostname = hostname.to_string_lossy();
+                let hostname = hostname.as_bytes();
+                let mut pid = std::process::id().to_le_bytes().to_vec();
+                let mut full = hostname.to_vec();
+                full.append(&mut pid);
+                let mut hasher = sha3::Sha3_256::new();
+                hasher.update(&full);
+                let result = hasher.finalize()[..].to_vec();
+                // only grab the first 6 bytes of the hash
+                let result = &result[0..6];
+                assert!(result.len() == 6);
+                let result: [u8; 6] = result.try_into().unwrap();
+                NodeId::from(result)
+            }
+        }
     }
 }
 
@@ -272,17 +304,17 @@ impl Default for Configuration {
             philomena_secret: None,
             session_handover_secret: None,
             staff_secret: None,
-            alt_dbconn: None,
             otp_secret: None,
             sentry_url: None,
             sentry_ratio: None,
+            sentry_tx_ratio: None,
             log_level: LogLevel::default(),
             bind_to: "127.0.0.1:8081".parse().unwrap(),
-            strangle_to: None,
             upload_max_size: 104857600,
             rebuild_index_on_startup: false,
             enable_lock_down: false,
             try_use_ondisk_favicon: true,
+            node_id: None,
         }
     }
 }

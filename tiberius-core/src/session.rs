@@ -10,6 +10,7 @@ use async_trait::async_trait;
 use axum::headers::{self, Header};
 use chrono::{Duration, NaiveDateTime, Utc};
 use sqlx::{pool::PoolConnection, PgPool, Postgres};
+use tiberius_dependencies::uuid;
 use tiberius_dependencies::{
     async_once_cell::OnceCell,
     axum,
@@ -52,8 +53,16 @@ pub trait SessionMode: Copy + Clone + Eq + PartialEq + std::fmt::Debug + Send {}
 pub struct Authenticated {}
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct Unauthenticated {}
+
+#[cfg(test)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+pub struct Testing{}
+
 impl SessionMode for Authenticated {}
 impl SessionMode for Unauthenticated {}
+
+#[cfg(test)]
+impl SessionMode for Testing {}
 
 pub enum AuthMethod {
     TOTP,
@@ -121,6 +130,45 @@ impl Into<Session<Unauthenticated>> for Session<Authenticated> {
     }
 }
 
+#[cfg(test)]
+impl Into<Session<Testing>> for Session<Unauthenticated> {
+    fn into(self) -> Session<Testing> {
+        Session::<Testing> {
+            _type: PhantomData::<Testing>,
+            id: self.id,
+            created: self.created,
+            expires: self.expires,
+            csrf_token: self.csrf_token,
+            user_id: None,
+            data: self.data,
+            dirty: self.dirty,
+            ephemeral: self.ephemeral,
+            waiting_on_totp: false,
+
+            cache_user: OnceCell::new(),
+        }
+    }
+}
+
+#[cfg(test)]
+impl Into<Session<Testing>> for Session<Authenticated> {
+    fn into(self) -> Session<Testing> {
+        Session::<Testing> {
+            _type: PhantomData::<Testing>,
+            id: self.id,
+            created: self.created,
+            expires: self.expires,
+            csrf_token: self.csrf_token,
+            user_id: None,
+            data: self.data,
+            dirty: self.dirty,
+            ephemeral: self.ephemeral,
+            waiting_on_totp: false,
+
+            cache_user: OnceCell::new(),
+        }
+    }
+}
 impl<T: SessionMode> Session<T> {
     pub fn id(&self) -> Uuid {
         self.id

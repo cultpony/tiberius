@@ -227,6 +227,7 @@ impl User {
             let dotp = self.decrypt_otp(otp_secret).context("TOTP decrypt")?;
             if let Some(totp) = totp {
                 if let Some(dotp) = dotp {
+                    //debug!("TOTP secret = {:?}", String::from_utf8_lossy(&dotp));
                     let dotp = base32::decode(
                         base32::Alphabet::RFC4648 { padding: false },
                         &String::from_utf8_lossy(&dotp),
@@ -239,15 +240,17 @@ impl User {
                         }
                         Some(v) => v,
                     };
+                    //assert!(dotp.len() >= 120 / 8, "TOTP Secret Insufficient Size");
                     let time = chrono::Utc::now().timestamp();
                     assert!(time > 0, "We don't run before 1970");
                     let time = time as u64;
                     use totp_rs::{Algorithm, TOTP};
                     let totpi =
-                        TOTP::new(Algorithm::SHA1, 6, 1, 30, dotp)?;
+                        TOTP::new(Algorithm::SHA1, 6, 1, 30, dotp, None, "".to_string())?;
                     if totpi.check(&totp, time) {
                         return Ok(UserLoginResult::Valid);
                     } else {
+                        debug!("Invalid TOTP, stopping login session");
                         // TODO: retry with backup codes if not [0-9]{6} format
                         return Ok(UserLoginResult::Invalid);
                     }

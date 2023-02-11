@@ -5,6 +5,7 @@ pub mod list_users;
 pub mod run_job;
 pub mod server;
 pub mod worker;
+pub mod getconfres;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about = "The Lunar Image Board", long_about = None)]
@@ -37,6 +38,8 @@ pub enum Command {
     /// Executes a specific job outside the scheduler, not all jobs allow this
     ExecJob(ExecJobCli),
     Worker(WorkerCli),
+    /// Check and return some configuration options after evaluating the configuration
+    GetConfRes,
 }
 
 #[derive(Args, Debug)]

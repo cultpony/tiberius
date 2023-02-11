@@ -1,4 +1,5 @@
 use axum::{headers::HeaderMapExt, http::HeaderMap};
+use tiberius_dependencies::{reqwest, uuid};
 use std::{io::Cursor, str::ParseBoolError};
 use thiserror::Error;
 use tiberius_dependencies::{
@@ -135,11 +136,13 @@ impl axum::response::IntoResponse for TiberiusError {
                 let c = maud::html! {
                     "Internal Error"
                     br;
+                    "Description:"
+                    br;
                     b { pre { (format!("{}", self.to_string())) } };
                 };
                 #[cfg(not(debug_assert))]
                 let c = {
-                    error!("Error presented to user: {:?}", self);
+                    error!("Error presented to user: {:?} {}", self, self);
                     maud::html! {
                         "Internal Error"
                         br;

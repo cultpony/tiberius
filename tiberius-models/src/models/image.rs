@@ -495,6 +495,28 @@ impl Image {
         }
     }
 
+    pub async fn mark_processed(&self, client: &mut Client) -> Result<(), PhilomenaModelError> {
+        query_as!(
+            ImageMeta,
+            "UPDATE images SET processed = true WHERE id = $1",
+            self.id,
+        )
+        .execute(client)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn mark_thumbnails_generated(&self, client: &mut Client) -> Result<(), PhilomenaModelError> {
+        query_as!(
+            ImageMeta,
+            "UPDATE images SET thumbnails_generated = true WHERE id = $1",
+            self.id,
+        )
+        .execute(client)
+        .await?;
+        Ok(())
+    }
+
     pub async fn openf(&self, base_dir: &PathBuf) -> Result<BufReader<File>, PhilomenaModelError> {
         let path = self.pathf(base_dir).await?;
         Ok(BufReader::new(File::open(path)?))
@@ -1045,6 +1067,24 @@ impl Image {
                 )
                 .build()
                 .unwrap(),
+            full_thumbnail: Uri::builder()
+                .path_and_query(
+                    PathBuf::from(
+                        PathImageThumbGet {
+                            id: self.id as u64,
+                            filename: self.filetypef("full"),
+                            year: self.created_at.year() as u16,
+                            month: self.created_at.month() as u8,
+                            day: self.created_at.day() as u8,
+                        }
+                        .to_uri()
+                        .to_string(),
+                    )
+                    .to_string_lossy()
+                    .to_string(),
+                )
+                .build()
+                .unwrap(),
             large: Uri::builder()
                 .path_and_query(
                     PathBuf::from(
@@ -1376,6 +1416,8 @@ pub struct ImageThumbUrl {
     #[serde(with = "tiberius_dependencies::http_serde::uri")]
     pub full: Uri,
     #[serde(with = "tiberius_dependencies::http_serde::uri")]
+    pub full_thumbnail: Uri,
+    #[serde(with = "tiberius_dependencies::http_serde::uri")]
     pub tall: Uri,
     #[serde(with = "tiberius_dependencies::http_serde::uri")]
     pub large: Uri,
@@ -1414,6 +1456,14 @@ impl ImageThumbUrl {
                     .scheme(scheme.clone())
                     .authority(host.clone())
                     .path_and_query(self.full.path_and_query().unwrap().clone())
+                    .build()
+                    .expect("was already valid URI")
+            },
+            full_thumbnail: {
+                Uri::builder()
+                    .scheme(scheme.clone())
+                    .authority(host.clone())
+                    .path_and_query(self.full_thumbnail.path_and_query().unwrap().clone())
                     .build()
                     .expect("was already valid URI")
             },
