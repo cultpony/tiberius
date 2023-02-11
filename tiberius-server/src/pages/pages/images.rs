@@ -151,7 +151,7 @@ pub async fn show_navigate_image(
     let mut client = state.get_db_client();
     let image = match rel {
         NavigateRelation::Next => Image::get_next_from(&mut client, id as i64).await?,
-        NavigateRelation::Find => todo!(),
+        NavigateRelation::Find => None,
         NavigateRelation::Prev => Image::get_previous_from(&mut client, id as i64).await?,
     }.map(|x| x.id().into()).unwrap_or(id);
     Ok(TiberiusResponse::Redirect(Redirect::temporary(PathShowImage{image: image}.to_uri().to_string().as_str())))

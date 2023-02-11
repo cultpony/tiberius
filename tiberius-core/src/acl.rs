@@ -233,6 +233,6 @@ pub async fn verify_acl<T: SessionMode>(
     debug!("Checking if {:?} is OK in RBAC", v);
     let casbin: casbin::Enforcer = state.get_acl_enforcer().await?;
     let enforce_result = casbin.enforce(v.clone())?;
-    info!("Result of {:?} = {:?}", v, enforce_result);
+    debug!("Result of {:?} = {:?}", v, enforce_result);
     Ok(enforce_result)
 }

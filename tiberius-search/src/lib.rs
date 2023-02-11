@@ -99,9 +99,9 @@ pub trait Queryable {
         }
         let group: String = Self::group().into();
         let path = path.join(group);
-        info!("Opening Index {}", path.display());
+        debug!("Opening Index {}", path.display());
         if !path.exists() {
-            info!("Creating Index {}", path.display());
+            debug!("Creating Index {}", path.display());
             std::fs::create_dir(path.clone())?;
         }
         let path = directory::MmapDirectory::open(path)?;
@@ -132,7 +132,7 @@ pub trait Queryable {
         offset: usize,
         dir: Self::SortIndicator,
     ) -> std::result::Result<(usize, Vec<(f32, u64)>), QueryError> {
-        info!(
+        debug!(
             "Converting query: {}, offset: {}, limit: {}",
             q, offset, limit
         );
@@ -160,7 +160,7 @@ pub trait Queryable {
                 "one more auxiliary inverted queries did not parse".to_string(),
             ));
         }
-        info!("Merging in auxiliary queries");
+        debug!("Merging in auxiliary queries");
         aq.push(q);
         let mut aq: Vec<(Occur, Box<dyn tantivy::query::Query>)> =
             aq.into_iter().map(|x| (Occur::Must, x)).collect();

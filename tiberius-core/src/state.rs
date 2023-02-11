@@ -268,7 +268,7 @@ where
 {
     type Rejection = Response;
     async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        info!("Checking out Authenticated Request State");
+        debug!("Checking out Authenticated Request State");
         Self::verify_staff_header(req).map_err(|e| e.into_response())?;
         let db_session: axum_database_sessions::AxumSession<axum_database_sessions::AxumPgPool> =
             req.extract()
@@ -335,7 +335,7 @@ where
 {
     type Rejection = Response;
     async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        info!("Checking out Unauthenticated Request State");
+        debug!("Checking out Unauthenticated Request State");
         Self::verify_staff_header(req)?;
         let allow_unauthenticated = req
             .extensions()

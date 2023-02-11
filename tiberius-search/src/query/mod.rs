@@ -153,7 +153,7 @@ use tantivy::schema::FieldType;
 use tantivy::schema::IndexRecordOption;
 #[cfg(feature = "search-with-tantivy")]
 use tantivy::Term;
-use tracing::info;
+use tracing::debug;
 
 use crate::tokenizer::{
     fold::{FoldState, FoldStateVec},
@@ -407,7 +407,7 @@ impl Query {
         schema: &tantivy::schema::Schema,
     ) -> Result<Box<dyn tantivy::query::Query>, QueryError> {
         use tantivy::query::{AllQuery, BooleanQuery, EmptyQuery, Occur, RangeQuery, TermQuery};
-        info!("Converting {} to tantivy query type", self);
+        debug!("Converting {} to tantivy query type", self);
         Ok(match self {
             Query::Not { v } => Box::new(BooleanQuery::new(vec![(
                 Occur::MustNot,
