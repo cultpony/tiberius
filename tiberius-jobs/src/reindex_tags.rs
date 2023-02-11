@@ -45,7 +45,7 @@ pub async fn run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult
 
 #[instrument(skip(current_job, sctx))]
 async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
-    info!("Job {}: Reindexing all tags", current_job.id());
+    debug!("Job {}: Reindexing all tags", current_job.id());
     let start = std::time::Instant::now();
     let pool = current_job.pool();
     let progress: TagReindexConfig = current_job
@@ -56,12 +56,12 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
         None => reindex_all(pool, &mut client).await?,
         Some(v) => reindex_many(&mut client, v).await?,
     }
-    info!("Job {}: Reindex complete!", current_job.id());
+    debug!("Job {}: Reindex complete!", current_job.id());
     current_job.complete().await?;
     let end = std::time::Instant::now();
     let time_spent = end - start;
     let time_spent = time_spent.as_secs_f32();
-    info!(
+    debug!(
         "Job {}: Processing complete in {:4.3} seconds!",
         current_job.id(),
         time_spent
@@ -77,7 +77,7 @@ async fn reindex_many(client: &mut Client, ids: Vec<i64>) -> TiberiusResult<()> 
 pub async fn reindex_all(pool: &Pool<Postgres>, client: &mut Client) -> TiberiusResult<()> {
     let mut tags = Tag::get_all(pool.clone(), None, None).await?;
     let index_writer = client.index_writer::<Tag>().await?;
-    info!("Reindexing all tags, streaming from DB...");
+    debug!("Reindexing all tags, streaming from DB...");
     while let Some(tag) = tags.next().await.transpose()? {
         let tag: Tag = Tag::from_row(&tag)?;
         trace!("Reindexing tag {}: {}", tag.id, tag.full_name());

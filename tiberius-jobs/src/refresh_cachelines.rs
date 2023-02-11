@@ -36,7 +36,7 @@ pub async fn run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult
 
 #[instrument(skip(current_job, sctx))]
 async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
-    info!("Job {}: Refreshing Cachelines", current_job.id());
+    debug!("Job {}: Refreshing Cachelines", current_job.id());
     let start = std::time::Instant::now();
     let pool = current_job.pool();
     let mut progress: RefreshCachelineConfig = current_job
@@ -48,7 +48,7 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
         debug!("Processing image {}", image.id);
         if image.update_cache_lines(&mut client).await? {
             let id = image.id;
-            info!("Updating image {}", id);
+            debug!("Updating image {}", id);
             image.save(&mut client).await?;
             progress.image_id_range = (id as u64)..(progress.image_id_range.end);
             let mut checkpoint = Checkpoint::new();
@@ -60,7 +60,7 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
     let end = std::time::Instant::now();
     let time_spent = end - start;
     let time_spent = time_spent.as_secs_f32();
-    info!(
+    debug!(
         "Job {}: Processing complete in {:4.3} seconds!",
         current_job.id(),
         time_spent

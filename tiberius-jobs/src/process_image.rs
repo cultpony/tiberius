@@ -47,7 +47,7 @@ pub(crate) async fn run_job(current_job: CurrentJob, sctx: SharedCtx) -> Tiberiu
 
 #[instrument(skip(current_job, sctx))]
 async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
-    info!("Job {}: Processing image", current_job.id());
+    debug!("Job {}: Processing image", current_job.id());
     let start = std::time::Instant::now();
     let pool = current_job.pool();
     let progress: ImageProcessConfig = current_job
@@ -63,7 +63,7 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
             return Ok(());
         }
     };
-    info!(
+    debug!(
         "Job {}: Image {}: Rewrite Image Data (Sanity Filter)",
         current_job.id(),
         img.id
@@ -83,7 +83,7 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
         );
     }
     let imagef = {
-        info!(
+        debug!(
             "Job {}: Image {}: Update Metadata",
             current_job.id(),
             img.id
@@ -120,7 +120,7 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
         imagef
     };
     {
-        info!(
+        debug!(
             "Job {job}: Image {image}: Generate Thumbnails",
             job = current_job.id(),
             image = img.id,
@@ -168,7 +168,7 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
         img.thumbnails_generated = true;
     }
     {
-        info!(
+        debug!(
             "Job {}: Image {}: Marking Image as Processed",
             current_job.id(),
             img.id
@@ -176,12 +176,12 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
         img.processed = true;
     }
     let img = img.save(&mut client).await?;
-    info!(
+    debug!(
         "Job {}: Image {}: Processing step persisted to database",
         current_job.id(),
         img.id
     );
-    info!(
+    debug!(
         "Job {}: Image {}: Scheduling Reindex",
         current_job.id(),
         img.id
@@ -195,7 +195,7 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
     let end = std::time::Instant::now();
     let time_spent = end - start;
     let time_spent = time_spent.as_secs_f32();
-    info!(
+    debug!(
         "Job {}: Processing complete in {:4.3} seconds!",
         current_job.id(),
         time_spent

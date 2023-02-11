@@ -81,7 +81,7 @@ async fn tx_run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<
     let mut client = sctx.client;
     let img = Image::get(&mut client, progress.image_id as i64).await?.expect("start thumb job for image that does not exist");
     let img_db = img.clone();
-    info!("Job {}: Generating Thumbnails for {}", current_job.id(), img.id);
+    debug!("Job {}: Generating Thumbnails for {}", current_job.id(), img.id);
     let thumbs = img.image_thumb_urls().await?;
     let format = match img.image_format.expect("need image format").as_str() {
         "png" => image::ImageFormat::Png,
@@ -102,26 +102,26 @@ async fn tx_run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<
     let img = Arc::new(Box::new(img));
 
     async fn do_make_thumb(thumb_type: ImageThumbType, store_to: PathBuf, format: image::ImageFormat, img: Arc<Box<image::DynamicImage>>) -> TiberiusResult<()> {
-        info!("Clamping image to {:?}, {:?}", thumb_type, thumb_type.to_resolution_limit());
-        info!("Expected resolution: {:?}", thumb_type.to_resolution_limit().map(|x| x.clamp_resolution(img.height(), img.width())));
+        debug!("Clamping image to {:?}, {:?}", thumb_type, thumb_type.to_resolution_limit());
+        debug!("Expected resolution: {:?}", thumb_type.to_resolution_limit().map(|x| x.clamp_resolution(img.height(), img.width())));
         let start = std::time::Instant::now();
         let thumb = make_thumb(img, thumb_type).await?;
-        info!("Took {:.3} sec to process image thumb {:?}", start.elapsed().as_secs_f32(), thumb_type);
-        info!("Saving thumb to {store_to:?}...");
+        debug!("Took {:.3} sec to process image thumb {:?}", start.elapsed().as_secs_f32(), thumb_type);
+        debug!("Saving thumb to {store_to:?}...");
         tokio::task::spawn_blocking(move || {
             //todo!("saved to {store_to:?}");
             thumb.save_with_format(store_to, format)
         }).await??;
-        info!("Processing for thumb {:?} complete in {:.3} seconds", thumb_type, start.elapsed().as_secs_f32());
+        debug!("Processing for thumb {:?} complete in {:.3} seconds", thumb_type, start.elapsed().as_secs_f32());
         Ok(())
     }
 
     let basepath = configuration.image_base().join("thumbs").join(thumbs.large.path().trim_start_matches("/img/"));
-    info!("Checking for basepath of {basepath:?}");
+    debug!("Checking for basepath of {basepath:?}");
     let basepath = basepath.parent().expect("image path cannot be a root directory");
 
     if !basepath.exists() {
-        info!("Creating directory {basepath:?}");
+        debug!("Creating directory {basepath:?}");
         std::fs::create_dir_all(basepath)?;
     }
 
@@ -140,10 +140,10 @@ async fn tx_run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<
     // todo improve path replacement
     let full = configuration.image_base().join("thumbs").join(thumbs.full_thumbnail.path().trim_start_matches("/img/"));
     let target = PathBuf::from("/srv/philomena/priv/static/system/images/").join(img_db.image.as_ref().unwrap());
-    info!("Symlinking full res from {target:?} to {full:?}");
+    debug!("Symlinking full res from {target:?} to {full:?}");
     // todo this shouldn't be hard coded
     if full.is_symlink() {
-        info!("Symlink exists, removing and readding it");
+        debug!("Symlink exists, removing and readding it");
         std::fs::remove_file(&full)?;
     }
     std::os::unix::fs::symlink(
@@ -151,7 +151,7 @@ async fn tx_run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<
         full
     )?;
     
-    info!("Finished processing, marking good in the database");
+    debug!("Finished processing, marking good in the database");
 
     img_db.mark_thumbnails_generated(&mut client).await?;
 

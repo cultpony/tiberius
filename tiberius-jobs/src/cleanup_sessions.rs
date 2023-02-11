@@ -33,6 +33,6 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
     //let store = todo!();
     //store.cleanup().await?;
     current_job.complete().await?;
-    info!("Job {}: Completed session pruning", current_job.id());
+    debug!("Job {}: Completed session pruning", current_job.id());
     Ok(())
 }

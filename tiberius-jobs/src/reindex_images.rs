@@ -65,15 +65,15 @@ pub async fn run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult
 
 #[instrument(skip(current_job, sctx))]
 async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
-    info!("Job {}: Reindexing images", current_job.id());
+    debug!("Job {}: Reindexing images", current_job.id());
     let start = std::time::Instant::now();
     let pool = current_job.pool();
     let progress: ImageReindexConfig = current_job
         .json()?
         .expect("job requires configuration copy");
-    info!("Job {}: Reindexing listed images ({:?})", current_job.id(), progress.image_ids);
+    debug!("Job {}: Reindexing listed images ({:?})", current_job.id(), progress.image_ids);
     let mut client = sctx.client;
-    info!("Job {}: Completed creating missing metadata rows", current_job.id());
+    debug!("Job {}: Completed creating missing metadata rows", current_job.id());
     match progress.image_ids {
         None if !progress.only_new => reindex_all(pool, &mut client).await?,
         None if progress.only_new => {
@@ -86,12 +86,12 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
         },
         _ => unreachable!(),
     }
-    info!("Job {}: Reindex complete!", current_job.id());
+    debug!("Job {}: Reindex complete!", current_job.id());
     current_job.complete().await?;
     let end = std::time::Instant::now();
     let time_spent = end - start;
     let time_spent = time_spent.as_secs_f32();
-    info!(
+    debug!(
         "Job {}: Processing complete in {:4.3} seconds!",
         current_job.id(),
         time_spent
@@ -103,9 +103,9 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
 pub async fn reindex_many(client: &mut Client, ids: Vec<i64>) -> TiberiusResult<()> {
     let images = Image::get_many(client, ids, ImageSortBy::Random).await?;
     let index_writer = client.index_writer::<Image>().await?;
-    info!("Reindexing all images, streaming from DB...");
+    debug!("Reindexing all images, streaming from DB...");
     for image in images {
-        info!("Reindexing image {} {:?}", image.id, image.image);
+        debug!("Reindexing image {} {:?}", image.id, image.image);
         image.delete_from_index(index_writer.clone()).await?;
         image.index(index_writer.clone(), client).await?;
     }
@@ -125,9 +125,9 @@ pub async fn reindex_new(client: &mut Client) -> TiberiusResult<()> {
         return Ok(());
     }
     let last_db_image = Image::get_newest(client).await?.expect("this job requires atleast one image in the database");
-    info!("Latest indexed image is {}, latest image in database is {}", last_image[0].1, last_db_image.id);
+    debug!("Latest indexed image is {}, latest image in database is {}", last_image[0].1, last_db_image.id);
     if last_image[0].1 as u64 == last_db_image.id as u64 {
-        info!("No new images, reindex job step complete");
+        debug!("No new images, reindex job step complete");
     } else {
         let images = Image::get_range(client, (last_image[0].1 as u64)..(last_db_image.id as u64))
             .await?
@@ -135,7 +135,7 @@ pub async fn reindex_new(client: &mut Client) -> TiberiusResult<()> {
             .map(|x| x.id as i64)
             .collect_vec();
         reindex_many(client, images).await?;
-        info!("New images have been indexed");
+        debug!("New images have been indexed");
     }
     Ok(())
 }
@@ -146,12 +146,12 @@ pub async fn reindex_all(pool: &Pool<Postgres>, client: &mut Client) -> Tiberius
     let mut images = Image::get_all(pool.clone(), None, None).await?;
     let index_writer = client.index_writer::<Image>().await?;
     let index_reader = client.index_reader::<Image>()?;
-    info!("Reindexing {image_count} images, streaming from DB...");
+    debug!("Reindexing {image_count} images, streaming from DB...");
     let mut counter = 0;
     let progress_indicator = image_count / 521;
     while let Some(image) = images.next().await.transpose()? {
         if counter % progress_indicator == 0 {
-            info!(
+            debug!(
                 "Progress {:07.3}%",
                 (counter as f64 / image_count as f64) * 100.0
             );
@@ -165,7 +165,7 @@ pub async fn reindex_all(pool: &Pool<Postgres>, client: &mut Client) -> Tiberius
         match image_in_index {
             Some(image_in_index) => {
                 if image_in_db != image_in_index {
-                    info!("Reindexing image {counter}/{image_count}: {}", image.id);
+                    debug!("Reindexing image {counter}/{image_count}: {}", image.id);
                 } else {
                     debug!(
                         "Image {counter}/{image_count} requires no reindex: {}",
@@ -175,7 +175,7 @@ pub async fn reindex_all(pool: &Pool<Postgres>, client: &mut Client) -> Tiberius
                 }
             }
             None => {
-                info!(
+                debug!(
                     "Image {counter}/{image_count} indexing for first time: {}",
                     image.id
                 );

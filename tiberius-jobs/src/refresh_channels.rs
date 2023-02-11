@@ -55,7 +55,7 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
     let progress: PicartoConfig = current_job
         .json()?
         .expect("job requires configuration copy");
-    info!("Job {}: Refreshing picarto channels", current_job.id());
+    debug!("Job {}: Refreshing picarto channels", current_job.id());
     let mut client = sctx.client;
     let mut progress = {
         if progress.started {
@@ -71,7 +71,7 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
             progress
         }
     };
-    info!("Loading checkpoint for channel refresh");
+    debug!("Loading checkpoint for channel refresh");
     let mut checkpoint = Checkpoint::new();
     checkpoint.set_json(&progress)?;
     for mut channel in progress.all_channels.clone() {
@@ -87,12 +87,12 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
                 debug!("Completed refresh for channel {}", channel.id);
             },
             Err(e) => {
-                info!("Failed refresh on channel {} ({:?})", channel.id, channel.short_name);
+                debug!("Failed refresh on channel {} ({:?})", channel.id, channel.short_name);
                 current_job.checkpoint(&checkpoint).await?;
             }
         };
     }
-    info!("Job {}: Completed refresh", current_job.id());
+    debug!("Job {}: Completed refresh", current_job.id());
     current_job.complete().await?;
     Ok(())
 }
