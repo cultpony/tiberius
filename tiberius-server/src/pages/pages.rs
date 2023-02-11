@@ -17,7 +17,7 @@ use tiberius_core::{
 use tiberius_dependencies::axum_database_sessions::AxumSession;
 
 use crate::pages::session::PathSessionsLogin;
-
+use crate::set_scope_tx;
 
 pub mod activity;
 pub mod apikeys;
@@ -65,6 +65,7 @@ pub async fn error_page(err: &TiberiusError) -> Markup {
 }
 
 pub async fn not_found_page(uri: Uri) -> (StatusCode, HeaderMap, String) {
+    set_scope_tx!("Not Found");
     let mut hm = HeaderMap::new();
     hm.typed_insert(ContentType::html());
     info!("Undefined route called at {uri}");
