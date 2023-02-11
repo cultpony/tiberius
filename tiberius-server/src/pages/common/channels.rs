@@ -15,8 +15,8 @@ pub async fn channel_box(state: &TiberiusState, client: &mut Client, channel: &C
             @if channel.is_live {
                 .spacing-right.label.label--success.label--block.label--small {
                     strong { "LIVE NOW" }
-                    (pluralize("viewer", "viewers", channel.viewers))
                 }
+                (pluralize("viewer", "viewers", channel.viewers))
             } @else {
                 .label.label--danger.label--block.label--small {
                     strong { "OFF AIR" }
