@@ -40,7 +40,7 @@ pub async fn channel_box(state: &TiberiusState, client: &mut Client, channel: &C
     };
     let artist = html! {
         @if let Some(artist_tag) = artist_tag {
-            a.(link_class) href=(PathTagsShowTag{ tag_id: artist_tag.id as i64 }.to_uri().to_string()) {
+            a.(link_class) href=(PathTagsShowTag{ tag_id: either::Either::Left(artist_tag.id as i64) }.to_uri().to_string()) {
                 i.fa.fa-fw.fa-tags { }
                 (artist_tag.name);
             }

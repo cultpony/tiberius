@@ -41,7 +41,7 @@ pub async fn list_tags(_: PathTagsListTags) -> TiberiusResult<HtmlResponse> {
 #[derive(TypedPath, serde::Deserialize)]
 #[typed_path("/tags/:tag_id")]
 pub struct PathTagsShowTag {
-    pub tag_id: i64,
+    pub tag_id: either::Either<i64, String>,
 }
 
 #[tracing::instrument]

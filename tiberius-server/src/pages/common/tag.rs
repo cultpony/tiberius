@@ -21,7 +21,7 @@ pub fn tag_markup(tag: &TagView) -> Markup {
                 span.tag__state.hidden title="Spoilered" { "S" }
                 span.tag__state.hidden title="Hidden" { "H" }
                 a class="tag__name" href=(tag.slug.as_ref().map(|slug| PathTagsByNameShowTag{ tag: slug.clone() }.to_uri().to_string())
-                    .unwrap_or(PathTagsShowTag{ tag_id: tag.id as i64 }.to_uri().to_string()))
+                    .unwrap_or(PathTagsShowTag{ tag_id: either::Either::Left(tag.id as i64) }.to_uri().to_string()))
                     title=(tag.description.clone().unwrap_or(tag.name.clone())) {
                         " " (tag.name)
                 }
