@@ -87,6 +87,8 @@ pub enum PhilomenaModelError {
     TotpUrlError(totp_rs::TotpUrlError),
     #[error("Error parsing integer: {:?}", .0)]
     ParseInt(#[from] std::num::ParseIntError),
+    #[error("Consumed this TOTP Step already")]
+    ConsumedTOTPAlready,
 }
 
 impl From<Arc<sqlx::Error>> for PhilomenaModelError {

@@ -8,6 +8,8 @@ pub struct OTPSecret {
     pub encrypted_otp_secret: Option<String>,
     pub encrypted_otp_secret_iv: Option<String>,
     pub encrypted_otp_secret_salt: Option<String>,
+    /// The last time we generated a TOTP. This should be updated in the database
+    /// after a successfull login, not a failed login!
     pub consumed_timestep: Option<i32>,
     pub otp_required_for_login: Option<bool>,
     pub otp_backup_codes: Option<Vec<String>>,
@@ -63,8 +65,23 @@ impl OTPSecret {
         time as u64
     }
 
-    pub fn next_otp(&self, key: &OTPEncryptionKey) -> Result<Option<u32>, PhilomenaModelError> {
-        Ok(self.algo(key)?.map(|algo| algo.generate(Self::time()).parse()).transpose()?)
+    pub fn next_otp(&mut self, key: &OTPEncryptionKey) -> Result<Option<u32>, PhilomenaModelError> {
+        self.totp_at_timestep(key, Self::time())
+    }
+
+    pub fn totp_at_timestep(&mut self, key: &OTPEncryptionKey, time: u64) -> Result<Option<u32>, PhilomenaModelError> {
+        match self.consumed_timestep {
+            Some(v) => {
+                if v as u64 > time {
+                    // already consumed the timestep
+                    return Err(PhilomenaModelError::ConsumedTOTPAlready);
+                };
+                // TODO: update to i64 to prevent 2038 problem
+                self.consumed_timestep = Some(time as i32);
+            },
+            None => self.consumed_timestep = Some(time as i32),
+        }
+        Ok(self.algo(key)?.map(|algo| algo.generate(time).parse()).transpose()?)
     }
 
     pub(crate) fn decrypt_otp(
@@ -173,9 +190,32 @@ mod test {
     #[test]
     pub fn test_totp_generation() -> Result<(), PhilomenaModelError> {
         let key = OTPEncryptionKey("xZYTon09JNRrj8snd7KL31wya4x71jmo5aaSSRmw1dGjWLRmEwWMTccwxgsGFGjM".as_bytes().to_vec());
-        let s = OTPSecret::new_totp_secret(&key)?;
+        let mut s = OTPSecret::new_totp_secret(&key)?;
 
+        // just test that we generate a current token at all
         s.next_otp(&key)?;
+        Ok(())
+    }
+
+    #[test]
+    pub fn test_totp_generation_repeatable() -> Result<(), PhilomenaModelError> {
+        let key = OTPEncryptionKey("xZYTon09JNRrj8snd7KL31wya4x71jmo5aaSSRmw1dGjWLRmEwWMTccwxgsGFGjM".as_bytes().to_vec());
+        let mut s = OTPSecret {
+            encrypted_otp_secret: Some("m4MihndUmXGTeYWS2eYZlHHIMyZA1m5hAq9NuGXQ".to_string()),
+            encrypted_otp_secret_iv: Some("9scsQ4aK37F+6YrR".to_string()),
+            encrypted_otp_secret_salt: Some("ve7nL/9eQdKPtKLTwH+ugw==".to_string()),
+            consumed_timestep: None,
+            otp_required_for_login: None,
+            otp_backup_codes: None
+        };
+
+        assert_eq!(972311, s.totp_at_timestep(&key, 1676616112)?.expect("no totp generated despite setup"));
+        assert_eq!(380953, s.totp_at_timestep(&key, 1676616192)?.expect("no totp generated despite setup"));
+        assert_eq!(596481, s.totp_at_timestep(&key, 1676616272)?.expect("no totp generated despite setup"));
+        assert_eq!(623007, s.totp_at_timestep(&key, 1676616472)?.expect("no totp generated despite setup"));
+        assert_eq!(672210, s.totp_at_timestep(&key, 1676617192)?.expect("no totp generated despite setup"));
+
+        assert_eq!(Some(1676617192), s.consumed_timestep);
         Ok(())
     }
 }
