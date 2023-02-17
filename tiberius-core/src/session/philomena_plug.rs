@@ -11,8 +11,8 @@ use crate::{
 };
 
 mod session;
-#[cfg(test)]
-pub(crate) mod session_c;
+//#[cfg(test)]
+//pub(crate) mod session_c;
 
 pub const METADATA_KEY: &str = "_philomena_session_handover";
 

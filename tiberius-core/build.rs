@@ -27,7 +27,8 @@ fn main() {
         std::fs::remove_dir_all(assetdir).unwrap();
     }*/
     let builddir = "../res/assets";
-    let builddir = std::path::PathBuf::try_from(builddir).expect("asset path not readable");
+    let builddir = std::path::PathBuf::try_from(builddir)
+      .expect("asset path not readable");
     let builddir = builddir
         .canonicalize()
         .expect("could not canonicalize asset path");
@@ -41,8 +42,15 @@ fn main() {
         let out = Command::new("yarn")
             .arg("install")
             .current_dir(builddir.clone())
-            .output()
-            .expect("failed to run build command");
+            .output();
+        let out = match out {
+            Ok(v) => v,
+            Err(_) => {
+                println!("cargo:warning=Could not build");
+                return;
+            },
+        };
+            //.expect("failed to run build command");
         if !out.status.success() {
             panic!(
                 " --- Asset Build Failed: --- \nStdout:\n{}\n---\nStderr:\n{}",

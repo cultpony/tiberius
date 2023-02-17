@@ -45,5 +45,5 @@ axum = "0.5"
 axum-extra = { version = "^0.3", features = ["typed-routing", "cookie-lib", "cookie-signed", "cookie-private"] }
 clap = { version = "4.0", features = ["derive", "env"] }
 
-[dev-dependencies]
-openssl = { version = "0.10.36", features = ["vendored", "v111"] }
+#[dev-dependencies]
+#openssl = { version = "0.10.36", features = ["vendored", "v111"] }
