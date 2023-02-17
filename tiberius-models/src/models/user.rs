@@ -12,6 +12,9 @@ use tiberius_dependencies::{
 };
 use tracing::trace;
 
+pub mod otp;
+pub use otp::OTPSecret;
+
 use crate::{Badge, BadgeAward, Client, Filter, PhilomenaModelError, UserToken};
 
 #[derive(sqlx::FromRow, Debug, Clone, PartialEq)]
@@ -82,17 +85,12 @@ pub struct User {
     pub show_hidden_items: bool,
     pub hide_vote_counts: bool,
     pub hide_advertisements: bool,
-    pub encrypted_otp_secret: Option<String>,
-    pub encrypted_otp_secret_iv: Option<String>,
-    pub encrypted_otp_secret_salt: Option<String>,
-    pub consumed_timestep: Option<i32>,
-    pub otp_required_for_login: Option<bool>,
-    pub otp_backup_codes: Option<Vec<String>>,
+    #[sqlx(flatten)]
+    pub otp_secret: OTPSecret,
     pub last_renamed_at: NaiveDateTime,
     pub forced_filter_id: Option<i64>,
     pub confirmed_at: Option<NaiveDateTime>,
 }
-
 impl Default for User {
     fn default() -> Self {
         let time = Utc::now().naive_utc();
@@ -163,12 +161,7 @@ impl Default for User {
             show_hidden_items: false,
             hide_vote_counts: false,
             hide_advertisements: false,
-            encrypted_otp_secret: None,
-            encrypted_otp_secret_iv: None,
-            encrypted_otp_secret_salt: None,
-            consumed_timestep: None,
-            otp_required_for_login: None,
-            otp_backup_codes: None,
+            otp_secret: OTPSecret::default(),
             last_renamed_at: time,
             forced_filter_id: None,
             confirmed_at: None,
@@ -212,7 +205,7 @@ impl User {
         totp: Option<S>,
     ) -> Result<UserLoginResult, PhilomenaModelError> {
         let totp: Option<String> = totp.map(|x| x.into());
-        if totp.is_none() && self.otp_required_for_login == Some(true) {
+        if totp.is_none() && self.otp_secret.otp_required_for_login == Some(true) {
             return Ok(UserLoginResult::RetryWithTOTP);
         }
         if username != self.name && username != self.email {
@@ -223,8 +216,8 @@ impl User {
         let valid_pw =
             bcrypt::verify(password, &self.encrypted_password).context("BCrypt Verify")?;
 
-        if self.otp_required_for_login.unwrap_or(false) {
-            let dotp = self.decrypt_otp(otp_secret).context("TOTP decrypt")?;
+        if self.otp_secret.otp_required_for_login() {
+            let dotp = self.otp_secret.decrypt_otp(otp_secret).context("TOTP decrypt")?;
             if let Some(totp) = totp {
                 if let Some(dotp) = dotp {
                     //debug!("TOTP secret = {:?}", String::from_utf8_lossy(&dotp));
@@ -265,87 +258,6 @@ impl User {
         } else {
             return Ok(UserLoginResult::Valid);
         }
-    }
-    pub(crate) fn decrypt_otp(
-        &self,
-        otp_secret: &[u8],
-    ) -> Result<Option<Vec<u8>>, PhilomenaModelError> {
-        if self.encrypted_otp_secret.is_none()
-            || self.encrypted_otp_secret_iv.is_none()
-            || self.encrypted_otp_secret_salt.is_none()
-        {
-            return Ok(None);
-        }
-        trace!(
-            "SECRET={:?}, IV={:?}, SALT={:?}",
-            self.encrypted_otp_secret,
-            self.encrypted_otp_secret_iv,
-            self.encrypted_otp_secret_salt
-        );
-        trace!("OTP_KEY={:?}", otp_secret);
-        let b64c = base64::Config::new(base64::CharacterSet::Standard, true)
-            .decode_allow_trailing_bits(true);
-        let secret = self.encrypted_otp_secret.as_ref().unwrap();
-        // PG may store garbage codepoints, remove them
-        let secret = secret.trim();
-        let mut secret = base64::decode_config(secret, b64c).context("Base64 Secret Decode")?;
-        let iv = self.encrypted_otp_secret_iv.as_ref().unwrap();
-        // PG may stoer garbage codepoints, remove them
-        let iv = iv.trim();
-        let iv = base64::decode_config(iv, b64c).context("Base64 IV Decode")?;
-        let iv: Result<[u8; 12], Vec<u8>> = iv.try_into();
-        let iv = match iv {
-            Ok(v) => v,
-            Err(_) => return Err(PhilomenaModelError::Other("Incorrect OTP IV".to_string())),
-        };
-        let salt = self.encrypted_otp_secret_salt.as_ref().unwrap();
-        let salt = salt.trim();
-        let salt = salt.trim_start_matches('_');
-        let salt = base64::decode_config(salt, b64c).context("Base64 Salt Decode")?;
-        let mut key = [0u8; 32];
-        ring::pbkdf2::derive(
-            ring::pbkdf2::PBKDF2_HMAC_SHA1,
-            NonZeroU32::new(2000).unwrap(),
-            &salt,
-            &otp_secret,
-            &mut key,
-        );
-        use ring::aead::*;
-        let iv = Nonce::assume_unique_for_key(iv);
-        let key = UnboundKey::new(&ring::aead::AES_256_GCM, &key)?;
-        let key = LessSafeKey::new(key);
-        let aad = Aad::empty();
-        let msg = key.open_in_place(iv, aad, &mut secret)?;
-        Ok(Some(msg.to_vec()))
-    }
-    pub(crate) fn encrypt_otp(
-        &mut self,
-        otp_secret: &[u8],
-        otp: &[u8],
-    ) -> Result<(), PhilomenaModelError> {
-        let salt: [u8; 16] = ring::rand::generate(&ring::rand::SystemRandom::new())?.expose();
-        let iv: [u8; 16] = ring::rand::generate(&ring::rand::SystemRandom::new())?.expose();
-        let ivr: [u8; 12] = iv[0..12].try_into().unwrap();
-        let mut key = [0u8; 32];
-        ring::pbkdf2::derive(
-            ring::pbkdf2::PBKDF2_HMAC_SHA1,
-            NonZeroU32::new(2000).unwrap(),
-            &salt,
-            &otp_secret,
-            &mut key,
-        );
-        use ring::aead::*;
-        let iv = Nonce::assume_unique_for_key(ivr);
-        let key = UnboundKey::new(&ring::aead::AES_256_GCM, &key)?;
-        let key = LessSafeKey::new(key);
-        let aad = Aad::empty();
-        let mut secret = otp.to_vec();
-        key.seal_in_place_append_tag(iv, aad, &mut secret)?;
-        assert_eq!(secret.len(), otp.len() + 16);
-        self.encrypted_otp_secret = Some(base64::encode(secret));
-        self.encrypted_otp_secret_iv = Some(base64::encode(ivr));
-        self.encrypted_otp_secret_salt = Some(base64::encode(salt));
-        Ok(())
     }
     pub async fn badge_awards(
         &self,
@@ -413,27 +325,36 @@ impl User {
         Ok(Filter::get_user_filters(client, self).await?)
     }
     pub async fn get_id(client: &mut Client, id: i64) -> Result<Option<User>, PhilomenaModelError> {
-        Ok(client.cache_users.get_or_try_insert_with(id, query_as!(crate::User,
-            r#"
-                SELECT
-                    id, email::TEXT as "email!", encrypted_password, reset_password_token, reset_password_sent_at, remember_created_at,
-                    sign_in_count, current_sign_in_at, last_sign_in_at, current_sign_in_ip, last_sign_in_ip, created_at, updated_at,
-                    deleted_at, authentication_token, name, slug, role, description, avatar, spoiler_type, theme, images_per_page,
-                    show_large_thumbnails, show_sidebar_and_watched_images, fancy_tag_field_on_upload, fancy_tag_field_on_edit,
-                    fancy_tag_field_in_settings, autorefresh_by_default, anonymous_by_default, scale_large_images, comments_newest_first,
-                    comments_always_jump_to_last, comments_per_page, watch_on_reply, watch_on_new_topic, watch_on_upload,
-                    messages_newest_first, serve_webm, no_spoilered_in_watched, watched_images_query_str, watched_images_exclude_str,
-                    forum_posts_count, topic_count, recent_filter_ids, unread_notification_ids, watched_tag_ids, deleted_by_user_id,
-                    current_filter_id, failed_attempts, unlock_token, locked_at, uploads_count, votes_cast_count, comments_posted_count,
-                    metadata_updates_count, images_favourited_count, last_donation_at, scratchpad, use_centered_layout,
-                    secondary_role, hide_default_role, personal_title, show_hidden_items, hide_vote_counts, hide_advertisements,
-                    encrypted_otp_secret, encrypted_otp_secret_iv, encrypted_otp_secret_salt, consumed_timestep, otp_required_for_login,
-                    otp_backup_codes, last_renamed_at, forced_filter_id, confirmed_at
-                FROM users 
-                WHERE 
-                    id = $1"#, 
-            id as i32
-        ).fetch_optional(&mut client.clone())).await?)
+        const QUERY: &'static str = r#"
+        SELECT
+            id, email, encrypted_password, reset_password_token, reset_password_sent_at, remember_created_at,
+            sign_in_count, current_sign_in_at, last_sign_in_at, current_sign_in_ip, last_sign_in_ip, created_at, updated_at,
+            deleted_at, authentication_token, name, slug, role, description, avatar, spoiler_type, theme, images_per_page,
+            show_large_thumbnails, show_sidebar_and_watched_images, fancy_tag_field_on_upload, fancy_tag_field_on_edit,
+            fancy_tag_field_in_settings, autorefresh_by_default, anonymous_by_default, scale_large_images, comments_newest_first,
+            comments_always_jump_to_last, comments_per_page, watch_on_reply, watch_on_new_topic, watch_on_upload,
+            messages_newest_first, serve_webm, no_spoilered_in_watched, watched_images_query_str, watched_images_exclude_str,
+            forum_posts_count, topic_count, recent_filter_ids, unread_notification_ids, watched_tag_ids, deleted_by_user_id,
+            current_filter_id, failed_attempts, unlock_token, locked_at, uploads_count, votes_cast_count, comments_posted_count,
+            metadata_updates_count, images_favourited_count, last_donation_at, scratchpad, use_centered_layout,
+            secondary_role, hide_default_role, personal_title, show_hidden_items, hide_vote_counts, hide_advertisements,
+            encrypted_otp_secret, encrypted_otp_secret_iv, encrypted_otp_secret_salt, consumed_timestep, otp_required_for_login,
+            otp_backup_codes, last_renamed_at, forced_filter_id, confirmed_at
+        FROM users 
+        WHERE 
+            id = $1"#;
+        use sqlx::Executor;
+        use futures::FutureExt;
+        let fetch = client.fetch_optional(QUERY).map(|f| -> Result<Option<User>, sqlx::Error> {
+                f.map(|f| {
+                    use sqlx::FromRow;
+                    match f {
+                        Some(f) => Some(User::from_row(&f)),
+                        None => None,
+                    }
+                })?.transpose()
+            });
+        Ok(client.cache_users.try_get_with(id, fetch).await?)
     }
 
     pub async fn get_mail_or_name(
@@ -546,14 +467,14 @@ mod test {
                 .unwrap();
         let otp = "AAFFEFASAA1119119DEADBEEF".as_bytes();
 
-        user.encrypt_otp(&otp_secret, otp)
+        user.otp_secret.encrypt_otp(&otp_secret, otp)
             .expect("could not encrypt OTP secret");
 
-        assert!(user.encrypted_otp_secret.is_some());
-        assert!(user.encrypted_otp_secret_iv.is_some());
-        assert!(user.encrypted_otp_secret_salt.is_some());
+        assert!(user.otp_secret.encrypted_otp_secret.is_some());
+        assert!(user.otp_secret.encrypted_otp_secret_iv.is_some());
+        assert!(user.otp_secret.encrypted_otp_secret_salt.is_some());
 
-        let r = user
+        let r = user.otp_secret
             .decrypt_otp(&otp_secret)
             .expect("could not decrypt OTP secret");
         let r = r.unwrap();
