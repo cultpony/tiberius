@@ -239,7 +239,7 @@ impl User {
                     let time = time as u64;
                     use totp_rs::{Algorithm, TOTP};
                     let totpi =
-                        TOTP::new(Algorithm::SHA1, 6, 1, 30, dotp, None, "".to_string())?;
+                        TOTP::new_unchecked(Algorithm::SHA1, 6, 1, 30, dotp);
                     if totpi.check(&totp, time) {
                         return Ok(UserLoginResult::Valid);
                     } else {

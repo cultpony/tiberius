@@ -52,7 +52,9 @@ impl OTPSecret {
             Some(d) => d,
             None => return Ok(None),
         };
-        Ok(Some(TOTP::new(Algorithm::SHA1, 6, 1, 30, dotp, None, "".to_string())?))
+        // we need the unchecked version since TOTP v4 otherwise throws on shorter secrets that
+        // philomena generates
+        Ok(Some(TOTP::new_unchecked(Algorithm::SHA1, 6, 1, 30, dotp)))
     }
 
     fn time() -> u64 {
