@@ -65,7 +65,7 @@ macro_rules! tantivy_date_field {
     ($builder:ident, $name:ident) => {
         $builder.add_date_field(
             stringify!($name),
-            NumericOptions::default()
+            DateOptions::default()
                 .set_indexed()
                 .set_stored()
                 .set_fast(Cardinality::SingleValue),

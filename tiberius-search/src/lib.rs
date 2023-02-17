@@ -184,7 +184,7 @@ pub trait Queryable {
             q, offset, limit
         );
         let schema = Self::schema();
-        use tantivy::{collector::*, fastfield::FastFieldReader};
+        use tantivy::collector::*;
         let coll = TopDocs::with_limit(limit).and_offset(offset);
         let coll = {
             let field = Self::schema().get_field(dir.field()).expect(&format!(
@@ -197,7 +197,7 @@ pub trait Queryable {
                     coll.custom_score(move |segment_reader: &SegmentReader| {
                         let pop_reader = segment_reader.fast_fields().u64(field).unwrap();
                         move |doc: DocId| {
-                            let pop = pop_reader.get(doc);
+                            let pop = pop_reader.get_val(doc);
                             (if dir.is_sign_negative() {
                                 u64::MAX - pop
                             } else {

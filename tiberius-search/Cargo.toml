@@ -13,7 +13,7 @@ chrono = "0.4.20"
 strsim = "0.10.0"
 thiserror = "1.0.25"
 lazy-regex = "2.2.2"
-tantivy = { version = "0.18", optional = true }
+tantivy = { version = "0.19", optional = true }
 either = "1.6.1"
 async-trait = "0.1.50"
 tracing = "0.1.26"

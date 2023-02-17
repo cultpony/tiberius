@@ -1337,7 +1337,7 @@ impl Queryable for Image {
         let schema = Self::schema();
         doc.add_date(
             schema.get_field("created_at").unwrap(),
-            tantivy::DateTime::from_unix_timestamp(
+            tantivy::DateTime::from_timestamp_secs(
                 chrono::DateTime::<chrono::Utc>::from_utc(self.created_at, chrono::Utc).timestamp(),
             ),
         );

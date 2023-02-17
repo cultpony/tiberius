@@ -456,7 +456,7 @@ impl Queryable for Tag {
             schema,
             date,
             created_at,
-            tantivy::DateTime::from_unix_timestamp(
+            tantivy::DateTime::from_timestamp_secs(
                 chrono::DateTime::<chrono::Utc>::from_utc(self.created_at, chrono::Utc).timestamp()
             )
         );
