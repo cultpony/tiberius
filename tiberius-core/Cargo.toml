@@ -41,7 +41,7 @@ url = { version = "2.3", features = ["serde"] }
 erlang-term = "1.0.0"
 anyhow = "1.0"
 moka = { version = "0.9", features = ["future"] }
-axum = "0.5"
+axum = "0.6"
 axum-extra = { version = "^0.3", features = ["typed-routing", "cookie-lib", "cookie-signed", "cookie-private"] }
 clap = { version = "4.0", features = ["derive", "env"] }
 
