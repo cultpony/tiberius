@@ -414,7 +414,7 @@ impl Image {
     }
     pub async fn tags(&self, client: &mut Client) -> Result<Vec<Tag>, PhilomenaModelError> {
         let cta = client.cache_tag_assoc.clone();
-        Ok(cta.get_or_try_insert_with(
+        Ok(cta.try_get_with(
             self.id(),
             query_as!(
                 crate::Tag,
