@@ -144,7 +144,7 @@ pub async fn image_block<
     let (total, mut images) =
         Image::search(client, query, aquery, anquery, sort_by, page, page_size).await?;
     images.reverse();
-    info!(
+    debug!(
         "Got {total} images: {:?}",
         images.iter().map(|x| x.id).collect_vec()
     );
