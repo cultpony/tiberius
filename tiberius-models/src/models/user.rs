@@ -327,7 +327,7 @@ impl User {
     pub async fn get_id(client: &mut Client, id: i64) -> Result<Option<User>, PhilomenaModelError> {
         const QUERY: &'static str = r#"
         SELECT
-            id, email, encrypted_password, reset_password_token, reset_password_sent_at, remember_created_at,
+            id, email::TEXT as "email", encrypted_password, reset_password_token, reset_password_sent_at, remember_created_at,
             sign_in_count, current_sign_in_at, last_sign_in_at, current_sign_in_ip, last_sign_in_ip, created_at, updated_at,
             deleted_at, authentication_token, name, slug, role, description, avatar, spoiler_type, theme, images_per_page,
             show_large_thumbnails, show_sidebar_and_watched_images, fancy_tag_field_on_upload, fancy_tag_field_on_edit,
@@ -345,7 +345,8 @@ impl User {
             id = $1"#;
         use sqlx::Executor;
         use futures::FutureExt;
-        let fetch = client.fetch_optional(QUERY).map(|f| -> Result<Option<User>, sqlx::Error> {
+        let query = sqlx::query(QUERY).bind(id);
+        let fetch = client.fetch_optional(query).map(|f| -> Result<Option<User>, sqlx::Error> {
                 f.map(|f| {
                     use sqlx::FromRow;
                     match f {

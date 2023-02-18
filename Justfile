@@ -65,3 +65,6 @@ devdb:
 
 audit:
   cargo audit --ignore RUSTSEC-2020-0071 --ignore RUSTSEC-2022-0006 --ignore RUSTSEC-2022-0013 --ignore RUSTSEC-2021-0127
+
+patchelf_release:
+  patchelf --set-interpreter /lib64/ld-linux-x86-64.so.2 target/release/tiberius-server
