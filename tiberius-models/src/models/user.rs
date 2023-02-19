@@ -18,10 +18,33 @@ pub use otp::OTPSecret;
 
 use crate::{Badge, BadgeAward, Client, Filter, PhilomenaModelError, UserToken};
 
+#[derive(sqlx::Type, Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq, Default)]
+#[repr(transparent)]
+#[sqlx(rename = "citext")]
+pub struct CiText(String);
+
+impl Into<String> for CiText {
+    fn into(self) -> String {
+        self.0
+    }
+}
+
+impl From<String> for CiText {
+    fn from(f: String) -> Self {
+        Self(f)
+    }
+}
+
+impl AsRef<str> for CiText {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
 #[derive(sqlx::FromRow, Debug, Clone, PartialEq)]
 pub struct User {
     pub id: i32,
-    pub email: String,
+    pub email: CiText,
     pub encrypted_password: String,
     pub reset_password_token: Option<String>,
     pub reset_password_sent_at: Option<NaiveDateTime>,
@@ -97,7 +120,7 @@ impl Default for User {
         let time = Utc::now().naive_utc();
         Self {
             id: 0,
-            email: String::default(),
+            email: String::default().into(),
             encrypted_password: String::default(),
             reset_password_token: None,
             reset_password_sent_at: None,
@@ -209,7 +232,7 @@ impl User {
         if totp.is_none() && self.otp_secret.otp_required_for_login == Some(true) {
             return Ok(UserLoginResult::RetryWithTOTP);
         }
-        if username != self.name && username != self.email {
+        if username != self.name && username != self.email.as_ref() {
             // Sanity check this but we shouldn't ever hit this code point
             return Ok(UserLoginResult::Invalid);
         }
@@ -332,7 +355,7 @@ impl User {
     pub async fn new_test_user(client: &mut Client) -> Result<Self, PhilomenaModelError> {
         let user = User {
             id: 0x5EADBEEFi32,
-            email: "testuser@email.com".to_string(),
+            email: "testuser@email.com".to_string().into(),
             name: "testuser".to_string(),
             slug: "testuser".to_string(),
             created_at: NaiveDateTime::from_timestamp(1676765531, 0),
@@ -362,19 +385,7 @@ impl User {
     pub async fn get_id(client: &mut Client, id: i64) -> Result<Option<User>, PhilomenaModelError> {
         const QUERY: &'static str = r#"
         SELECT
-            id, email::TEXT as "email", encrypted_password, reset_password_token, reset_password_sent_at, remember_created_at,
-            sign_in_count, current_sign_in_at, last_sign_in_at, current_sign_in_ip, last_sign_in_ip, created_at, updated_at,
-            deleted_at, authentication_token, name, slug, role, description, avatar, spoiler_type, theme, images_per_page,
-            show_large_thumbnails, show_sidebar_and_watched_images, fancy_tag_field_on_upload, fancy_tag_field_on_edit,
-            fancy_tag_field_in_settings, autorefresh_by_default, anonymous_by_default, scale_large_images, comments_newest_first,
-            comments_always_jump_to_last, comments_per_page, watch_on_reply, watch_on_new_topic, watch_on_upload,
-            messages_newest_first, serve_webm, no_spoilered_in_watched, watched_images_query_str, watched_images_exclude_str,
-            forum_posts_count, topic_count, recent_filter_ids, unread_notification_ids, watched_tag_ids, deleted_by_user_id,
-            current_filter_id, failed_attempts, unlock_token, locked_at, uploads_count, votes_cast_count, comments_posted_count,
-            metadata_updates_count, images_favourited_count, last_donation_at, scratchpad, use_centered_layout,
-            secondary_role, hide_default_role, personal_title, show_hidden_items, hide_vote_counts, hide_advertisements,
-            encrypted_otp_secret, encrypted_otp_secret_iv, encrypted_otp_secret_salt, consumed_timestep, otp_required_for_login,
-            otp_backup_codes, last_renamed_at, forced_filter_id, confirmed_at
+            *
         FROM users 
         WHERE 
             id = $1"#;
@@ -445,7 +456,7 @@ impl Into<sentry::User> for User {
     fn into(self) -> sentry::User {
         sentry::User {
             id: Some(self.id.to_string()),
-            email: Some(self.email),
+            email: Some(self.email.into()),
             ip_address: self
                 .current_sign_in_ip
                 .map(|x| sentry::protocol::IpAddress::Exact(x.ip())),
