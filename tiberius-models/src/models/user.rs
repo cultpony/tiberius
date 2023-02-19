@@ -11,6 +11,7 @@ use tiberius_dependencies::{
     hex, sentry, totp_rs,
 };
 use tracing::trace;
+use sqlx::Executor;
 
 pub mod otp;
 pub use otp::OTPSecret;
@@ -305,6 +306,7 @@ impl User {
             Ok(None)
         }
     }
+
     pub async fn get_filter(
         &self,
         client: &mut Client,
@@ -318,12 +320,45 @@ impl User {
         .fetch_optional(client.db().await?.deref_mut())
         .await?)
     }
+
     pub async fn get_all_user_filters(
         &self,
         client: &mut Client,
     ) -> Result<Vec<Filter>, PhilomenaModelError> {
         Ok(Filter::get_user_filters(client, self).await?)
     }
+
+    #[cfg(test)]
+    pub async fn new_test_user(client: &mut Client) -> Result<Self, PhilomenaModelError> {
+        let user = User {
+            id: 0x5EADBEEFi32,
+            email: "testuser@email.com".to_string(),
+            name: "testuser".to_string(),
+            slug: "testuser".to_string(),
+            created_at: NaiveDateTime::from_timestamp(1676765531, 0),
+            updated_at: NaiveDateTime::from_timestamp(1676765531, 0),
+            ..Default::default()
+        };
+        const QUERY: &'static str = r#"
+        INSERT INTO users (
+            id, email, name, slug, created_at, updated_at,
+            authentication_token, role
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, '', '');
+        "#;
+        let query = sqlx::query(QUERY)
+            .bind(user.id)
+            .bind(user.email)
+            .bind(user.name)
+            .bind(user.slug)
+            .bind(user.created_at)
+            .bind(user.updated_at)
+        ;
+        client.execute(query).await?;
+        let user = User::get_id(client, user.id.into()).await?.expect("just created user, did not read back");
+        Ok(user)
+    }
+
     pub async fn get_id(client: &mut Client, id: i64) -> Result<Option<User>, PhilomenaModelError> {
         const QUERY: &'static str = r#"
         SELECT
@@ -343,7 +378,6 @@ impl User {
         FROM users 
         WHERE 
             id = $1"#;
-        use sqlx::Executor;
         use futures::FutureExt;
         let query = sqlx::query(QUERY).bind(id);
         let fetch = client.fetch_optional(query).map(|f| -> Result<Option<User>, sqlx::Error> {
@@ -458,7 +492,8 @@ impl HasPermission<PgPool> for User {
 mod test {
     use base64::CharacterSet;
 
-    use crate::{PhilomenaModelError, User};
+    use crate::{PhilomenaModelError, User, Client};
+    use super::*;
 
     #[test]
     fn test_encrypt_decrypt_otp() -> Result<(), PhilomenaModelError> {
@@ -515,6 +550,16 @@ mod test {
         let test = test.trim_start_matches('_');
         let r = base64::decode_config(test, b64c).expect("salt decode failed");
         assert!(r.len() > 0, "Decode must be non-empty");
+        Ok(())
+    }
+
+    #[sqlx_database_tester::test(pool(variable = "pool", migrations = "../migrations"))]
+    async fn test_user_create_and_fetch() -> Result<(), PhilomenaModelError> {
+        let mut client = Client::new(pool, None);
+        let user = User::new_test_user(&mut client).await?;
+
+        let user2 = User::get_id(&mut client, user.id.into()).await?;
+        assert_eq!(Some(user), user2);
         Ok(())
     }
 }
