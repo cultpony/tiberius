@@ -14,7 +14,11 @@ use tracing::trace;
 use sqlx::Executor;
 
 pub mod otp;
+pub mod settings;
+pub mod history;
 pub use otp::OTPSecret;
+pub use settings::UserSettings;
+pub use history::UserHistory;
 
 use crate::{Badge, BadgeAward, Client, Filter, PhilomenaModelError, UserToken};
 
@@ -25,19 +29,25 @@ pub struct CiText(String);
 
 impl Into<String> for CiText {
     fn into(self) -> String {
-        self.0
+        self.0.to_lowercase()
     }
 }
 
 impl From<String> for CiText {
     fn from(f: String) -> Self {
-        Self(f)
+        Self(f.to_lowercase())
     }
 }
 
 impl AsRef<str> for CiText {
     fn as_ref(&self) -> &str {
         &self.0
+    }
+}
+
+impl std::fmt::Display for CiText {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.write_str(&self.0.to_lowercase())
     }
 }
 
@@ -48,72 +58,23 @@ pub struct User {
     pub encrypted_password: String,
     pub reset_password_token: Option<String>,
     pub reset_password_sent_at: Option<NaiveDateTime>,
-    pub remember_created_at: Option<NaiveDateTime>,
-    pub sign_in_count: i32,
-    pub current_sign_in_at: Option<NaiveDateTime>,
-    pub last_sign_in_at: Option<NaiveDateTime>,
-    pub current_sign_in_ip: Option<IpNetwork>,
-    pub last_sign_in_ip: Option<IpNetwork>,
-    pub created_at: NaiveDateTime,
-    pub updated_at: NaiveDateTime,
-    pub deleted_at: Option<NaiveDateTime>,
     pub authentication_token: String,
     pub name: String,
     pub slug: String,
     pub role: String,
     pub description: Option<String>,
     pub avatar: Option<String>,
-    pub spoiler_type: String,
-    pub theme: String,
-    pub images_per_page: i32,
-    pub show_large_thumbnails: bool,
-    pub show_sidebar_and_watched_images: bool,
-    pub fancy_tag_field_on_upload: bool,
-    pub fancy_tag_field_on_edit: bool,
-    pub fancy_tag_field_in_settings: bool,
-    pub autorefresh_by_default: bool,
-    pub anonymous_by_default: bool,
-    pub scale_large_images: bool,
-    pub comments_newest_first: bool,
-    pub comments_always_jump_to_last: bool,
-    pub comments_per_page: i32,
-    pub watch_on_reply: bool,
-    pub watch_on_new_topic: bool,
-    pub watch_on_upload: bool,
-    pub messages_newest_first: bool,
-    pub serve_webm: bool,
-    pub no_spoilered_in_watched: bool,
-    pub watched_images_query_str: String,
-    pub watched_images_exclude_str: String,
-    pub forum_posts_count: i32,
-    pub topic_count: i32,
-    pub recent_filter_ids: Vec<i32>,
     pub unread_notification_ids: Vec<i32>,
-    pub watched_tag_ids: Vec<i32>,
-    pub deleted_by_user_id: Option<i32>,
-    pub current_filter_id: Option<i32>,
-    pub failed_attempts: Option<i32>,
     pub unlock_token: Option<String>,
-    pub locked_at: Option<NaiveDateTime>,
-    pub uploads_count: i32,
-    pub votes_cast_count: i32,
-    pub comments_posted_count: i32,
-    pub metadata_updates_count: i32,
-    pub images_favourited_count: i32,
-    pub last_donation_at: Option<NaiveDateTime>,
     pub scratchpad: Option<String>,
-    pub use_centered_layout: bool,
     pub secondary_role: Option<String>,
-    pub hide_default_role: bool,
     pub personal_title: Option<String>,
-    pub show_hidden_items: bool,
-    pub hide_vote_counts: bool,
-    pub hide_advertisements: bool,
     #[sqlx(flatten)]
     pub otp_secret: OTPSecret,
-    pub last_renamed_at: NaiveDateTime,
-    pub forced_filter_id: Option<i64>,
-    pub confirmed_at: Option<NaiveDateTime>,
+    #[sqlx(flatten)]
+    pub user_history: UserHistory,
+    #[sqlx(flatten)]
+    pub user_settings: UserSettings,
 }
 impl Default for User {
     fn default() -> Self {
@@ -124,71 +85,20 @@ impl Default for User {
             encrypted_password: String::default(),
             reset_password_token: None,
             reset_password_sent_at: None,
-            remember_created_at: None,
-            sign_in_count: 0,
-            current_sign_in_at: None,
-            last_sign_in_at: None,
-            current_sign_in_ip: None,
-            last_sign_in_ip: None,
-            created_at: time,
-            updated_at: time,
-            deleted_at: None,
             authentication_token: String::default(),
             name: String::default(),
             slug: String::default(),
             role: String::default(),
             description: None,
             avatar: None,
-            spoiler_type: String::default(),
-            theme: String::default(),
-            images_per_page: 20,
-            show_large_thumbnails: false,
-            show_sidebar_and_watched_images: false,
-            fancy_tag_field_on_upload: true,
-            fancy_tag_field_on_edit: true,
-            fancy_tag_field_in_settings: true,
-            autorefresh_by_default: false,
-            anonymous_by_default: false,
-            scale_large_images: true,
-            comments_newest_first: true,
-            comments_always_jump_to_last: false,
-            comments_per_page: 20,
-            watch_on_reply: true,
-            watch_on_new_topic: true,
-            watch_on_upload: true,
-            messages_newest_first: true,
-            serve_webm: true,
-            no_spoilered_in_watched: true,
-            watched_images_query_str: String::default(),
-            watched_images_exclude_str: String::default(),
-            forum_posts_count: 0,
-            topic_count: 0,
-            recent_filter_ids: Vec::new(),
             unread_notification_ids: Vec::new(),
-            watched_tag_ids: Vec::new(),
-            deleted_by_user_id: None,
-            current_filter_id: None,
-            failed_attempts: None,
             unlock_token: None,
-            locked_at: None,
-            uploads_count: 0,
-            votes_cast_count: 0,
-            comments_posted_count: 0,
-            metadata_updates_count: 0,
-            images_favourited_count: 0,
-            last_donation_at: None,
             scratchpad: None,
-            use_centered_layout: false,
             secondary_role: None,
-            hide_default_role: false,
             personal_title: None,
-            show_hidden_items: false,
-            hide_vote_counts: false,
-            hide_advertisements: false,
             otp_secret: OTPSecret::default(),
-            last_renamed_at: time,
-            forced_filter_id: None,
-            confirmed_at: None,
+            user_history: UserHistory::default(),
+            user_settings: UserSettings::default(),
         }
     }
 }
@@ -338,7 +248,7 @@ impl User {
         Ok(query_as!(
             crate::Filter,
             "SELECT * FROM filters WHERE user_id = $1",
-            self.current_filter_id
+            self.user_settings.current_filter_id
         )
         .fetch_optional(client.db().await?.deref_mut())
         .await?)
@@ -358,8 +268,6 @@ impl User {
             email: "testuser@email.com".to_string().into(),
             name: "testuser".to_string(),
             slug: "testuser".to_string(),
-            created_at: NaiveDateTime::from_timestamp(1676765531, 0),
-            updated_at: NaiveDateTime::from_timestamp(1676765531, 0),
             ..Default::default()
         };
         const QUERY: &'static str = r#"
@@ -374,8 +282,8 @@ impl User {
             .bind(user.email)
             .bind(user.name)
             .bind(user.slug)
-            .bind(user.created_at)
-            .bind(user.updated_at)
+            .bind(user.user_history.created_at)
+            .bind(user.user_history.updated_at)
         ;
         client.execute(query).await?;
         let user = User::get_id(client, user.id.into()).await?.expect("just created user, did not read back");
@@ -458,7 +366,7 @@ impl Into<sentry::User> for User {
             id: Some(self.id.to_string()),
             email: Some(self.email.into()),
             ip_address: self
-                .current_sign_in_ip
+                .user_history.current_sign_in_ip
                 .map(|x| sentry::protocol::IpAddress::Exact(x.ip())),
             username: Some(self.name),
             other: BTreeMap::new(),
@@ -488,7 +396,7 @@ impl Authentication<User, i64, PgPool> for User {
     }
 
     fn is_anonymous(&self) -> bool {
-        self.anonymous_by_default
+        self.user_settings.anonymous_by_default
     }
 }
 

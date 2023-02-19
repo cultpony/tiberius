@@ -718,10 +718,10 @@ pub async fn clientside_data<'a, T: SessionMode>(
                 false
             }
         );
-        insert_csd!(data, spoiler_type, user.spoiler_type);
-        insert_csd!(data, watched_tag_list, user.watched_tag_ids);
-        insert_csd!(data, fancy_tag_edit, user.fancy_tag_field_on_edit);
-        insert_csd!(data, fancy_tag_upload, user.fancy_tag_field_on_upload);
+        insert_csd!(data, spoiler_type, user.user_settings.spoiler_type);
+        insert_csd!(data, watched_tag_list, user.user_settings.watched_tag_ids);
+        insert_csd!(data, fancy_tag_edit, user.user_settings.fancy_tag_field_on_edit);
+        insert_csd!(data, fancy_tag_upload, user.user_settings.fancy_tag_field_on_upload);
         insert_csd!(
             data,
             ignored_tag_list,
@@ -782,7 +782,7 @@ pub async fn container_class<T: SessionMode>(
     rstate: &TiberiusRequestState<T>,
 ) -> TiberiusResult<String> {
     if let Some(user) = rstate.user(state).await? {
-        if user.use_centered_layout {
+        if user.user_settings.use_centered_layout {
             return Ok("layout--center-aligned".to_string());
         }
     }

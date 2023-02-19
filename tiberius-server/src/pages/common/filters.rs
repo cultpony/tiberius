@@ -7,7 +7,7 @@ use tiberius_models::{Filter, User};
 pub async fn filter_listing_item(filter: &Filter, state: &TiberiusState, current_user: Option<&User>) -> TiberiusResult<PreEscaped<String>>  {
     let mut client = state.get_db_client();
     let user = filter.get_user(&mut client).await?;
-    let user_filter = current_user.as_ref().map(|x| x.current_filter_id).flatten();
+    let user_filter = current_user.as_ref().map(|x| x.user_settings.current_filter_id).flatten();
     Ok(html! {
         .filter {
             h3 { (filter.name()) }

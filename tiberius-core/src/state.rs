@@ -521,7 +521,7 @@ impl<T: SessionMode> TiberiusRequestState<T> {
     pub async fn theme_name(&self, state: &TiberiusState) -> TiberiusResult<String> {
         let user = self.user(state).await?;
         Ok(if let Some(user) = user {
-            user.theme.clone()
+            user.user_settings.theme.clone()
         } else {
             "default".to_string()
         })
@@ -541,7 +541,7 @@ impl<T: SessionMode> TiberiusRequestState<T> {
     async fn int_filter(&self, state: &TiberiusState) -> TiberiusResult<Filter> {
         let mut client = state.get_db_client();
         if let Some(user) = self.user(state).await? {
-            if let Some(current_filter_id) = user.current_filter_id {
+            if let Some(current_filter_id) = user.user_settings.current_filter_id {
                 if let Some(filter) = Filter::get_id(&mut client, current_filter_id as i64).await? {
                     return Ok(filter);
                 }
