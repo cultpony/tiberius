@@ -35,7 +35,7 @@ regex = "1.5.4"
 reqwest = { version = "0.11", default-features = false, features = ["json", "socks", "cookies", "rustls-tls-native-roots", "tokio-rustls"] }
 rust-embed = { version = "6.4.1", features = ["compression", "axum", "tokio"] }
 sentry = { version = "0.29.0", default-features = false, features = ["tracing", "anyhow", "tower", "panic", "contexts", "rustls", "reqwest", "profiling"] }
-serde_qs = { version = "0.10.1", features = ["axum"] }
+serde_qs = { version = "0.11.0", features = ["axum"] }
 serde_urlencoded = "0.7.1"
 sha3 = "0.10.6"
 sqlx-adapter = { git = "https://github.com/cultpony/sqlx-adapter.git", features = ["postgres", "runtime-tokio-rustls"], default-features = false }
