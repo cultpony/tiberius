@@ -11,7 +11,7 @@ async-once-cell = "0.4.2"
 atomic = "0.5.1"
 axum = { version = "0.5", features = ["http2", "headers", "multipart"] }
 axum_csrf = "0.5"
-axum_database_sessions = "4.0.2"
+axum_database_sessions = "6.0.0"
 axum_sessions_auth = "4.0.0"
 axum-extra = { version = "^0.3", features = ["typed-routing", "cookie-lib", "cookie-signed", "cookie-private", "async-read-body"] }
 axum-flash = "0.5.0"

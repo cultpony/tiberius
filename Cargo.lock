@@ -351,7 +351,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "acee9fd5073ab6b045a275b3e709c163dd36c90685219cb21804a147b58dba43"
 dependencies = [
  "async-trait",
- "axum-core",
+ "axum-core 0.2.9",
  "bitflags",
  "bytes",
  "futures-util",
@@ -394,6 +394,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "axum-core"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1cae3e661676ffbacb30f1a824089a8c9150e71017f7e1e38f2aa32009188d34"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "futures-util",
+ "http",
+ "http-body",
+ "mime",
+ "rustversion",
+ "tower-layer",
+ "tower-service",
+]
+
+[[package]]
 name = "axum-extra"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -402,7 +419,7 @@ dependencies = [
  "axum",
  "axum-macros",
  "bytes",
- "cookie",
+ "cookie 0.16.2",
  "futures-util",
  "http",
  "mime",
@@ -424,9 +441,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d7921cf899d4750767a02787a26c5f6b462de923e5f4181d3bb96903683fff5f"
 dependencies = [
  "async-trait",
- "axum-core",
+ "axum-core 0.2.9",
  "base64 0.13.1",
- "cookie",
+ "cookie 0.16.2",
  "http",
  "percent-encoding 2.2.0",
  "serde",
@@ -458,7 +475,7 @@ dependencies = [
  "axum",
  "base64 0.13.1",
  "bcrypt",
- "cookie",
+ "cookie 0.16.2",
  "rand",
  "time 0.3.19",
 ]
@@ -470,10 +487,36 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7451dbb80a9bff3f227e8c54e3aa37b9face1dc19e034ae2a40c87f764a2ffb5"
 dependencies = [
  "async-trait",
- "axum-core",
+ "axum-core 0.2.9",
  "bytes",
  "chrono",
- "cookie",
+ "cookie 0.16.2",
+ "dashmap",
+ "futures",
+ "http",
+ "http-body",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "thiserror",
+ "tokio",
+ "tower-layer",
+ "tower-service",
+ "tracing",
+ "uuid 1.3.0",
+]
+
+[[package]]
+name = "axum_database_sessions"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6bd2c10a6c7a8d7e9a576c472c614174ba74c4a6b37ffdd7a6c3c727a9d58326"
+dependencies = [
+ "async-trait",
+ "axum-core 0.3.2",
+ "bytes",
+ "chrono",
+ "cookie 0.17.0",
  "dashmap",
  "futures",
  "http",
@@ -498,8 +541,8 @@ dependencies = [
  "anyhow",
  "async-recursion",
  "async-trait",
- "axum-core",
- "axum_database_sessions",
+ "axum-core 0.2.9",
+ "axum_database_sessions 4.1.0",
  "bytes",
  "chrono",
  "dashmap",
@@ -1053,12 +1096,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "cookie"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7efb37c3e1ccb1ff97164ad95ac1606e8ccd35b3fa0a7d99a304c7f4a428cc24"
+dependencies = [
+ "aes-gcm",
+ "base64 0.21.0",
+ "percent-encoding 2.2.0",
+ "rand",
+ "subtle",
+ "time 0.3.19",
+ "version_check",
+]
+
+[[package]]
 name = "cookie_store"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2e4b6aa369f41f5faa04bb80c9b1f4216ea81646ed6124d76ba5c49a7aafd9cd"
 dependencies = [
- "cookie",
+ "cookie 0.16.2",
  "idna 0.2.3",
  "log",
  "publicsuffix",
@@ -2770,7 +2828,7 @@ version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19aff2cd19eb4b93df29efa602652513b0f731f1d3474f6e377f763fddf61e58"
 dependencies = [
- "axum-core",
+ "axum-core 0.2.9",
  "http",
  "itoa 0.4.8",
  "maud_macros",
@@ -3793,7 +3851,7 @@ checksum = "21eed90ec8570952d53b772ecf8f206aa1ec9a3d76b2521c56c42973f2d91ee9"
 dependencies = [
  "base64 0.21.0",
  "bytes",
- "cookie",
+ "cookie 0.16.2",
  "cookie_store",
  "encoding_rs",
  "futures-core",
@@ -5166,7 +5224,7 @@ dependencies = [
  "axum-extra",
  "axum-flash",
  "axum_csrf",
- "axum_database_sessions",
+ "axum_database_sessions 6.0.0",
  "axum_sessions_auth",
  "blake2 0.10.6",
  "casbin",
@@ -5561,8 +5619,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19833e336396f3953e5ab1513d72b5e5ea51d5ad39b78d306766a05740b48b97"
 dependencies = [
  "async-trait",
- "axum-core",
- "cookie",
+ "axum-core 0.2.9",
+ "cookie 0.16.2",
  "futures-util",
  "http",
  "parking_lot 0.12.1",
