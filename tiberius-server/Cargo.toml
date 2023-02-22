@@ -45,7 +45,7 @@ tiberius-jobs = { path = "../tiberius-jobs" }
 tiberius-models = { path = "../tiberius-models" }
 tiberius-dependencies = { path = "../tiberius-dependencies" }
 tokio = { version = "1.25", features = ["full", "tracing"] }
-tokio-cron-scheduler = "0.8"
+tokio-cron-scheduler = "0.9"
 tracing = { version = "0.1", features = [] }
 tracing-log = { version = "0.1.2" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
