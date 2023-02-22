@@ -448,7 +448,7 @@ dependencies = [
  "axum 0.5.17",
  "axum-macros",
  "bytes",
- "cookie",
+ "cookie 0.16.2",
  "futures-util",
  "http",
  "mime",
@@ -472,12 +472,12 @@ dependencies = [
  "async-trait",
  "axum-core 0.2.9",
  "base64 0.13.1",
- "cookie",
+ "cookie 0.16.2",
  "http",
  "percent-encoding 2.2.0",
  "serde",
  "serde_json",
- "tower-cookies",
+ "tower-cookies 0.7.0",
  "tower-layer",
  "tower-service",
 ]
@@ -504,7 +504,7 @@ dependencies = [
  "axum 0.5.17",
  "base64 0.13.1",
  "bcrypt 0.13.0",
- "cookie",
+ "cookie 0.16.2",
  "rand",
  "time 0.3.19",
 ]
@@ -519,7 +519,7 @@ dependencies = [
  "axum-core 0.2.9",
  "bytes",
  "chrono",
- "cookie",
+ "cookie 0.16.2",
  "dashmap",
  "futures",
  "http",
@@ -1112,12 +1112,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "cookie"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7efb37c3e1ccb1ff97164ad95ac1606e8ccd35b3fa0a7d99a304c7f4a428cc24"
+dependencies = [
+ "percent-encoding 2.2.0",
+ "time 0.3.19",
+ "version_check",
+]
+
+[[package]]
 name = "cookie_store"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2e4b6aa369f41f5faa04bb80c9b1f4216ea81646ed6124d76ba5c49a7aafd9cd"
 dependencies = [
- "cookie",
+ "cookie 0.16.2",
  "idna 0.2.3",
  "log",
  "publicsuffix",
@@ -3858,7 +3869,7 @@ checksum = "21eed90ec8570952d53b772ecf8f206aa1ec9a3d76b2521c56c42973f2d91ee9"
 dependencies = [
  "base64 0.21.0",
  "bytes",
- "cookie",
+ "cookie 0.16.2",
  "cookie_store",
  "encoding_rs",
  "futures-core",
@@ -5405,7 +5416,7 @@ dependencies = [
  "tiberius-models",
  "tokio",
  "tokio-cron-scheduler",
- "tower-cookies",
+ "tower-cookies 0.9.0",
  "tracing",
  "tracing-log",
  "tracing-subscriber",
@@ -5627,7 +5638,24 @@ checksum = "19833e336396f3953e5ab1513d72b5e5ea51d5ad39b78d306766a05740b48b97"
 dependencies = [
  "async-trait",
  "axum-core 0.2.9",
- "cookie",
+ "cookie 0.16.2",
+ "futures-util",
+ "http",
+ "parking_lot 0.12.1",
+ "pin-project-lite",
+ "tower-layer",
+ "tower-service",
+]
+
+[[package]]
+name = "tower-cookies"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "40f38d941a2ffd8402b36e02ae407637a9caceb693aaf2edc910437db0f36984"
+dependencies = [
+ "async-trait",
+ "axum-core 0.3.2",
+ "cookie 0.17.0",
  "futures-util",
  "http",
  "parking_lot 0.12.1",
