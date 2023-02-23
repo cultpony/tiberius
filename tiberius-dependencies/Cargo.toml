@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 ammonia = "3.2.0"
-async-once-cell = "0.4.2"
+async-once-cell = "0.4.4"
 atomic = "0.5.1"
 axum = { version = "0.5", features = ["http2", "headers", "multipart"] }
 axum_csrf = "0.5"
