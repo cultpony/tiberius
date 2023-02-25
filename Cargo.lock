@@ -355,7 +355,6 @@ dependencies = [
  "bitflags",
  "bytes",
  "futures-util",
- "headers",
  "http",
  "http-body",
  "hyper",
@@ -363,7 +362,6 @@ dependencies = [
  "matchit 0.5.0",
  "memchr 2.5.0",
  "mime",
- "multer",
  "percent-encoding 2.2.0",
  "pin-project-lite",
  "serde",
@@ -388,6 +386,7 @@ dependencies = [
  "bitflags",
  "bytes",
  "futures-util",
+ "headers",
  "http",
  "http-body",
  "hyper",
@@ -395,11 +394,16 @@ dependencies = [
  "matchit 0.7.0",
  "memchr 2.5.0",
  "mime",
+ "multer",
  "percent-encoding 2.2.0",
  "pin-project-lite",
  "rustversion",
  "serde",
+ "serde_json",
+ "serde_path_to_error",
+ "serde_urlencoded",
  "sync_wrapper",
+ "tokio",
  "tower",
  "tower-http",
  "tower-layer",
@@ -4456,6 +4460,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_path_to_error"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "26b04f22b563c91331a10074bda3dd5492e3cc39d56bd557e91c0af42b6c7341"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "serde_qs"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5229,7 +5242,7 @@ dependencies = [
  "anyhow",
  "async-std",
  "async-trait",
- "axum 0.5.17",
+ "axum 0.6.7",
  "axum-extra",
  "base64 0.13.1",
  "bcrypt 0.14.0",
@@ -5268,7 +5281,7 @@ dependencies = [
  "ammonia",
  "async-once-cell",
  "atomic",
- "axum 0.5.17",
+ "axum 0.6.7",
  "axum-extra",
  "axum-flash",
  "axum_csrf",
@@ -5350,7 +5363,7 @@ dependencies = [
  "anyhow",
  "async-std",
  "async-trait",
- "axum 0.5.17",
+ "axum 0.6.7",
  "axum-extra",
  "base32",
  "base64 0.13.1",
@@ -5403,7 +5416,7 @@ dependencies = [
  "anyhow",
  "async-std",
  "async-trait",
- "axum 0.5.17",
+ "axum 0.6.7",
  "axum-extra",
  "base64 0.13.1",
  "bcrypt 0.14.0",
@@ -5818,7 +5831,7 @@ version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if 0.1.10",
  "static_assertions",
 ]
 
