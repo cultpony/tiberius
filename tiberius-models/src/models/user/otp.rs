@@ -60,7 +60,7 @@ impl OTPSecret {
     }
 
     fn time() -> u64 {
-        let time = chrono::Utc::now().timestamp();
+        let time = tiberius_dependencies::chrono::Utc::now().timestamp();
         assert!(time > 0, "We don't run before 1970");
         time as u64
     }

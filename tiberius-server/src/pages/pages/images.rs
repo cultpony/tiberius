@@ -10,7 +10,7 @@ use axum::{
     Extension, Router,
 };
 use axum_extra::routing::{RouterExt, TypedPath};
-use chrono::{DateTime, Utc};
+use tiberius_dependencies::chrono::{DateTime, Utc};
 use itertools::Itertools;
 use maud::{html, Markup, PreEscaped};
 use serde::{Deserialize, Serialize};

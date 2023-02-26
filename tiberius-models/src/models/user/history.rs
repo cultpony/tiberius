@@ -1,4 +1,4 @@
-use chrono::{Utc, NaiveDateTime};
+use tiberius_dependencies::chrono::{Utc, NaiveDateTime};
 use sqlx::types::ipnetwork::IpNetwork;
 
 #[derive(sqlx::FromRow, Debug, Clone, PartialEq)]

@@ -26,7 +26,7 @@ use async_std::sync::{RwLock, RwLockWriteGuard};
 use maud::PreEscaped;
 pub use models::*;
 
-use chrono::NaiveDateTime;
+use tiberius_dependencies::chrono::NaiveDateTime;
 pub use tantivy::TantivyError;
 use tiberius_dependencies::reqwest;
 use tiberius_dependencies::{

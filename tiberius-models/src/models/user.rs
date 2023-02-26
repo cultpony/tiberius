@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, num::NonZeroU32, ops::DerefMut};
 
 use anyhow::Context;
 use async_trait::async_trait;
-use chrono::{NaiveDateTime, Utc};
+use tiberius_dependencies::chrono::{NaiveDateTime, Utc};
 use either::Either;
 use maud::Markup;
 use sqlx::{query, query_as, PgPool, types::ipnetwork::IpNetwork};
@@ -168,7 +168,7 @@ impl User {
                         Some(v) => v,
                     };
                     //assert!(dotp.len() >= 120 / 8, "TOTP Secret Insufficient Size");
-                    let time = chrono::Utc::now().timestamp();
+                    let time = tiberius_dependencies::chrono::Utc::now().timestamp();
                     assert!(time > 0, "We don't run before 1970");
                     let time = time as u64;
                     use totp_rs::{Algorithm, TOTP};

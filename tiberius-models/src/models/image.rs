@@ -11,7 +11,7 @@ use std::{
 use async_std::{prelude::*, sync::RwLock};
 use async_trait::async_trait;
 use axum_extra::routing::TypedPath;
-use chrono::{DateTime, Datelike, NaiveDateTime, Utc};
+use tiberius_dependencies::chrono::{DateTime, Datelike, NaiveDateTime, Utc};
 use futures::TryStreamExt;
 use itertools::Itertools;
 use sqlx::{
@@ -1338,12 +1338,12 @@ impl Queryable for Image {
         doc.add_date(
             schema.get_field("created_at").unwrap(),
             tantivy::DateTime::from_timestamp_secs(
-                chrono::DateTime::<chrono::Utc>::from_utc(self.created_at, chrono::Utc).timestamp(),
+                tiberius_dependencies::chrono::DateTime::<tiberius_dependencies::chrono::Utc>::from_utc(self.created_at, tiberius_dependencies::chrono::Utc).timestamp(),
             ),
         );
         doc.add_u64(
             schema.get_field("created_at_ts").unwrap(),
-            chrono::DateTime::<chrono::Utc>::from_utc(self.created_at, chrono::Utc).timestamp()
+            tiberius_dependencies::chrono::DateTime::<tiberius_dependencies::chrono::Utc>::from_utc(self.created_at, tiberius_dependencies::chrono::Utc).timestamp()
                 as u64,
         );
         doc.add_u64(schema.get_field("id").unwrap(), self.id as u64);
@@ -1674,7 +1674,7 @@ impl PathImageGetFull {
 #[cfg(test)]
 mod test {
     use super::*;
-    use chrono::TimeZone;
+    use tiberius_dependencies::chrono::TimeZone;
 
     /// Test Philo Compat based on image 4020561 image file
     #[sqlx_database_tester::test(pool(variable = "pool", migrations = "../migrations"))]

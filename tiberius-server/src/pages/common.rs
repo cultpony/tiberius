@@ -1,6 +1,6 @@
 use axum::response::Redirect;
 use axum_extra::routing::TypedPath;
-use chrono::NaiveDateTime;
+use tiberius_dependencies::chrono::NaiveDateTime;
 use maud::PreEscaped;
 use tiberius_core::{
     config::Configuration,
@@ -72,6 +72,6 @@ pub fn pluralize<S: Into<String>>(singular: S, plural: S, count: i32) -> String 
 pub fn human_date(d: NaiveDateTime) -> String {
     format!(
         "{}",
-        chrono_humanize::HumanTime::from(chrono::DateTime::<chrono::Utc>::from_utc(d, chrono::Utc))
+        chrono_humanize::HumanTime::from(tiberius_dependencies::chrono::DateTime::<tiberius_dependencies::chrono::Utc>::from_utc(d, tiberius_dependencies::chrono::Utc))
     )
 }

@@ -22,7 +22,7 @@ pub async fn refresh_picarto_channel(
     chan.thumbnail_url = Some(pic_chan.thumbnails.web);
     chan.channel_image = Some(pic_chan.avatar);
     chan.is_live = pic_chan.online;
-    chan.last_fetched_at = Some(chrono::Utc::now().naive_utc());
+    chan.last_fetched_at = Some(tiberius_dependencies::chrono::Utc::now().naive_utc());
     if chan.is_live {
         debug!("Channel {} is online: {}", chan.short_name, pic_chan.title);
         chan.last_live_at = chan.last_fetched_at;

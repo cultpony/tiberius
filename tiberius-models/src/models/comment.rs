@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use chrono::NaiveDateTime;
+use tiberius_dependencies::chrono::NaiveDateTime;
 use sqlx::query_as;
 use sqlx::types::ipnetwork::IpNetwork;
 

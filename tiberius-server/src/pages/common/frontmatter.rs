@@ -1,6 +1,6 @@
 use axum::headers::{HeaderMapExt, UserAgent};
 use axum_extra::routing::TypedPath;
-use chrono::{DateTime, NaiveDateTime, Utc};
+use tiberius_dependencies::chrono::{DateTime, NaiveDateTime, Utc};
 use itertools::Itertools;
 use std::{
     collections::BTreeMap,

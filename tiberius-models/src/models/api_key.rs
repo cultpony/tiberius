@@ -1,6 +1,6 @@
 use std::ops::DerefMut;
 
-use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
+use tiberius_dependencies::chrono::{DateTime, NaiveDate, NaiveDateTime, Utc, Duration};
 use ring::rand::SecureRandom;
 use sqlx::{query, query_as, types::Uuid};
 use std::convert::TryInto;
@@ -30,7 +30,7 @@ impl ApiKey {
             user_id: user.id(),
             private: key_data,
             valid_until: Utc::now()
-                .checked_add_signed(chrono::Duration::weeks(52 * 5))
+                .checked_add_signed(Duration::weeks(52 * 5))
                 .expect("should not overflow"),
             created_at: Utc::now(),
             updated_at: Utc::now(),

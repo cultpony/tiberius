@@ -1,7 +1,7 @@
 use std::{io::Write, ops::DerefMut, str::FromStr};
 
 use crate::{Client, PhilomenaModelError, Tag};
-use chrono::NaiveDateTime;
+use tiberius_dependencies::chrono::NaiveDateTime;
 use itertools::Itertools;
 use sqlx::{query_as, Postgres};
 use tracing::trace;
@@ -188,7 +188,7 @@ impl Channel {
             self.total_viewer_minutes,
             self.banner_image,
             self.remote_stream_id,
-            chrono::Utc::now().naive_utc()
+            tiberius_dependencies::chrono::Utc::now().naive_utc()
         )
         .execute(client.db().await?.deref_mut())
         .await?;

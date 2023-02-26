@@ -18,7 +18,7 @@ pub mod scheduler;
 use std::error::Error;
 use std::str::FromStr;
 
-use chrono::Duration;
+use tiberius_dependencies::chrono::Duration;
 use sqlxmq::JobRegistry;
 use tiberius_core::{
     app::DBPool, config::Configuration, error::TiberiusResult, state::TiberiusState,
@@ -26,7 +26,7 @@ use tiberius_core::{
 use tiberius_dependencies::cron::Schedule;
 use tiberius_models::Client;
 use tiberius_dependencies::prelude::*;
-use chrono::Utc;
+use tiberius_dependencies::chrono::Utc;
 
 use crate::scheduler::{Instant, Job};
 

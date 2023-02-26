@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, ops::DerefMut, pin::Pin, sync::Arc};
 
 use async_std::sync::RwLock;
-use chrono::{NaiveDate, NaiveDateTime, Utc};
+use tiberius_dependencies::chrono::{NaiveDate, NaiveDateTime, Utc};
 use futures::Stream;
 use itertools::Itertools;
 use sqlx::{postgres::PgRow, query_as, Executor, PgPool};
@@ -457,7 +457,7 @@ impl Queryable for Tag {
             date,
             created_at,
             tantivy::DateTime::from_timestamp_secs(
-                chrono::DateTime::<chrono::Utc>::from_utc(self.created_at, chrono::Utc).timestamp()
+                tiberius_dependencies::chrono::DateTime::<tiberius_dependencies::chrono::Utc>::from_utc(self.created_at, tiberius_dependencies::chrono::Utc).timestamp()
             )
         );
         doc_add_!(doc, schema, u64, id, self.id as u64);

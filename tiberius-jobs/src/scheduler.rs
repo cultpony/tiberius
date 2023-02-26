@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chrono::{DateTime, Utc, Duration};
+use tiberius_dependencies::chrono::{DateTime, Utc, Duration};
 use futures_util::future::BoxFuture;
 use sqlx::Postgres;
 use tiberius_core::error::{TiberiusError, TiberiusResult};
@@ -67,7 +67,7 @@ impl Scheduler {
         true
     }
 
-    pub fn time_to_next(&self) -> chrono::Duration {
+    pub fn time_to_next(&self) -> tiberius_dependencies::chrono::Duration {
         self.next_scheduled.load(Ordering::SeqCst) - Utc::now()
     }
 
@@ -111,13 +111,13 @@ pub struct Job {
     /// 
     /// When creating, this should be set to Utc::now, otherwise it's usable
     /// to determine when the job will *first* run.
-    pub last: chrono::DateTime<Utc>,
+    pub last: tiberius_dependencies::chrono::DateTime<Utc>,
     /// Maximum allowed time that scheduling may be delayed
     ///
     /// The scheduler will check the current datetime as often as the smallest
     /// max_delay value over all jobs unless the next scheduling event is more than
     /// 10 times as far away.
-    pub max_delay: chrono::Duration,
+    pub max_delay: tiberius_dependencies::chrono::Duration,
     /// The function call that will run the job
     ///
     /// If it errors, the job is marked as failed until it completes normally again

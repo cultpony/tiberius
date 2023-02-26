@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use tiberius_dependencies::chrono::NaiveDateTime;
 
 #[derive(sqlx::FromRow, Debug, Clone)]
 pub struct ImageFeature {

@@ -1,7 +1,7 @@
 use std::{num::NonZeroU32, ops::DerefMut};
 
 use anyhow::Context;
-use chrono::{DateTime, Utc};
+use tiberius_dependencies::chrono::{DateTime, Utc};
 use sqlx::{query, query_as};
 use tracing::trace;
 

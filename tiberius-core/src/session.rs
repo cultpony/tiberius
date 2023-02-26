@@ -8,7 +8,7 @@ use std::{
 use async_std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use async_trait::async_trait;
 use axum::headers::{self, Header};
-use chrono::{Duration, NaiveDateTime, Utc};
+use tiberius_dependencies::chrono::{Duration, NaiveDateTime, Utc};
 use sqlx::{pool::PoolConnection, PgPool, Postgres};
 use tiberius_dependencies::uuid;
 use tiberius_dependencies::{
@@ -184,7 +184,7 @@ impl<T: SessionMode> Session<T> {
         self.expires.timestamp_millis()
     }
     pub fn expired(&self) -> bool {
-        self.expires <= chrono::Utc::now().naive_utc()
+        self.expires <= tiberius_dependencies::chrono::Utc::now().naive_utc()
     }
     pub fn csrf_token(&self) -> String {
         self.csrf_token.clone()
@@ -268,8 +268,8 @@ impl Session<Authenticated> {
         Self {
             _type: PhantomData::<Authenticated>,
             id: Uuid::new_v4(),
-            created: chrono::Utc::now().naive_utc(),
-            expires: chrono::Utc::now()
+            created: tiberius_dependencies::chrono::Utc::now().naive_utc(),
+            expires: tiberius_dependencies::chrono::Utc::now()
                 .naive_utc()
                 .checked_add_signed(Duration::days(7))
                 .expect("must be valid"),
@@ -310,8 +310,8 @@ impl Session<Unauthenticated> {
         Self {
             _type: PhantomData::<Unauthenticated>,
             id: Uuid::new_v4(),
-            created: chrono::Utc::now().naive_utc(),
-            expires: chrono::Utc::now()
+            created: tiberius_dependencies::chrono::Utc::now().naive_utc(),
+            expires: tiberius_dependencies::chrono::Utc::now()
                 .naive_utc()
                 .checked_add_signed(Duration::days(7))
                 .expect("must be valid"),

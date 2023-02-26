@@ -1,6 +1,6 @@
 use std::ops::DerefMut;
 
-use chrono::NaiveDateTime;
+use tiberius_dependencies::chrono::NaiveDateTime;
 use sqlx::query_as;
 use tracing::trace;
 

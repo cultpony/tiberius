@@ -2,7 +2,7 @@ use std::{borrow::Cow, fmt::Display, path::PathBuf};
 
 use axum::http::Uri;
 use axum_extra::routing::TypedPath;
-use chrono::Datelike;
+use tiberius_dependencies::chrono::Datelike;
 use itertools::Itertools;
 use maud::{html, Markup, Render};
 use tiberius_core::{
