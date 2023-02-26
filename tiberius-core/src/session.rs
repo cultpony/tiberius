@@ -12,6 +12,8 @@ use tiberius_dependencies::chrono::{Duration, NaiveDateTime, Utc};
 use sqlx::{pool::PoolConnection, PgPool, Postgres};
 use tiberius_dependencies::uuid;
 use tiberius_dependencies::{
+    base64,
+    base64::Engine,
     async_once_cell::OnceCell,
     axum,
     axum::{
@@ -317,7 +319,7 @@ impl Session<Unauthenticated> {
                 .expect("must be valid"),
             data: BTreeMap::new(),
             user_id: None,
-            csrf_token: base64::encode(
+            csrf_token: base64::engine::general_purpose::STANDARD.encode(
                 ring::rand::generate::<[u8; 32]>(&ring::rand::SystemRandom::new())
                     .unwrap()
                     .expose(),

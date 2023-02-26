@@ -411,11 +411,11 @@ impl HasPermission<PgPool> for User {
 
 #[cfg(test)]
 mod test {
-    use base64::CharacterSet;
 
     use crate::{PhilomenaModelError, User, Client};
     use super::*;
     use tiberius_dependencies::base64;
+    use tiberius_dependencies::base64::Engine;
 
     #[test]
     fn test_encrypt_decrypt_otp() -> Result<(), PhilomenaModelError> {
@@ -443,34 +443,46 @@ mod test {
 
     #[test]
     fn test_philo_decode_otp() -> Result<(), PhilomenaModelError> {
-        let b64c =
-            base64::Config::new(CharacterSet::Standard, true).decode_allow_trailing_bits(true);
+        let b64c = base64::engine::general_purpose::GeneralPurposeConfig::new()
+            .with_decode_allow_trailing_bits(true);
+        let b64c = base64::engine::general_purpose::GeneralPurpose::new(
+            &base64::alphabet::STANDARD,
+            b64c
+        );
         let test = "VmSaqD2h9SheJO5FXja8dBBV/AvfACBHqjGt+90qAIlJ27V47uGp9A==\x0A        ";
         let test = test.trim();
-        let r = base64::decode_config(test, b64c).expect("secret decode failed");
+        let r = b64c.decode(test).expect("secret decode failed");
         assert!(r.len() > 0, "Decode must be non-empty");
         Ok(())
     }
 
     #[test]
     fn test_philo_decode_otp_iv() -> Result<(), PhilomenaModelError> {
-        let b64c =
-            base64::Config::new(CharacterSet::Standard, true).decode_allow_trailing_bits(true);
+        let b64c = base64::engine::general_purpose::GeneralPurposeConfig::new()
+            .with_decode_allow_trailing_bits(true);
+        let b64c = base64::engine::general_purpose::GeneralPurpose::new(
+            &base64::alphabet::STANDARD,
+            b64c
+        );
         let test = "Jtfmw9tM26CsdyPV\x0A        ";
         let test = test.trim();
-        let r = base64::decode_config(test, b64c).expect("IV decode failed");
+        let r = b64c.decode(test).expect("IV decode failed");
         assert!(r.len() > 0, "Decode must be non-empty");
         Ok(())
     }
 
     #[test]
     fn test_philo_decode_otp_salt() -> Result<(), PhilomenaModelError> {
-        let b64c =
-            base64::Config::new(CharacterSet::Standard, true).decode_allow_trailing_bits(true);
+        let b64c = base64::engine::general_purpose::GeneralPurposeConfig::new()
+            .with_decode_allow_trailing_bits(true);
+        let b64c = base64::engine::general_purpose::GeneralPurpose::new(
+            &base64::alphabet::STANDARD,
+            b64c
+        );
         let test = "_hqD5fUkvYKdA+E77LoDWBA==\x0A        ";
         let test = test.trim();
         let test = test.trim_start_matches('_');
-        let r = base64::decode_config(test, b64c).expect("salt decode failed");
+        let r = b64c.decode(test).expect("salt decode failed");
         assert!(r.len() > 0, "Decode must be non-empty");
         Ok(())
     }

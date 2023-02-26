@@ -3,6 +3,7 @@ use anyhow::Context;
 use std::num::NonZeroU32;
 use tiberius_dependencies::totp_rs::{Algorithm,TOTP};
 use tiberius_dependencies::base64;
+use tiberius_dependencies::base64::engine::Engine;
 
 #[derive(sqlx::FromRow, Debug, Clone, PartialEq)]
 pub struct OTPSecret {
@@ -31,6 +32,16 @@ impl Default for OTPSecret {
             otp_backup_codes: None,
         }
     }
+}
+
+const fn b64c_default() -> base64::engine::general_purpose::GeneralPurpose {
+    base64::engine::general_purpose::GeneralPurpose::new(
+        &base64::alphabet::STANDARD,
+        base64::engine::general_purpose::GeneralPurposeConfig::new()
+            .with_decode_allow_trailing_bits(true)
+            .with_encode_padding(true)
+            .with_decode_padding_mode(base64::engine::DecodePaddingMode::Indifferent)
+    )
 }
 
 impl OTPSecret {
@@ -102,16 +113,15 @@ impl OTPSecret {
             self.encrypted_otp_secret_salt
         );
         trace!("OTP_KEY={:?}", otp_secret);
-        let b64c = base64::Config::new(base64::CharacterSet::Standard, true)
-            .decode_allow_trailing_bits(true);
+        let b64c = b64c_default();
         let secret = self.encrypted_otp_secret.as_ref().unwrap();
         // PG may store garbage codepoints, remove them
         let secret = secret.trim();
-        let mut secret = base64::decode_config(secret, b64c).context("Base64 Secret Decode")?;
+        let mut secret = b64c.decode(secret).context("Base64 Secret Decode")?;
         let iv = self.encrypted_otp_secret_iv.as_ref().unwrap();
         // PG may stoer garbage codepoints, remove them
         let iv = iv.trim();
-        let iv = base64::decode_config(iv, b64c).context("Base64 IV Decode")?;
+        let iv = b64c.decode(&iv).context("Base64 IV Decode")?;
         let iv: Result<[u8; 12], Vec<u8>> = iv.try_into();
         let iv = match iv {
             Ok(v) => v,
@@ -120,7 +130,7 @@ impl OTPSecret {
         let salt = self.encrypted_otp_secret_salt.as_ref().unwrap();
         let salt = salt.trim();
         let salt = salt.trim_start_matches('_');
-        let salt = base64::decode_config(salt, b64c).context("Base64 Salt Decode")?;
+        let salt = b64c.decode(salt).context("Base64 Salt Decode")?;
         let mut key = [0u8; 32];
         ring::pbkdf2::derive(
             ring::pbkdf2::PBKDF2_HMAC_SHA1,
@@ -155,6 +165,7 @@ impl OTPSecret {
             &mut key,
         );
         use ring::aead::*;
+        let b64c = b64c_default();
         let iv = Nonce::assume_unique_for_key(ivr);
         let key = UnboundKey::new(&ring::aead::AES_256_GCM, &key)?;
         let key = LessSafeKey::new(key);
@@ -162,9 +173,9 @@ impl OTPSecret {
         let mut secret = otp.to_vec();
         key.seal_in_place_append_tag(iv, aad, &mut secret)?;
         assert_eq!(secret.len(), otp.len() + 16);
-        self.encrypted_otp_secret = Some(base64::encode(secret));
-        self.encrypted_otp_secret_iv = Some(base64::encode(ivr));
-        self.encrypted_otp_secret_salt = Some(base64::encode(salt));
+        self.encrypted_otp_secret = Some(b64c.encode(secret));
+        self.encrypted_otp_secret_iv = Some(b64c.encode(ivr));
+        self.encrypted_otp_secret_salt = Some(b64c.encode(salt));
         Ok(())
     }
 

@@ -35,6 +35,8 @@ use std::{
     num::NonZeroU32,
     str,
 };
+use tiberius_dependencies::base64;
+use tiberius_dependencies::base64::Engine;
 
 /// This Session Plugin allows using Philomena Session Plugins for login if the appropriate session secret keys are
 /// present
@@ -210,11 +212,11 @@ fn decode_cookie<'a>(cookie: &str) -> TiberiusResult<ElixirCookie> {
         return Err(TiberiusError::InvalidPhilomenaCookie);
     }
 
-    let aad = base64::decode_config(parts[0], base64::URL_SAFE_NO_PAD)?;
-    let cek = base64::decode_config(parts[1], base64::URL_SAFE_NO_PAD)?;
-    let iv = base64::decode_config(parts[2], base64::URL_SAFE_NO_PAD)?;
-    let data = base64::decode_config(parts[3], base64::URL_SAFE_NO_PAD)?;
-    let auth_tag = base64::decode_config(parts[4], base64::URL_SAFE_NO_PAD)?;
+    let aad = base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(parts[0])?;
+    let cek = base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(parts[1])?;
+    let iv = base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(parts[2])?;
+    let data = base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(parts[3])?;
+    let auth_tag = base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(parts[4])?;
 
     if !aad.eq(&PHOENIX_AAD) || cek.len() != 44 || iv.len() != 12 || auth_tag.len() != 16 {
         return Err(TiberiusError::InvalidPhilomenaCookie);
@@ -395,12 +397,14 @@ mod test {
         });
         let cookie = r#"QTEyOEdDTQ.NItJo3ZSO034Y8MKkwONkbq6yAHrDJ5X-4RvNL2g24XS-ycGUaipaViOCHA.93XGZOc41D1VQuLE.rhjFuaKWSBVzLbg-pFUfUGW3TuXi0-_eU_Nypvhy4c1UcuDWMzoR9ojJEWVuwbp9Tj53aNHm3hi8gtatVoxx6v8L9Jgl3Ot9e9LMb5MY27Jk-1vnF6qgNOqo2ScBZ96laWUOro4ZIP8CNH_YMypDQaIJQRXqjNAEjodLjSxGfEYNKiQffE5ma6aa8BAyll77Yi5-u5u8_RsUbVNqADDmboJKjrIskEg45fVR6M4xedmTbuAMD72jbII8.N7CR_qyW5nCaWB6ZdP5org"#;
         let cookie = decode_cookie(cookie)?;
+        use tiberius_dependencies::base64;
+        use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD as b64c};
         let expected = ElixirCookie{
             aad: (super::PHOENIX_AAD.to_vec()),
-        cek: base64::decode_config("NItJo3ZSO034Y8MKkwONkbq6yAHrDJ5X-4RvNL2g24XS-ycGUaipaViOCHA", base64::URL_SAFE_NO_PAD).unwrap(),
-        iv: base64::decode_config("93XGZOc41D1VQuLE", base64::URL_SAFE_NO_PAD).unwrap(),
-        data: base64::decode_config("rhjFuaKWSBVzLbg-pFUfUGW3TuXi0-_eU_Nypvhy4c1UcuDWMzoR9ojJEWVuwbp9Tj53aNHm3hi8gtatVoxx6v8L9Jgl3Ot9e9LMb5MY27Jk-1vnF6qgNOqo2ScBZ96laWUOro4ZIP8CNH_YMypDQaIJQRXqjNAEjodLjSxGfEYNKiQffE5ma6aa8BAyll77Yi5-u5u8_RsUbVNqADDmboJKjrIskEg45fVR6M4xedmTbuAMD72jbII8", base64::URL_SAFE_NO_PAD).unwrap(),
-        auth_tag: base64::decode_config("N7CR_qyW5nCaWB6ZdP5org", base64::URL_SAFE_NO_PAD).unwrap()
+            cek: b64c.decode("NItJo3ZSO034Y8MKkwONkbq6yAHrDJ5X-4RvNL2g24XS-ycGUaipaViOCHA").unwrap(),
+            iv: b64c.decode("93XGZOc41D1VQuLE").unwrap(),
+            data: b64c.decode("rhjFuaKWSBVzLbg-pFUfUGW3TuXi0-_eU_Nypvhy4c1UcuDWMzoR9ojJEWVuwbp9Tj53aNHm3hi8gtatVoxx6v8L9Jgl3Ot9e9LMb5MY27Jk-1vnF6qgNOqo2ScBZ96laWUOro4ZIP8CNH_YMypDQaIJQRXqjNAEjodLjSxGfEYNKiQffE5ma6aa8BAyll77Yi5-u5u8_RsUbVNqADDmboJKjrIskEg45fVR6M4xedmTbuAMD72jbII8").unwrap(),
+            auth_tag: b64c.decode("N7CR_qyW5nCaWB6ZdP5org").unwrap()
         };
         assert_eq!(cookie, expected,);
         let cek = unwrap_cek(&key_data, &cookie).expect("need CEK unwrap");

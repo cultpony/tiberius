@@ -3,6 +3,7 @@ use tiberius_dependencies::{reqwest, uuid};
 use std::{io::Cursor, str::ParseBoolError};
 use thiserror::Error;
 use tiberius_dependencies::{
+    base64,
     axum,
     axum::{
         body::BoxBody,
