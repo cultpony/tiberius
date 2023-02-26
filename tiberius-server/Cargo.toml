@@ -3,7 +3,7 @@ name = "tiberius-server"
 version = "0.1.0"
 authors = ["Cult Pony"]
 edition = "2021"
-license = "Proprietary"
+license = "LicenseRef-Proprietary"
 publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -11,8 +11,7 @@ publish = false
 [dependencies]
 async-std = { version = "1.9", features = ["attributes", "tokio1"] }
 async-trait = "0.1.50"
-base64 = "0.13"
-bcrypt = "0.14.0"
+bcrypt = "0.14"
 better-panic = "0.3"
 camo-url = "0.1.2"
 chrono-humanize = "0.2.1"
@@ -54,7 +53,6 @@ uuid = "1"
 pulldown-cmark = "0.9.2"
 ammonia = "3.1.2"
 anyhow = "1.0"
-sentry-tower = { version = "0.30.0", features = ["http"] }
 axum = { version = "0.5", features = ["multipart"] }
 axum-extra = { version = "^0.3", features = ["typed-routing", "cookie-lib", "cookie-signed", "cookie-private", "async-read-body"] }
 tempfile = "3"

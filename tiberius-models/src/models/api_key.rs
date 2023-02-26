@@ -4,6 +4,7 @@ use tiberius_dependencies::chrono::{DateTime, NaiveDate, NaiveDateTime, Utc, Dur
 use ring::rand::SecureRandom;
 use sqlx::{query, query_as, types::Uuid};
 use std::convert::TryInto;
+use tiberius_dependencies::base64;
 
 use crate::{Client, PhilomenaModelError, User};
 

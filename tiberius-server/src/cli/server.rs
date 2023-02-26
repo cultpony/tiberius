@@ -94,8 +94,8 @@ pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResu
                 axum_csrf::CsrfLayer::new(csrf_config),
             )
             .layer(CookieManagerLayer::new())
-            .layer(sentry_tower::NewSentryLayer::new_from_top())
-            .layer(sentry_tower::SentryHttpLayer::with_transaction()),
+            .layer(tiberius_dependencies::sentry_tower::NewSentryLayer::new_from_top())
+            .layer(tiberius_dependencies::sentry_tower::SentryHttpLayer::with_transaction()),
     );
 
     let router = router.fallback(not_found_page.into_service());

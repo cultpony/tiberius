@@ -12,6 +12,8 @@ use tiberius_dependencies::{
 };
 use tracing::trace;
 use sqlx::Executor;
+use tiberius_dependencies::base32;
+use tiberius_dependencies::base64;
 
 pub mod otp;
 pub mod settings;
@@ -413,6 +415,7 @@ mod test {
 
     use crate::{PhilomenaModelError, User, Client};
     use super::*;
+    use tiberius_dependencies::base64;
 
     #[test]
     fn test_encrypt_decrypt_otp() -> Result<(), PhilomenaModelError> {

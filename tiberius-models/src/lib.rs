@@ -34,6 +34,7 @@ use tiberius_dependencies::{
     totp_rs::{self, TotpUrlError},
 };
 pub use tiberius_search::{QueryError, Queryable};
+use tiberius_dependencies::base64;
 
 use async_trait::async_trait;
 use sqlx::{pool::PoolConnection, PgPool, Postgres};

@@ -7,19 +7,123 @@ targets = [
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"
+allow-git = [
+    "https://github.com/cultpony/sqlx-adapter.git",
+    "https://github.com/philomena-dev/comrak",
+]
 
 [advisories]
 vulnerability = "deny"
 unmaintained = "deny"
 notice = "deny"
 unsound = "deny"
+ignore = [
+    "RUSTSEC-2020-0145", # heapless vuln from sentry crates
+    "RUSTSEC-2021-0145", # from atty which isn't in prod
+    "RUSTSEC-2021-0141", # used only in dev/test
+    "RUSTSEC-2020-0071", # time crate is currently not patchable
+    "RUSTSEC-2022-0006", # textile support is deprecated
+    "RUSTSEC-2022-0013", # also via textile crate
+]
+
+[licenses]
+unlicensed = "allow"
+allow-osi-fsf-free = "both"
+copyleft = "deny"
+default = "warn"
+unused-allowed-license = "warn"
+deny = []
+allow = [
+    "0BSD",
+    "AGPL-3.0", # todo, remove those dependencies
+    "Apache-2.0",
+    "CC0-1.0",
+    "GPL-3.0", # this is camo-url, we can ignore that license
+    "MIT-0",
+    "MIT",
+    "MPL-2.0",
+    "Unicode-DFS-2016",
+    "zlib-acknowledgement",
+]
+
+[[licenses.exceptions]]
+allow = ["LicenseRef-Proprietary"]
+name = "tiberius-server"
+
+[[licenses.exceptions]]
+allow = ["LicenseRef-Proprietary"]
+name = "tiberius-search"
+
+[[licenses.exceptions]]
+allow = ["LicenseRef-Proprietary"]
+name = "tiberius-models"
+
+[[licenses.exceptions]]
+allow = ["LicenseRef-Proprietary"]
+name = "tiberius-jobs"
+
+[[licenses.exceptions]]
+allow = ["LicenseRef-Proprietary"]
+name = "tiberius-dependencies"
+
+[[licenses.exceptions]]
+allow = ["LicenseRef-Proprietary"]
+name = "tiberius-common-html"
+
+[[licenses.exceptions]]
+allow = ["LicenseRef-Proprietary"]
+name = "tiberius-core"
 
 [bans]
 multiple-versions = "deny"
 
-[[bans.deny]]
-name = "openssl"
-wrappers = ["tiberius-core"]
+[[bans.skip]]
+name = "aho-corasick" # textile issue
+
+[[bans.skip]]
+name = "base64"
+
+[[bans.skip]]
+name = "cfg-if"
+
+[[bans.skip]]
+name = "clap_lex"
+
+[[bans.skip]]
+name = "lazy_static"
+
+[[bans.skip]]
+name = "memchr"
+
+[[bans.skip]]
+name = "nix"
+
+[[bans.skip]]
+name = "nom"
+
+[[bans.skip]]
+name = "percent-encoding"
+
+[[bans.skip]]
+name = "regex"
+
+[[bans.skip]]
+name = "rustc_version"
+
+[[bans.skip]]
+name = "semver"
+
+[[bans.skip]]
+name = "thread_local" # coming from textile
+
+[[bans.skip]]
+name = "url" # another one frmo textile
+
+[[bans.skip]]
+name = "utf8-ranges"
+
+[[bans.skip]]
+name = "uuid"
 
 [[bans.skip]]
 name = "md-5"

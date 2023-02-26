@@ -46,6 +46,9 @@ pub use sha2;
 pub use serde;
 pub use itertools;
 pub use futures_util;
+pub use base64;
+pub use base32;
+pub use sentry_tower;
 
 pub mod prelude {
     pub use tracing::log::trace;

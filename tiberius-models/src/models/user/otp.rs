@@ -2,6 +2,7 @@ use crate::PhilomenaModelError;
 use anyhow::Context;
 use std::num::NonZeroU32;
 use tiberius_dependencies::totp_rs::{Algorithm,TOTP};
+use tiberius_dependencies::base64;
 
 #[derive(sqlx::FromRow, Debug, Clone, PartialEq)]
 pub struct OTPSecret {

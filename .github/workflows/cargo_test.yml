@@ -15,86 +15,12 @@ on:
 name: Run Tests on Push/PR
 
 jobs:
-  check:
-    name: Check
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
-        
-      - name: Install Mold linker
-        run: sudo apt update && sudo apt install mold
-
-      - uses: harmon758/postgresql-action@v1
-        with:
-          postgresql version: '11'
-          postgresql db: philomena_db
-          postgresql user: github_actions
-          postgresql password: github_actions
-        
-      - name: Cache Setup
-        uses: Swatinem/rust-cache@v1
-        
-      - name: Cache Target/ Dir
-        uses: actions/cache@v2
-        with:
-          path: |
-            target
-          key: ${{ runner.os }}-check
-          
-      - uses: actions/setup-node@v2
-        with:
-          node-version: '14'
-          cache: 'npm'
-          cache-dependency-path: |
-            **/package-lock.json
-            **/yarn.lock
-
-      - run: |
-          cd res/assets
-          npm install -g yarn
-          yarn install
-          NODE_ENV=production yarn deploy
-
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-
-      - name: Install cargo sqlx cli
-        uses: baptiste0928/cargo-install@v1
-        with:
-          crate: sqlx-cli
-          version: "0.5"
-      
-      - name: Run cargo sqlx migrate
-        uses: actions-rs/cargo@v1
-        with:
-          command: sqlx
-          args: migrate run
-        env:
-          TIBERIUS_PREBUILT_ASSETS: YES
-          DATABASE_URL: postgres://github_actions:github_actions@localhost:5432/philomena_db
-
-      - name: Run cargo check
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-        env:
-          TIBERIUS_PREBUILT_ASSETS: YES
-          DATABASE_URL: postgres://github_actions:github_actions@localhost:5432/philomena_db
-
-  test:
+  build_and_test:
     name: Test Suite
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
-        
-      - name: Install Mold linker
-        run: sudo apt update && sudo apt install mold
+        uses: actions/checkout@v3
 
       - uses: harmon758/postgresql-action@v1
         with:
@@ -138,13 +64,35 @@ jobs:
         uses: baptiste0928/cargo-install@v1
         with:
           crate: sqlx-cli
-          version: "0.5"
+          version: "0.6"
       
+      - name: Install cargo deny
+        uses: baptiste0928/cargo-install@v1
+        with:
+          crate: cargo-deny
+          version: "0.13"
+
       - name: Run cargo sqlx migrate
         uses: actions-rs/cargo@v1
         with:
-          command: sqlx
+          command: sqlx-cli
           args: migrate run
+        env:
+          TIBERIUS_PREBUILT_ASSETS: YES
+          DATABASE_URL: postgres://github_actions:github_actions@localhost:5432/philomena_db
+
+      - name: Run cargo check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check --workspace --verbose
+        env:
+          TIBERIUS_PREBUILT_ASSETS: YES
+          DATABASE_URL: postgres://github_actions:github_actions@localhost:5432/philomena_db
+
+      - name: Run cargo check
+        uses: actions-rs/cargo@v1
+        with:
+          command: build --workspace --verbose
         env:
           TIBERIUS_PREBUILT_ASSETS: YES
           DATABASE_URL: postgres://github_actions:github_actions@localhost:5432/philomena_db
@@ -153,7 +101,10 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --workspace --no-fail-fast
+          args: --workspace --no-fail-fast --verbose
         env:
           TIBERIUS_PREBUILT_ASSETS: YES
           DATABASE_URL: postgres://github_actions:github_actions@localhost:5432/philomena_db
+
+      - name: Check for cargo-deny lints
+        uses: EmbarkStudios/cargo-deny-action@v1

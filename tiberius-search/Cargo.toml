@@ -3,7 +3,7 @@ name = "tiberius-search"
 version = "0.1.0"
 authors = ["cultpony <67918945+cultpony@users.noreply.github.com>"]
 edition = "2021"
-license = "Proprietary"
+license = "LicenseRef-Proprietary"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -25,7 +25,7 @@ default = ["search-with-tantivy"]
 search-with-tantivy = ["tantivy"]
 
 [dev-dependencies]
-criterion = "0.3"
+criterion = "0.4"
 anyhow = "*"
 
 [[bench]]
