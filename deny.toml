@@ -78,6 +78,27 @@ name = "tiberius-core"
 multiple-versions = "deny"
 
 [[bans.skip]]
+name = "axum"
+
+[[bans.skip]]
+name = "axum-core"
+
+[[bans.skip]]
+name = "axum_database_sessions"
+
+[[bans.skip]]
+name = "bcrypt"
+
+[[bans.skip]]
+name = "cookie"
+
+[[bans.skip]]
+name = "matchit"
+
+[[bans.skip]]
+name = "tower-cookies"
+
+[[bans.skip]]
 name = "aho-corasick" # textile issue
 
 [[bans.skip]]

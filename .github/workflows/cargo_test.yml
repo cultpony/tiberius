@@ -52,13 +52,6 @@ jobs:
           yarn install
           NODE_ENV=production yarn deploy
 
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-
       - name: Install cargo sqlx cli
         uses: baptiste0928/cargo-install@v1
         with:
