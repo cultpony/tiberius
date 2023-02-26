@@ -2285,9 +2285,9 @@ checksum = "e9025058dae765dee5070ec375f591e2ba14638c63feff74f13805a72e523163"
 
 [[package]]
 name = "htp"
-version = "0.3.0"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f285642c3d0096a62850a9e86ce2ea1fcb2e9d779f23feb57b3f96583f120fd"
+checksum = "1b3a01a9ee0af3f51ee36f6b2c13bf2288df0441c9ec38fdacf8718691427283"
 dependencies = [
  "chrono",
  "pest",
@@ -5257,6 +5257,8 @@ version = "0.1.0"
 dependencies = [
  "ammonia",
  "async-once-cell",
+ "async-std",
+ "async-trait",
  "atomic",
  "axum 0.5.17",
  "axum-extra",
@@ -5264,37 +5266,56 @@ dependencies = [
  "axum_csrf",
  "axum_database_sessions 4.1.0",
  "axum_sessions_auth",
+ "base64 0.13.1",
+ "bcrypt 0.13.0",
  "blake2 0.10.6",
  "casbin",
  "chrono",
  "chrono-humanize",
  "comrak",
  "cron",
+ "csp",
+ "either",
  "flatiron",
+ "futures-util",
  "gethostname",
  "headers",
  "hex",
  "http",
  "http-serde",
+ "image",
+ "itertools",
  "lazy_static 1.4.0",
  "maud",
  "mime",
  "moka",
+ "new_mime_guess",
  "once_cell",
+ "rand",
  "regex 1.7.1",
  "reqwest",
+ "ring",
  "rust-embed",
+ "securefmt",
  "sentry",
+ "serde",
+ "serde_json",
  "serde_qs",
  "serde_urlencoded",
+ "sha2 0.10.6",
  "sha3 0.10.6",
+ "sqlx",
  "sqlx-adapter",
+ "sqlxmq",
  "tempfile",
  "textile",
+ "thiserror",
+ "tokio",
  "totp-rs",
  "tower",
  "tracing",
  "tracing-futures",
+ "url 2.3.1",
  "uuid 1.3.0",
 ]
 
@@ -5302,35 +5323,12 @@ dependencies = [
 name = "tiberius-jobs"
 version = "0.1.0"
 dependencies = [
- "async-std",
- "async-trait",
- "base64 0.13.1",
- "bcrypt 0.14.0",
- "csp",
- "either",
- "futures-util",
- "image",
- "itertools",
- "lazy_static 1.4.0",
- "maud",
- "new_mime_guess",
- "rand",
- "regex 1.7.1",
- "ring",
- "securefmt",
  "serde",
- "serde_derive",
- "serde_json",
- "sha2 0.10.6",
- "sqlx",
- "sqlxmq",
- "thiserror",
  "tiberius-core",
  "tiberius-dependencies",
  "tiberius-models",
  "tiberius-search",
  "tokio",
- "url 2.3.1",
 ]
 
 [[package]]

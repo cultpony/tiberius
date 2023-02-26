@@ -3,7 +3,7 @@ use tiberius_core::error::TiberiusResult;
 use tiberius_core::http_client;
 use tiberius_models::{Client, Channel};
 use tiberius_dependencies::prelude::*;
-
+use serde;
 
 #[instrument]
 pub async fn refresh_picarto_channel(
@@ -35,7 +35,7 @@ pub async fn refresh_picarto_channel(
     Ok(())
 }
 
-#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 struct PicartoChannel {
     user_id: i64,
     name: String,
@@ -65,7 +65,7 @@ struct PicartoChannel {
     creation_date: String,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 struct Thumbnails {
     web: String,
     web_large: String,
@@ -73,7 +73,7 @@ struct Thumbnails {
     tablet: String,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 struct DescriptionPanels {
     title: String,
     body: String,
@@ -84,14 +84,14 @@ struct DescriptionPanels {
     position: i64,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 struct ChatSettings {
     guest_chat: bool,
     links: bool,
     level: bool,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 struct Multistream {
     user_id: i64,
     name: String,
@@ -99,7 +99,7 @@ struct Multistream {
     adult: bool,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 struct Language {
     id: i64,
     name: String,

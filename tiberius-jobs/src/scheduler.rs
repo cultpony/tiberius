@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 
 use tiberius_dependencies::chrono::{DateTime, Utc, Duration};
-use futures_util::future::BoxFuture;
-use sqlx::Postgres;
+use tiberius_dependencies::futures_util::future::BoxFuture;
+use tiberius_dependencies::sqlx::Postgres;
 use tiberius_core::error::{TiberiusError, TiberiusResult};
 use tiberius_core::NodeId;
 use tiberius_dependencies::{cron, atomic, prelude::*, uuid::Uuid};
-use atomic::{Atomic, Ordering};
+use tiberius_dependencies::atomic::{Atomic, Ordering};
+use tiberius_dependencies::serde;
 
 #[derive(Debug)]
 pub struct Scheduler {

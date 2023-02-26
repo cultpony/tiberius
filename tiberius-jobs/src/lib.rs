@@ -19,7 +19,7 @@ use std::error::Error;
 use std::str::FromStr;
 
 use tiberius_dependencies::chrono::Duration;
-use sqlxmq::JobRegistry;
+use tiberius_dependencies::sqlxmq::JobRegistry;
 use tiberius_core::{
     app::DBPool, config::Configuration, error::TiberiusResult, state::TiberiusState,
 };
@@ -27,6 +27,8 @@ use tiberius_dependencies::cron::Schedule;
 use tiberius_models::Client;
 use tiberius_dependencies::prelude::*;
 use tiberius_dependencies::chrono::Utc;
+use tiberius_dependencies::tokio;
+use tiberius_dependencies::sqlxmq;
 
 use crate::scheduler::{Instant, Job};
 

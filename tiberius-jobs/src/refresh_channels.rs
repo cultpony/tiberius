@@ -7,6 +7,9 @@ use tiberius_core::{
 use tiberius_models::{Channel, Client};
 use tiberius_dependencies::prelude::*;
 use tiberius_dependencies::sentry;
+use tiberius_dependencies::serde_json;
+use tiberius_dependencies::serde;
+use tiberius_dependencies::sqlxmq;
 
 use crate::SharedCtx;
 

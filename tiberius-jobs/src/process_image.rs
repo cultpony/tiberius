@@ -1,11 +1,18 @@
-use image::GenericImageView;
-use sqlx::{FromRow, Pool, Postgres};
-use sqlxmq::{job, Checkpoint, CurrentJob};
+use tiberius_dependencies::image::GenericImageView;
+use tiberius_dependencies::sqlx::{FromRow, Pool, Postgres};
+use tiberius_dependencies::sqlxmq::{job, Checkpoint, CurrentJob};
 use tiberius_core::{config::Configuration, error::TiberiusResult, state::TiberiusState};
 use tiberius_dependencies::hex;
 use tiberius_models::{Channel, Client, Image, ImageThumbType, Queryable};
 use tiberius_dependencies::sentry;
 use tiberius_dependencies::prelude::*;
+use tiberius_dependencies::serde_json;
+use tiberius_dependencies::tokio;
+use tiberius_dependencies::image;
+use tiberius_dependencies::sha2;
+use tiberius_dependencies::sqlx;
+use tiberius_dependencies::serde;
+use tiberius_dependencies::sqlxmq;
 
 use crate::SharedCtx;
 use crate::generate_thumbnails::make_thumb;
@@ -210,11 +217,12 @@ mod test {
 
     use tiberius_core::error::TiberiusResult;
     use tiberius_models::ImageThumbType;
-    use tokio::io::AsyncReadExt;
+    use tiberius_dependencies::tokio::io::AsyncReadExt;
+    use tiberius_dependencies::tokio;
+    use tiberius_dependencies::image;
 
 
     #[tokio::test]
-    #[ignore]
     async fn test_very_tall_image() -> TiberiusResult<()> {
         let image_path = "../test_data/very_tall_image_conversion.jpg";
         let f = image::ImageFormat::Jpeg;
@@ -241,8 +249,6 @@ mod test {
         testfun_make_thumb(ImageThumbType::Thumb, img.clone()).await?;
         testfun_make_thumb(ImageThumbType::ThumbSmall, img.clone()).await?;
         testfun_make_thumb(ImageThumbType::ThumbTiny, img.clone()).await?;
-
-        todo!();
         
         Ok(())
     }

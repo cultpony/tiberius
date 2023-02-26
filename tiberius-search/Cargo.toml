@@ -10,15 +10,15 @@ license = "Proprietary"
 [dependencies]
 async-std = { version = "1.6", features = [ "attributes" ] }
 chrono = { version = "0.4", default-features = false, features = [ "std" ] }
-strsim = "0.10.0"
-thiserror = "1.0.25"
-lazy-regex = "2.2.2"
+strsim = "0.10"
+thiserror = "1.0"
+lazy-regex = "2.2"
 tantivy = { version = "0.19", optional = true }
-either = "1.6.1"
-async-trait = "0.1.50"
-tracing = "0.1.26"
-htp = "0.3.0"
-chrono-english = "0.1.6"
+either = "1.6"
+async-trait = "0.1"
+tracing = "0.1"
+htp = "0.4"
+chrono-english = "0.1"
 
 [features]
 default = ["search-with-tantivy"]
