@@ -75,19 +75,19 @@ jobs:
         run:  |
           export TIBERIUS_PREBUILT_ASSETS=YES
           export DATABASE_URL="postgres://github_actions:github_actions@localhost:5432/philomena_db"
-          cargo check --workspace --verbose
+          cargo check --workspace
 
       - name: Build Workspace
         run:  |
           export TIBERIUS_PREBUILT_ASSETS=YES
           export DATABASE_URL="postgres://github_actions:github_actions@localhost:5432/philomena_db"
-          cargo build --workspace --verbose
+          cargo build --workspace
 
       - name: Run tests
         run:  |
           export TIBERIUS_PREBUILT_ASSETS=YES
           export DATABASE_URL="postgres://github_actions:github_actions@localhost:5432/philomena_db"
-          cargo test --workspace --no-fail-fast --verbose
+          cargo test --workspace --no-fail-fast
 
       - name: Check for cargo-deny lints
         uses: EmbarkStudios/cargo-deny-action@v1
