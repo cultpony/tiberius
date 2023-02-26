@@ -502,15 +502,16 @@ dependencies = [
 
 [[package]]
 name = "axum_csrf"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4098e0707eeeabc1405fde1595653ac2d7eb7f5c06ba8ae73edeca5ce1cb7e8f"
+checksum = "9dedc295d9af842378b0fdf9a89ee3a11fd357ad40c02df0bd28f0deefa32043"
 dependencies = [
  "async-trait",
- "axum 0.5.17",
+ "axum-core 0.3.2",
  "base64 0.13.1",
  "bcrypt 0.13.0",
  "cookie 0.16.2",
+ "http",
  "rand",
  "time 0.3.20",
 ]
