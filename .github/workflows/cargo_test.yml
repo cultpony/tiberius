@@ -16,7 +16,6 @@ name: Run Tests on Push/PR
 
 jobs:
   build_and_test:
-    name: Test Suite
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout sources
@@ -67,40 +66,28 @@ jobs:
           version: "0.6"
 
       - name: Run cargo sqlx migrate
-        uses: actions-rs/cargo@v1
-        with:
-          command: sqlx
-          args: migrate run
-        env:
-          TIBERIUS_PREBUILT_ASSETS: YES
-          DATABASE_URL: postgres://github_actions:github_actions@localhost:5432/philomena_db
+        run: |
+          export TIBERIUS_PREBUILT_ASSETS=YES
+          export DATABASE_URL="postgres://github_actions:github_actions@localhost:5432/philomena_db"
+          cargo sqlx migrate run
 
-      - name: Run cargo check
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --workspace --verbose
-        env:
-          TIBERIUS_PREBUILT_ASSETS: YES
-          DATABASE_URL: postgres://github_actions:github_actions@localhost:5432/philomena_db
+      - name: Cargo Check
+        run:  |
+          export TIBERIUS_PREBUILT_ASSETS=YES
+          export DATABASE_URL="postgres://github_actions:github_actions@localhost:5432/philomena_db"
+          cargo check --workspace --verbose
 
-      - name: Run cargo check
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --workspace --verbose
-        env:
-          TIBERIUS_PREBUILT_ASSETS: YES
-          DATABASE_URL: postgres://github_actions:github_actions@localhost:5432/philomena_db
+      - name: Build Workspace
+        run:  |
+          export TIBERIUS_PREBUILT_ASSETS=YES
+          export DATABASE_URL="postgres://github_actions:github_actions@localhost:5432/philomena_db"
+          cargo build --workspace --verbose
 
-      - name: Run cargo test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --workspace --no-fail-fast --verbose
-        env:
-          TIBERIUS_PREBUILT_ASSETS: YES
-          DATABASE_URL: postgres://github_actions:github_actions@localhost:5432/philomena_db
+      - name: Run tests
+        run:  |
+          export TIBERIUS_PREBUILT_ASSETS=YES
+          export DATABASE_URL="postgres://github_actions:github_actions@localhost:5432/philomena_db"
+          cargo test --workspace --no-fail-fast --verbose
 
       - name: Check for cargo-deny lints
         uses: EmbarkStudios/cargo-deny-action@v1
