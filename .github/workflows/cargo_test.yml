@@ -30,16 +30,16 @@ jobs:
           postgresql password: github_actions
         
       - name: Cache Setup
-        uses: Swatinem/rust-cache@v1
+        uses: Swatinem/rust-cache@v2
 
       - name: Cache Target/ Dir
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             target
           key: ${{ runner.os }}-test
 
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
           node-version: '14'
           cache: 'npm'
@@ -65,17 +65,11 @@ jobs:
         with:
           crate: sqlx-cli
           version: "0.6"
-      
-      - name: Install cargo deny
-        uses: baptiste0928/cargo-install@v1
-        with:
-          crate: cargo-deny
-          version: "0.13"
 
       - name: Run cargo sqlx migrate
         uses: actions-rs/cargo@v1
         with:
-          command: sqlx-cli
+          command: sqlx
           args: migrate run
         env:
           TIBERIUS_PREBUILT_ASSETS: YES
