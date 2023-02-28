@@ -17,7 +17,7 @@ axum_csrf = "0.5"
 axum_database_sessions = "4.0"
 axum_sessions_auth = "7.0"
 axum-extra = { version = "^0.3", features = ["typed-routing", "cookie-lib", "cookie-signed", "cookie-private", "async-read-body"] }
-axum-flash = "0.5"
+axum-flash = "0.6"
 base32 = "0.4.0"
 base64 = "0.21"
 bcrypt = "0.14"
