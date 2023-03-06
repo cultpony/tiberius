@@ -48,7 +48,7 @@ rand = "0.8.3"
 regex = "1.5"
 reqwest = { version = "0.11", default-features = false, features = ["json", "socks", "cookies", "rustls-tls-native-roots", "tokio-rustls"] }
 ring = { version = "0.16.20", features = ["std"] }
-rust-embed = { version = "6.4", features = ["compression", "axum", "tokio"] }
+rust-embed = { version = "6.6", features = ["compression", "axum", "tokio"] }
 securefmt = "0.1.1"
 sentry = { version = "0.30", default-features = false, features = ["tracing", "anyhow", "tower", "panic", "contexts", "rustls", "reqwest", "profiling"] }
 sentry-tower = { version = "0.30", features = ["http"] }
