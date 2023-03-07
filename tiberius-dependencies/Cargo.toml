@@ -63,7 +63,7 @@ sqlx-adapter = { git = "https://github.com/cultpony/sqlx-adapter.git", features 
 sqlxmq = { version = "0.4", default-features = false, features = ["runtime-tokio-rustls"] }
 tempfile = "3"
 textile = "0.2"
-thiserror = "1.0.35"
+thiserror = "1.0.39"
 tokio = { version = "1.26", features = ["full"] }
 totp-rs = "4"
 tower = "^0.4"
