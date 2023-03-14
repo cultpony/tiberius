@@ -9,7 +9,7 @@ license = "LicenseRef-Proprietary"
 
 [dependencies]
 axum-extra = { version = "^0.3", features = ["typed-routing", "cookie-lib", "cookie-signed", "cookie-private"] }
-axum = "0.5"
+axum = "0.6"
 async-std = { version = "1.6", features = [ "attributes" ] }
 async-trait = "0.1.66"
 bcrypt = "0.14.0"

@@ -12,7 +12,7 @@ async-once-cell = "0.4"
 async-std = { version = "1.9", features = ["attributes", "tokio1"] }
 async-trait = "0.1"
 atomic = "0.5"
-axum = { version = "0.5", features = ["http2", "headers", "multipart"] }
+axum = { version = "0.6", features = ["http2", "headers", "multipart"] }
 axum_csrf = "0.5"
 axum_database_sessions = "4.0"
 axum_sessions_auth = "7.0"

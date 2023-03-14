@@ -361,7 +361,6 @@ dependencies = [
  "bitflags",
  "bytes",
  "futures-util",
- "headers",
  "http",
  "http-body",
  "hyper",
@@ -369,7 +368,6 @@ dependencies = [
  "matchit 0.5.0",
  "memchr 2.5.0",
  "mime",
- "multer",
  "percent-encoding 2.2.0",
  "pin-project-lite",
  "serde",
@@ -394,6 +392,7 @@ dependencies = [
  "bitflags",
  "bytes",
  "futures-util",
+ "headers",
  "http",
  "http-body",
  "hyper",
@@ -401,10 +400,14 @@ dependencies = [
  "matchit 0.7.0",
  "memchr 2.5.0",
  "mime",
+ "multer",
  "percent-encoding 2.2.0",
  "pin-project-lite",
  "rustversion",
  "serde",
+ "serde_json",
+ "serde_path_to_error",
+ "serde_urlencoded",
  "sync_wrapper",
  "tokio",
  "tower",
@@ -4461,6 +4464,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_path_to_error"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db0969fff533976baadd92e08b1d102c5a3d8a8049eadfd69d4d1e3c5b2ed189"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "serde_qs"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5230,7 +5242,7 @@ dependencies = [
  "anyhow",
  "async-std",
  "async-trait",
- "axum 0.5.17",
+ "axum 0.6.8",
  "axum-extra",
  "bcrypt 0.14.0",
  "change-detection",
@@ -5269,7 +5281,7 @@ dependencies = [
  "async-std",
  "async-trait",
  "atomic",
- "axum 0.5.17",
+ "axum 0.6.8",
  "axum-extra",
  "axum-flash",
  "axum_csrf",
@@ -5349,7 +5361,7 @@ dependencies = [
  "anyhow",
  "async-std",
  "async-trait",
- "axum 0.5.17",
+ "axum 0.6.8",
  "axum-extra",
  "bcrypt 0.14.0",
  "either",
@@ -5399,7 +5411,7 @@ dependencies = [
  "anyhow",
  "async-std",
  "async-trait",
- "axum 0.5.17",
+ "axum 0.6.8",
  "axum-extra",
  "bcrypt 0.14.0",
  "better-panic",
@@ -5812,7 +5824,7 @@ version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if 0.1.10",
  "static_assertions",
 ]
 
