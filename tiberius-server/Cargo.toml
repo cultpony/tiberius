@@ -36,7 +36,7 @@ sha2 = "0.10.2"
 sha3 = "0.10.5"
 sqlx = { version = "0.6", features = ["postgres", "chrono", "time", "macros", "json", "runtime-tokio-rustls", "offline", "migrate"] }
 sqlxmq = { version = "0.4", default-features = false, features = ["runtime-tokio-rustls"] }
-thiserror = "1.0.39"
+thiserror = "1.0.40"
 tiberius-core = { path = "../tiberius-core" }
 tiberius-common-html = { path = "../tiberius-common-html" }
 tiberius-jobs = { path = "../tiberius-jobs" }
