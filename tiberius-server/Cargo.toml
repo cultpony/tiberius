@@ -19,7 +19,7 @@ clap = { version = "4.1", features = ["derive", "env"] }
 csp = "1.1.0"
 either = { version = "1.6.1", features = ["serde"] }
 human_bytes = "0.4.1"
-image = "0.24.4"
+image = "0.24.6"
 itertools = "0.10.4"
 kankyo = "0.3"
 lazy_static = "1.4"
