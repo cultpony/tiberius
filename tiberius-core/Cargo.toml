@@ -15,7 +15,6 @@ bcrypt = "0.14.0"
 csp = "1.1.0"
 either = { version = "1.6.1", features = ["serde"] }
 #envy = "0.4"
-image = "0.24"
 itertools = "0.10.4"
 lazy_static = "1.4"
 tracing = "0.1.29"
@@ -34,12 +33,12 @@ thiserror = "1.0.39"
 tiberius-models = { path = "../tiberius-models" }
 tiberius-dependencies = { path = "../tiberius-dependencies" }
 tiberius-search = { path = "../tiberius-search" }
-tokio = { version = "1.26", features = ["full"] }
+tokio = { version = "1.27", features = ["full"] }
 url = { version = "2.3", features = ["serde"] }
 erlang-term = "1.0.0"
 anyhow = "1.0"
-axum = "0.5"
-axum-extra = { version = "^0.3", features = ["typed-routing", "cookie-lib", "cookie-signed", "cookie-private"] }
+axum = "0.6"
+axum-extra = { version = "^0.7", features = ["typed-routing", "cookie-signed", "cookie-private"] }
 clap = { version = "4.1", features = ["derive", "env"] }
 
 #[dev-dependencies]

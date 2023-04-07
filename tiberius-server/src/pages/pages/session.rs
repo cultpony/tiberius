@@ -134,8 +134,8 @@ pub async fn post_new_session(
                 let id = session.id();
                 debug!("Creating new session, persisting {} to DB", id);
                 rstate.flash_mut().info("Login successfull!");
-                rstate.db_session_mut().set_longterm(true).await;
-                rstate.db_session_mut().set_store(true).await;
+                rstate.db_session_mut().set_longterm(true);
+                rstate.db_session_mut().set_store(true);
                 rstate.push_session_update().await;
                 Ok(Redirect::to(
                     PathActivityIndex {}.to_uri().to_string().as_str(),
@@ -181,7 +181,7 @@ pub async fn get_destroy_session(
     let session = rstate.session_mut();
     session.unset_user();
     rstate.push_session_update().await;
-    rstate.db_session_mut().destroy().await;
+    rstate.db_session_mut().destroy();
     rstate.flash_mut().info("You have been logged out");
     Ok(Redirect::to(
         PathActivityIndex {}.to_uri().to_string().as_str(),

@@ -14,7 +14,7 @@ use tiberius_core::{
     CSPHeader,
 };
 use tiberius_dependencies::{
-    axum_database_sessions::{AxumPgPool, AxumSessionConfig, AxumSessionStore},
+    axum_database_sessions::{SessionPgPool, SessionConfig, SessionStore},
     axum_sessions_auth, sentry,
     tower::ServiceBuilder,
 };
@@ -58,10 +58,10 @@ pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResu
 
     use tiberius_dependencies::{axum_csrf, axum_database_sessions, axum_flash};
 
-    let axum_session_config = AxumSessionConfig::default()
+    let axum_session_config = SessionConfig::default()
         .with_table_name("user_sessions")
         .with_cookie_name("tiberius_session");
-    let axum_session_store = AxumSessionStore::<axum_database_sessions::AxumPgPool>::new(
+    let axum_session_store = SessionStore::<axum_database_sessions::SessionPgPool>::new(
         Some(db_conn.clone().into()),
         axum_session_config,
     );
@@ -86,7 +86,7 @@ pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResu
                 static_host: config.cdn_host.clone(),
                 camo_host: config.camo_config().map(|(host, _)| host.clone()),
             }))
-            .layer(axum_database_sessions::AxumSessionLayer::new(
+            .layer(axum_database_sessions::SessionLayer::new(
                 axum_session_store,
             ))
             .layer(axum_flash::layer(flash_key).with_cookie_manager())
@@ -103,30 +103,6 @@ pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResu
     Ok(router)
 }
 
-/*
-crate::api::v3::images::change_image_uploader_user,
-crate::api::v3::images::change_image_uploader,
-crate::api::v3::images::get_image_data,
-crate::api::v3::misc::sessho::session_handover_user,
-crate::pages::blog::staff_page::add_user_to_category,
-crate::pages::blog::staff_page::edit_user_entry,
-crate::pages::blog::staff_page::new_category,
-crate::pages::blog::staff_page::show,
-crate::pages::channels::list_channels,
-crate::pages::channels::read,
-crate::pages::channels::set_nsfw,
-crate::pages::session::alt_url_destroy_session,
-crate::pages::session::alt_url_new_session_post,
-crate::pages::session::alt_url_new_session,
-crate::pages::session::destroy_session,
-crate::pages::session::new_session_post,
-crate::pages::session::new_session,
-crate::pages::session::registration,
-tiberius_core::assets::serve_asset,
-tiberius_core::assets::serve_favicon_ico,
-tiberius_core::assets::serve_favicon_svg,
-tiberius_core::assets::serve_robots,
-*/
 pub async fn server_start(
     start_job_scheduler: bool,
     start_jobs: bool,

@@ -2,10 +2,10 @@ use std::{io::Seek, str::FromStr};
 
 use async_std::path::PathBuf;
 use async_trait::async_trait;
-use axum::extract::RawQuery;
+use axum::extract::{RawQuery, FromRequestParts};
 use axum::{
     body::HttpBody,
-    extract::{ContentLengthLimit, FromRequest, Multipart, Query, RequestParts},
+    extract::{FromRequest, Multipart, Query},
     http::Uri,
     Extension, Router,
 };
@@ -696,13 +696,13 @@ pub struct ImageUpload {
 }
 
 #[async_trait]
-impl<B> FromRequest<B> for ImageUpload
+impl<S> FromRequestParts<S> for ImageUpload
 where
-    B: Send,
+    S: Send + Sync,
 {
     type Rejection = TiberiusError;
 
-    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let state = req.extensions().get::<TiberiusState>().unwrap().clone();
         let limit = state.config().upload_max_size;
         let multipart = todo!();

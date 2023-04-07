@@ -211,3 +211,9 @@ name = "blake2"
 
 [[bans.skip]]
 name = "ahash"
+
+[[bans.skip]]
+name = "spin"
+
+[[bans.skip]]
+name = "syn"

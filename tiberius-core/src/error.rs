@@ -62,7 +62,7 @@ pub enum TiberiusError {
     #[error("Couldn't strip path prefix: {0}")]
     StripPathPrefix(#[from] std::path::StripPrefixError),
     #[error("Could not process image: {0}")]
-    ImageError(#[from] image::ImageError),
+    ImageError(#[from] tiberius_dependencies::image::ImageError),
     #[error("Access has been denied")]
     AccessDenied,
     #[error("Configuration Variable Unset: {0}")]

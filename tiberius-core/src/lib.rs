@@ -163,7 +163,7 @@ pub fn sb_add_csp<B>(config: &Configuration) -> impl Layer<B> {
             static_host: config.static_host.clone(),
             camo_host: config.camo_host.clone(),
         }))
-        .layer(middleware::from_fn(csp_header::<B>))
+        .layer(middleware::from_fn::<_, Response>(csp_header::<B>))
 }
 
 pub fn get_user_agent<T: SessionMode>(

@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use axum::extract::{FromRequest, RequestParts};
+use axum::extract::{FromRequest};
 use reqwest::StatusCode;
 use tiberius_dependencies::reqwest;
 use tiberius_dependencies::{casbin, casbin::prelude::*};

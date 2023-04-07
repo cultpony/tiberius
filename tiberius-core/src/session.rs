@@ -17,7 +17,7 @@ use tiberius_dependencies::{
     async_once_cell::OnceCell,
     axum,
     axum::{
-        extract::{FromRequest, RequestParts},
+        extract::FromRequest,
         headers::{
             authorization::{Basic, Bearer},
             Authorization, HeaderMapExt,
@@ -25,7 +25,7 @@ use tiberius_dependencies::{
         http::StatusCode,
         middleware::Next,
     },
-    axum_database_sessions::{AxumDatabasePool, AxumPgPool, AxumSession},
+    axum_database_sessions::{DatabasePool, SessionPgPool, Session as AxumSession},
     axum_extra::extract::{cookie::Cookie, CookieJar},
     http::Request,
 };
@@ -366,7 +366,7 @@ impl SessionID {
 }
 
 // Returns authorization from HTTP Header
-fn authorization<B: Send>(req: &RequestParts<B>) -> Option<String> {
+fn authorization<B: Send>(req: &Request<B>) -> Option<String> {
     static HEADER: &str = "Authorization";
     let headers = req.headers();
     if headers.get(Authorization::<Bearer>::name()).is_some() {
@@ -383,7 +383,7 @@ fn authorization<B: Send>(req: &RequestParts<B>) -> Option<String> {
 fn session_from_api_key<B: Send>(
     session: &mut Session<Unauthenticated>,
     key: &str,
-    req: &RequestParts<B>,
+    req: &Request<B>,
 ) -> TiberiusResult<Session<Authenticated>> {
     todo!()
 }
@@ -397,11 +397,11 @@ pub trait DbSessionExt {
 const SESSION_KEY: &str = "tiberius_session";
 
 #[async_trait]
-impl DbSessionExt for AxumSession<AxumPgPool> {
+impl DbSessionExt for AxumSession<SessionPgPool> {
     async fn get_session<T: SessionMode>(&self) -> Option<Session<T>> {
-        self.get(SESSION_KEY).await
+        self.get(SESSION_KEY)
     }
     async fn set_session<T: SessionMode>(&self, session: Session<T>) {
-        self.set(SESSION_KEY, session).await
+        self.set(SESSION_KEY, session)
     }
 }
