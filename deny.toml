@@ -105,6 +105,12 @@ name = "aho-corasick" # textile issue
 name = "base64"
 
 [[bans.skip]]
+name = "tower-http"
+
+[[bans.skip]]
+name = "axum-extra"
+
+[[bans.skip]]
 name = "cfg-if"
 
 [[bans.skip]]
