@@ -10,3 +10,4 @@
 /Rocket.toml
 */target
 /tmp/**
+/.direnv

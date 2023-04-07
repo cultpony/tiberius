@@ -43,14 +43,7 @@ fn main() {
             .arg("install")
             .current_dir(builddir.clone())
             .output();
-        let out = match out {
-            Ok(v) => v,
-            Err(_) => {
-                println!("cargo:warning=Could not build");
-                return;
-            },
-        };
-            //.expect("failed to run build command");
+        let out = out.expect("failed to run yarn build command");
         if !out.status.success() {
             panic!(
                 " --- Asset Build Failed: --- \nStdout:\n{}\n---\nStderr:\n{}",
