@@ -112,7 +112,7 @@ pub async fn post_new_session(
     Extension(state): Extension<TiberiusState>,
     mut rstate: TiberiusRequestState<Unauthenticated>,
     Form(login_data): Form<NewSession>,
-) -> TiberiusResult<Redirect> {
+) -> TiberiusResult<(Flash, Redirect)> {
     trace!("requesting new session, verifying user");
     let mut client = state.get_db_client();
 
@@ -133,29 +133,34 @@ pub async fn post_new_session(
                 session.set_user(&user);
                 let id = session.id();
                 debug!("Creating new session, persisting {} to DB", id);
-                rstate.flash_mut().info("Login successfull!");
                 rstate.db_session_mut().set_longterm(true);
                 rstate.db_session_mut().set_store(true);
                 rstate.push_session_update().await;
-                Ok(Redirect::to(
+                Ok((rstate.flash_mut().clone().info("Login successfull!"), Redirect::to(
                     PathActivityIndex {}.to_uri().to_string().as_str(),
-                ))
+                )))
             }
             UserLoginResult::Invalid => {
                 debug!("password disagree");
-                rstate.flash_mut().error("User or password incorrect");
-                Ok(Redirect::to(retry.to_string().as_str()))
+                Ok((
+                    rstate.flash_mut().clone().error("User or password incorrect"),
+                    Redirect::to(retry.to_string().as_str())
+                ))
             }
             UserLoginResult::RetryWithTOTP => {
                 debug!("password agree, TOTP missing");
-                rstate.flash_mut().error("User or password incorrect");
-                Ok(Redirect::to(retry.to_string().as_str()))
+                Ok((
+                    rstate.flash_mut().clone().error("User or password incorrect"),
+                    Redirect::to(retry.to_string().as_str())
+                ))
             }
         }
     } else {
         trace!("user not found");
-        rstate.flash_mut().error("User or password incorrect");
-        Ok(Redirect::to(retry.to_string().as_str()))
+        Ok((
+            rstate.flash_mut().clone().error("User or password incorrect"),
+            Redirect::to(retry.to_string().as_str()),
+        ))
     }
 }
 
@@ -177,13 +182,12 @@ pub async fn get_destroy_session(
     _: PathSessionLogout,
     Extension(state): Extension<TiberiusState>,
     mut rstate: TiberiusRequestState<Authenticated>,
-) -> TiberiusResult<Redirect> {
+) -> TiberiusResult<(Flash, Redirect)> {
     let session = rstate.session_mut();
     session.unset_user();
     rstate.push_session_update().await;
     rstate.db_session_mut().destroy();
-    rstate.flash_mut().info("You have been logged out");
-    Ok(Redirect::to(
+    Ok((rstate.flash_mut().clone().info("You have been logged out"), Redirect::to(
         PathActivityIndex {}.to_uri().to_string().as_str(),
-    ))
+    )))
 }

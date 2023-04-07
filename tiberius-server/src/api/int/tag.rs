@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use axum::{
     extract::{FromRequest, Query, FromRequestParts},
-    Extension, Json,
+    Extension, Json, http::request::Parts,
 };
 use axum_extra::routing::TypedPath;
 use serde::Deserialize;
@@ -45,7 +45,7 @@ where
     type Rejection = TiberiusError;
 
     async fn from_request_parts(req: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let query = req.uri().query();
+        let query = req.uri.query();
         let query = match query {
             Some(q) => q,
             None => {

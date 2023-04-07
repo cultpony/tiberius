@@ -1,4 +1,5 @@
 use axum::http::Uri;
+use tiberius_dependencies::{axum_csrf, axum_flash};
 use tiberius_dependencies::casbin::{CoreApi, MgmtApi, RbacApi};
 use clap::ArgMatches;
 use tiberius_core::app::DBPool;
@@ -12,7 +13,10 @@ use crate::cli::GrantAclAction;
 pub async fn grant_acl(args: &crate::cli::GrantAclCli, config: Configuration) -> TiberiusResult<()> {
     info!("Initializing Database connection");
     let db_conn: DBPool = config.db_conn().await?;
-    let state = TiberiusState::new(config.clone(), tiberius_core::state::UrlDirections { login_page: Uri::default() }).await?;
+    let csrf_config = axum_csrf::CsrfConfig::default();
+    let flash_key = axum_flash::Key::generate();
+    let flash_config = axum_flash::Config::new(flash_key);
+    let state = TiberiusState::new(config.clone(), tiberius_core::state::UrlDirections { login_page: Uri::default() }, csrf_config, flash_config).await?;
     let mut casbin = state.get_acl_enforcer().await?;
     let client = tiberius_models::Client::new(db_conn, config.search_dir.as_ref());
     let grant = args.act == GrantAclAction::Grant;

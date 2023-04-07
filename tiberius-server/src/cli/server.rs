@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use axum::{handler::Handler, http::Request, Extension, Router};
+use axum::{handler::{Handler, HandlerWithoutStateExt}, http::Request, Extension, Router};
 use axum_extra::routing::TypedPath;
 use sentry::{Breadcrumb, TransactionContext};
 use serde_json::{json, Value};
@@ -79,6 +79,8 @@ pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResu
                     UrlDirections {
                         login_page: PathSessionsLogin {}.to_uri(),
                     },
+                    csrf_config,
+                    axum_flash::Config::new(flash_key).use_secure_cookies(true /* TODO: determine HTTPS protocol here */),
                 )
                 .await?,
             ))
@@ -89,16 +91,12 @@ pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResu
             .layer(axum_database_sessions::SessionLayer::new(
                 axum_session_store,
             ))
-            .layer(axum_flash::layer(flash_key).with_cookie_manager())
-            .layer(
-                axum_csrf::CsrfLayer::new(csrf_config),
-            )
             .layer(CookieManagerLayer::new())
             .layer(tiberius_dependencies::sentry_tower::NewSentryLayer::new_from_top())
             .layer(tiberius_dependencies::sentry_tower::SentryHttpLayer::with_transaction()),
     );
 
-    let router = router.fallback(not_found_page.into_service());
+    let router = router.fallback(not_found_page);
 
     Ok(router)
 }
@@ -183,6 +181,6 @@ mod test {
     pub fn test_verify_routes_build() {
         let router = axum::Router::new();
 
-        super::setup_all_routes(router);        
+        let _ = std::hint::black_box(super::setup_all_routes(router));
     }
 }

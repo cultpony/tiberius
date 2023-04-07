@@ -141,6 +141,12 @@ where
     }
 }
 
+impl<T> TiberiusResponse<T> where T: IntoResponse {
+    pub fn with_flash(self, flash: Flash) -> TiberiusResponse<(Flash, TiberiusResponse<T>)> {
+        TiberiusResponse::Other((flash, self))
+    }
+}
+
 pub struct HtmlResponse {
     pub content: String,
 }

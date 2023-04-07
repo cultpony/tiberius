@@ -47,26 +47,26 @@ pub async fn set_nsfw(
     _: PathSetChannelNsfw,
     rstate: TiberiusRequestState<Unauthenticated>,
     fd: Form<ApiFormDataEmpty>,
-) -> TiberiusResult<(CookieJar, Redirect)> {
+) -> TiberiusResult<(Flash, CookieJar, Redirect)> {
     let mut rstate = rstate;
     let fd = fd.into_afd();
     match fd.method() {
         Some(FormMethod::Create) => {
-            rstate.flash_mut().error("NSFW Channels are now visible");
-            let cookie_jar = rstate.cookie_jar.add(Cookie::new("chan_nsfw", "true"));
-            Ok((cookie_jar, Redirect::to(PathChannelsList {}.to_uri().to_string().as_str())))
+            let cookie_jar = rstate.cookie_jar.clone().add(Cookie::new("chan_nsfw", "true"));
+            Ok((rstate.flash_mut().clone().error("NSFW Channels are now visible"), cookie_jar, Redirect::to(PathChannelsList {}.to_uri().to_string().as_str())))
         }
         Some(FormMethod::Delete) => {
-            rstate
-                .flash_mut()
-                .error("NSFW Channels are now no longer visible");
-            let cookie_jar = rstate.cookie_jar.add(Cookie::new("chan_nsfw", "false"));
+            let cookie_jar = rstate.cookie_jar.clone().add(Cookie::new("chan_nsfw", "false"));
             Ok((
+                rstate
+                    .flash_mut().clone()
+                    .error("NSFW Channels are now no longer visible"),
                 cookie_jar,
                 Redirect::to(PathChannelsList {}.to_uri().to_string().as_str())
             ))
         }
         _ => Ok((
+            rstate.flash_mut().clone(),
             rstate.cookie_jar,
             Redirect::to(PathChannelsList {}.to_uri().to_string().as_str())
         )),

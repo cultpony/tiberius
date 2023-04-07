@@ -246,7 +246,7 @@ pub async fn new_category(
     Extension(state): Extension<TiberiusState>,
     mut rstate: TiberiusRequestState<Authenticated>,
     new_category_request: Form<NewCategoryRequest>,
-) -> TiberiusResult<Redirect> {
+) -> TiberiusResult<(Flash, Redirect)> {
     let mut client: Client = state.get_db_client();
     let acl_can_admin_categories = verify_acl(
         &state,
@@ -275,13 +275,12 @@ pub async fn new_category(
         .invalidate(&PageSubtextCacheTag::staff_page_content(&current_user))
         .await;
 
-    rstate.flash_mut().error(format!(
+    Ok((rstate.flash_mut().clone().error(format!(
         "Created new category {} ({})",
         cat.display_name, cat.id
-    ));
-    Ok(Redirect::to(
+    )), Redirect::to(
         PathShowStaffPage {}.to_uri().to_string().as_str(),
-    ))
+    )))
 }
 
 #[derive(Deserialize, Debug)]
@@ -301,7 +300,7 @@ pub async fn add_user_to_category(
     Extension(state): Extension<TiberiusState>,
     mut rstate: TiberiusRequestState<Authenticated>,
     new_user_request: Form<AddUserCategoryRequest>,
-) -> TiberiusResult<Redirect> {
+) -> TiberiusResult<(Flash, Redirect)> {
     let mut client: Client = state.get_db_client();
     let acl_can_admin_categories = verify_acl(
         &state,
@@ -337,14 +336,12 @@ pub async fn add_user_to_category(
         .invalidate(&PageSubtextCacheTag::staff_page_content(&current_user))
         .await;
 
-    rstate.flash_mut().error(format!(
+    Ok((rstate.flash_mut().clone().error(format!(
         "Add user {:?} ({}) to category {}",
         cat_user.display_name, cat_user.id, cat_user.staff_category_id
-    ));
-
-    Ok(Redirect::to(
+    )), Redirect::to(
         PathShowStaffPage {}.to_uri().to_string().as_str(),
-    ))
+    )))
 }
 
 #[derive(Debug)]
@@ -365,7 +362,7 @@ pub async fn edit_user_entry(
     mut rstate: TiberiusRequestState<Authenticated>,
     PathEditUserEntry { entry_id }: PathEditUserEntry,
     edit_user_request: Form<EditUserCategoryRequest>,
-) -> TiberiusResult<Redirect> {
+) -> TiberiusResult<(Flash, Redirect)> {
     let mut client: Client = state.get_db_client();
     let acl_can_admin_categories = verify_acl(
         &state,
@@ -420,10 +417,9 @@ pub async fn edit_user_entry(
         .invalidate(&PageSubtextCacheTag::staff_page_content(&current_user))
         .await;
 
-    rstate.flash_mut().error("Entry saved");
-    Ok(Redirect::to(
+    Ok((rstate.flash_mut().clone().error("Entry saved"), Redirect::to(
         PathShowStaffPage {}.to_uri().to_string().as_str(),
-    ))
+    )))
 }
 
 // TODO: allow user to hide from staff list

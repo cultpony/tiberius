@@ -3,6 +3,7 @@ use std::{io::Seek, str::FromStr};
 use async_std::path::PathBuf;
 use async_trait::async_trait;
 use axum::extract::{RawQuery, FromRequestParts};
+use axum::http::request::Parts;
 use axum::{
     body::HttpBody,
     extract::{FromRequest, Multipart, Query},
@@ -169,7 +170,7 @@ pub async fn specific_show_image(
     query_search: Query<QuerySearchQuery>,
     Extension(state): Extension<TiberiusState>,
     rstate: TiberiusRequestState<Unauthenticated>,
-) -> TiberiusResult<TiberiusResponse<()>> {
+) -> TiberiusResult<TiberiusResponse<(Flash, TiberiusResponse<()>)>> {
     show_image(
         PathShowImage { image },
         query_search,
@@ -199,7 +200,7 @@ pub async fn show_image(
     Query(query_search): Query<QuerySearchQuery>,
     Extension(state): Extension<TiberiusState>,
     mut rstate: TiberiusRequestState<Unauthenticated>,
-) -> TiberiusResult<TiberiusResponse<()>> {
+) -> TiberiusResult<TiberiusResponse<(Flash, TiberiusResponse<()>)>> {
     set_scope_tx!("GET /:image");
     set_scope_user!(rstate.session().raw_user().map(|x| sentry::User {
         id: Some(x.to_string()),
@@ -210,10 +211,9 @@ pub async fn show_image(
     let mut image = match image {
         Some(image) => image,
         None => {
-            rstate.flash_mut().warning("Image not found");
             return Ok(TiberiusResponse::Redirect(Redirect::to(
                 PathActivityIndex {}.to_uri().to_string().as_str(),
-            )));
+            )).with_flash(rstate.flash_mut().clone().warning("Image not found")));
         }
     };
     let allow_merge_duplicate: bool = verify_acl(
@@ -533,7 +533,7 @@ pub async fn show_image(
     .await?;
     Ok(TiberiusResponse::Html(HtmlResponse {
         content: app.into_string(),
-    }))
+    }).with_flash(rstate.flash_mut().clone()))
 }
 
 #[derive(TypedPath, Deserialize, Debug)]
@@ -702,8 +702,8 @@ where
 {
     type Rejection = TiberiusError;
 
-    async fn from_request(req: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let state = req.extensions().get::<TiberiusState>().unwrap().clone();
+    async fn from_request_parts(req: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let state = req.extensions.get::<TiberiusState>().unwrap().clone();
         let limit = state.config().upload_max_size;
         let multipart = todo!();
         Ok(spool_multipart(multipart, limit).await?)

@@ -57,6 +57,8 @@ pub struct TiberiusState {
     pub page_subtext_cache: moka::future::Cache<PageSubtextCacheTag, PreEscaped<String>>,
     pub csd_cache: moka::future::Cache<u64, Markup>,
     pub comment_cache: moka::future::Cache<u64, Markup>,
+    pub csrf: axum_csrf::CsrfConfig,
+    pub flash: axum_flash::Config,
 }
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -420,7 +422,7 @@ where
 
 impl TiberiusState {
     #[instrument(skip(config))]
-    pub async fn new(config: Configuration, url_dirs: UrlDirections) -> TiberiusResult<Self> {
+    pub async fn new(config: Configuration, url_dirs: UrlDirections, csrf: axum_csrf::CsrfConfig, flash: axum_flash::Config) -> TiberiusResult<Self> {
         tracing::debug!("Grabbing Database Pool for HTTP Stateful Requests");
         let db_pool = config
             .db_conn()
@@ -450,6 +452,8 @@ impl TiberiusState {
                 .time_to_live(COMMENT_CACHE_TTL)
                 .time_to_idle(COMMENT_CACHE_TTI)
                 .build(),
+            csrf,
+            flash,
         })
     }
     pub fn config(&self) -> &Configuration {
