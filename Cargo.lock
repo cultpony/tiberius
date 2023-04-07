@@ -2548,6 +2548,12 @@ name = "ipnetwork"
 version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f84f1612606f3753f205a4e9a2efd6fe5b4c573a6269b2cc6c3003d44a0d127"
+
+[[package]]
+name = "ipnetwork"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf466541e9d546596ee94f9f69590f89473455f88372423e0008fc1a7daf100e"
 dependencies = [
  "serde",
 ]
@@ -4706,7 +4712,7 @@ dependencies = [
  "hkdf",
  "hmac 0.12.1",
  "indexmap",
- "ipnetwork",
+ "ipnetwork 0.19.0",
  "itoa 1.0.6",
  "libc",
  "log",
@@ -5340,7 +5346,7 @@ dependencies = [
  "bcrypt",
  "either",
  "futures",
- "ipnetwork",
+ "ipnetwork 0.20.0",
  "itertools",
  "maud",
  "ring",
