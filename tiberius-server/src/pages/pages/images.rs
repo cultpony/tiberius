@@ -2,7 +2,7 @@ use std::{io::Seek, str::FromStr};
 
 use async_std::path::PathBuf;
 use async_trait::async_trait;
-use axum::extract::{RawQuery, FromRequestParts};
+use axum::extract::{RawQuery, FromRequestParts, State};
 use axum::http::request::Parts;
 use axum::{
     body::HttpBody,
@@ -56,7 +56,7 @@ use crate::{
 };
 use axum::{response::Redirect, Form};
 
-pub fn image_pages(r: Router) -> Router {
+pub fn image_pages(r: Router<TiberiusState>) -> Router<TiberiusState> {
     let r = r.typed_get(show_navigate_image);
     let r = r.typed_get(get_image_comment);
     let r = r.typed_get(specific_show_image);
@@ -127,7 +127,7 @@ pub async fn embed_image(_: PathEmbedImage) -> TiberiusResult<()> {
 #[instrument(skip(state, rstate))]
 pub async fn show_random_image(
     _: PathRandomImage,
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
     rstate: TiberiusRequestState<Unauthenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     set_scope_tx!("GET /images/random");
@@ -142,7 +142,7 @@ pub async fn show_navigate_image(
     PathNavigateImage{ image: id }: PathNavigateImage,
     raw_query: RawQuery,
     //Query(navigate): Query<NavigateRelation>,
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
     rstate: TiberiusRequestState<Unauthenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     set_scope_tx!("GET /images/:image/navigate");
@@ -167,14 +167,16 @@ pub struct PathShowImageSpecific {
 #[instrument(skip(state, rstate))]
 pub async fn specific_show_image(
     PathShowImageSpecific { image }: PathShowImageSpecific,
+    flash: Flash,
     query_search: Query<QuerySearchQuery>,
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
     rstate: TiberiusRequestState<Unauthenticated>,
 ) -> TiberiusResult<TiberiusResponse<(Flash, TiberiusResponse<()>)>> {
     show_image(
         PathShowImage { image },
+        flash,
         query_search,
-        Extension(state),
+        State(state),
         rstate,
     )
     .await
@@ -197,9 +199,10 @@ impl PathQuery for QuerySearchQuery {}
 #[instrument(skip(state, rstate))]
 pub async fn show_image(
     PathShowImage { image }: PathShowImage,
+    flash: Flash,
     Query(query_search): Query<QuerySearchQuery>,
-    Extension(state): Extension<TiberiusState>,
-    mut rstate: TiberiusRequestState<Unauthenticated>,
+    State(state): State<TiberiusState>,
+    rstate: TiberiusRequestState<Unauthenticated>,
 ) -> TiberiusResult<TiberiusResponse<(Flash, TiberiusResponse<()>)>> {
     set_scope_tx!("GET /:image");
     set_scope_user!(rstate.session().raw_user().map(|x| sentry::User {
@@ -213,7 +216,7 @@ pub async fn show_image(
         None => {
             return Ok(TiberiusResponse::Redirect(Redirect::to(
                 PathActivityIndex {}.to_uri().to_string().as_str(),
-            )).with_flash(rstate.flash_mut().clone().warning("Image not found")));
+            )).with_flash(flash.warning("Image not found")));
         }
     };
     let allow_merge_duplicate: bool = verify_acl(
@@ -533,7 +536,7 @@ pub async fn show_image(
     .await?;
     Ok(TiberiusResponse::Html(HtmlResponse {
         content: app.into_string(),
-    }).with_flash(rstate.flash_mut().clone()))
+    }).with_flash(flash))
 }
 
 #[derive(TypedPath, Deserialize, Debug)]
@@ -542,7 +545,7 @@ pub struct PathUploadImagePage {}
 
 #[instrument(skip(state, rstate))]
 pub async fn upload_image(
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
     rstate: TiberiusRequestState<Authenticated>,
     _: PathUploadImagePage,
 ) -> TiberiusResult<TiberiusResponse<()>> {
@@ -717,7 +720,7 @@ pub struct PathImageUpload {}
 #[cfg(feature = "process-images")]
 #[instrument(skip(state, rstate))]
 pub async fn new_image(
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
     mut rstate: TiberiusRequestState<Authenticated>,
     _: PathImageUpload,
     image_metadata: ImageUpload,
@@ -1105,7 +1108,7 @@ pub async fn get_image_comment(
         image,
         comment: comment_id,
     }: PathImageComment,
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let comment = Comment::get_by_id(&mut state.get_db_client(), comment_id).await?;
     if let Some(comment) = comment {
@@ -1140,7 +1143,7 @@ pub async fn repair_image_thumbnail(
     PathImageRepairThumbnails {
         image,
     }: PathImageRepairThumbnails,
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
     rstate: TiberiusRequestState<Unauthenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     set_scope_tx!("POST /images/:image/repair/thumbnails");

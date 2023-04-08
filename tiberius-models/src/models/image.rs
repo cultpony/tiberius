@@ -79,7 +79,7 @@ impl DirectSafeSerialize for APIImage {}
 impl SafeSerialize for Image {
     type Target = APIImage;
 
-    fn into_safe(&self) -> Self::Target {
+    fn into_safe(self) -> Self::Target {
         APIImage {
             id: self.id as u64,
             hash: Hashable {

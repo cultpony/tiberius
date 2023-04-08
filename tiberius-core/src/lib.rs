@@ -12,6 +12,7 @@ use async_trait::async_trait;
 use axum::http::Uri;
 use axum_extra::routing::TypedPath;
 use reqwest::{header::HeaderMap, Proxy};
+use state::TiberiusState;
 use tiberius_dependencies::{
     axum::{
         self,
@@ -103,6 +104,12 @@ pub struct CSPHeader {
     pub camo_host: Option<String>,
 }
 
+impl Default for CSPHeader {
+    fn default() -> Self {
+        Self { static_host: None, camo_host: None }
+    }
+}
+
 impl CSPHeader {
     fn header_name(&self) -> &'static str {
         "Content-Security-Policy"
@@ -149,8 +156,8 @@ impl CSPHeader {
     }
 }
 
-async fn csp_header<B>(req: Request<B>, next: Next<B>) -> Response {
-    let csp_header: CSPHeader = req.extensions().get::<CSPHeader>().unwrap().clone();
+async fn csp_header<B>(req: Request<B>, state: &TiberiusState, next: Next<B>) -> Response {
+    let csp_header = state.csp();
     let mut resp = next.run(req).await;
     resp.headers_mut()
         .insert(csp_header.header_name(), csp_header.header_value());

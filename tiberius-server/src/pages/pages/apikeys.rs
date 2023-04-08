@@ -1,5 +1,5 @@
 use crate::pages::common::frontmatter::{csrf_input_tag, form_method, form_submit_button};
-use axum::{http::HeaderMap, Extension, Router};
+use axum::{http::HeaderMap, Extension, Router, extract::State};
 use axum_extra::routing::{RouterExt, TypedPath};
 use maud::html;
 use serde::Deserialize;
@@ -14,7 +14,7 @@ use tiberius_core::{
 use tiberius_models::{ApiKey, Image, User};
 use uuid::Uuid;
 
-pub fn api_key_pages(r: Router) -> Router {
+pub fn api_key_pages(r: Router<TiberiusState>) -> Router<TiberiusState> {
     r.typed_get(manage_keys_page)
         .typed_post(create_api_key)
         .typed_delete(delete_api_key)
@@ -27,7 +27,7 @@ pub struct PathManageAPIKeys {}
 #[instrument(skip(state, rstate))]
 pub async fn manage_keys_page(
     _: PathManageAPIKeys,
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
     rstate: TiberiusRequestState<Authenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let view_all_api_keys: bool =
@@ -103,7 +103,7 @@ pub struct PathApiCreateAPIKey {}
 #[instrument(skip(state, rstate))]
 pub async fn create_api_key(
     _: PathApiCreateAPIKey,
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
     rstate: TiberiusRequestState<Authenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let edit_api_key: bool = verify_acl(
@@ -143,7 +143,7 @@ pub struct PathDeleteApiKey {
 #[instrument(skip(state, rstate))]
 pub async fn delete_api_key(
     PathDeleteApiKey { uuid }: PathDeleteApiKey,
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
     rstate: TiberiusRequestState<Authenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let edit_api_key: bool = verify_acl(

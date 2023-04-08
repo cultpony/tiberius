@@ -361,7 +361,7 @@ pub struct BadgeAwards {
 pub trait SafeSerialize {
     type Target: serde::Serialize;
 
-    fn into_safe(&self) -> Self::Target;
+    fn into_safe(self) -> Self::Target;
 }
 
 pub trait DirectSafeSerialize: serde::Serialize {}

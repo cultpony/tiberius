@@ -64,14 +64,14 @@ pub fn viewport_meta_tags<T: SessionMode>(rstate: &TiberiusRequestState<T>) -> M
 }
 
 pub async fn csrf_meta_tag<T: SessionMode>(rstate: &TiberiusRequestState<T>) -> Markup {
-    let csrf = rstate.csrf_token.authenticity_token();
+    let csrf = rstate.csrf_token().authenticity_token();
     html! {
         meta content=(csrf) csrf-param="_csrf_token" method-param="_method" name="csrf-token";
     }
 }
 
 pub async fn csrf_input_tag<T: SessionMode>(rstate: &TiberiusRequestState<T>) -> Markup {
-    let csrf = rstate.csrf_token.authenticity_token();
+    let csrf = rstate.csrf_token().authenticity_token();
     html! {
         input type="hidden" name="_csrf_token" value=(csrf);
     }
@@ -884,7 +884,6 @@ pub async fn app<T: SessionMode>(
         meta http-equiv="X-UA-Compatible" content="IE=edge";
         (viewport_meta_tags(rstate));
     };
-    let flash = rstate.flash();
     let title = html! {
         title { (
             match page_title {

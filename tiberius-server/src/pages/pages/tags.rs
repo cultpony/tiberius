@@ -1,5 +1,5 @@
 use axum::{
-    extract::Query,
+    extract::{Query, State},
     http::{HeaderMap, HeaderValue},
     Extension, Router,
 };
@@ -15,7 +15,7 @@ use crate::set_scope_tx;
 
 use crate::pages::todo_page;
 
-pub fn tags_pages(r: Router) -> Router {
+pub fn tags_pages(r: Router<TiberiusState>) -> Router<TiberiusState> {
     r.typed_get(list_tags)
         .typed_get(show_tag)
         .typed_get(show_tag_by_name)
@@ -169,7 +169,7 @@ pub struct TagsAutocompleteQuery {
 #[instrument(skip(state))]
 pub async fn autocomplete(
     _: TagsAutocompletePath,
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
     Query(TagsAutocompleteQuery { term }): Query<TagsAutocompleteQuery>,
 ) -> TiberiusResult<JsonResponse> {
     let mut client = state.get_db_client();

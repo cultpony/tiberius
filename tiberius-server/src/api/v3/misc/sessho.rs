@@ -1,4 +1,4 @@
-use axum::Extension;
+use axum::{Extension, extract::State};
 use axum_extra::routing::TypedPath;
 use maud::html;
 use serde::Deserialize;
@@ -17,7 +17,7 @@ pub struct PathApiV3MiscSessionHandover {}
 
 #[instrument(skip(state, rstate))]
 pub async fn session_handover_user(
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
     rstate: TiberiusRequestState<Unauthenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let mut client = state.get_db_client();

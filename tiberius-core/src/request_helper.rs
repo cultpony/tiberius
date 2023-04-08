@@ -11,7 +11,7 @@ use tiberius_dependencies::{
         headers::HeaderMapExt,
         response::{IntoResponse, Redirect},
     },
-    axum_csrf::CsrfToken,
+    axum_csrf::{CsrfToken, self},
     axum_flash::Flash,
 };
 use tiberius_models::{ApiKey, Client, DirectSafeSerialize, Image, SafeSerialize};
@@ -90,7 +90,7 @@ impl<T: std::fmt::Debug> ApiFormData<T> {
         if method != self.method {
             false
         } else {
-            rstate.csrf_token.verify(&self.csrf_token).is_ok()
+            rstate.csrf_token().verify(&self.csrf_token).is_ok()
         }
     }
     pub fn method(&self) -> Option<FormMethod> {
@@ -201,7 +201,7 @@ impl IntoResponse for JsonResponse {
 }
 
 impl JsonResponse {
-    pub fn safe_serialize<T: SafeSerialize>(v: &T, headers: HeaderMap) -> TiberiusResult<Self> {
+    pub fn safe_serialize<T: SafeSerialize>(v: T, headers: HeaderMap) -> TiberiusResult<Self> {
         Ok(JsonResponse {
             content: serde_json::to_value(v.into_safe())?,
             headers,
@@ -223,7 +223,7 @@ pub struct SafeJsonResponse {
 }
 
 impl SafeJsonResponse {
-    pub fn safe_serialize<T: SafeSerialize>(v: &T) -> TiberiusResult<Self> {
+    pub fn safe_serialize<T: SafeSerialize>(v: T) -> TiberiusResult<Self> {
         Ok(SafeJsonResponse {
             content: serde_json::to_value(v.into_safe())?,
         })

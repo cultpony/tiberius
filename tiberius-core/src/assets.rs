@@ -2,6 +2,7 @@ use std::{borrow::Cow, collections::BTreeMap, path::PathBuf, str::FromStr};
 
 use anyhow::Context;
 use async_std::sync::RwLock;
+use axum::extract::State;
 use axum::{Router, Extension};
 use tiberius_dependencies::axum::headers::{ContentType, HeaderMapExt};
 use tokio::io::AsyncReadExt;
@@ -18,7 +19,7 @@ use tiberius_dependencies::{axum_extra, mime, rust_embed};
 
 use axum_extra::routing::{RouterExt, TypedPath};
 
-pub fn embedded_file_pages(r: Router) -> Router {
+pub fn embedded_file_pages(r: Router<TiberiusState>) -> Router<TiberiusState> {
     r.typed_get(serve_favicon_ico)
         .typed_get(serve_favicon_svg)
         .typed_get(serve_robots)
@@ -34,7 +35,7 @@ pub struct Assets;
 #[typed_path("/favicon.ico")]
 pub struct GetFaviconIco {}
 
-pub async fn serve_favicon_ico(_: GetFaviconIco, Extension(state): Extension<TiberiusState>) -> TiberiusResult<FileResponse> {
+pub async fn serve_favicon_ico(_: GetFaviconIco, State(state): State<TiberiusState>) -> TiberiusResult<FileResponse> {
     if state.config().try_use_ondisk_favicon {
         let base = PathBuf::from_str(&state.config().static_root)?;
         let favicon = base.join("favicon.ico");
@@ -48,7 +49,7 @@ pub async fn serve_favicon_ico(_: GetFaviconIco, Extension(state): Extension<Tib
 #[derive(TypedPath, serde::Deserialize)]
 #[typed_path("/favicon.svg")]
 pub struct GetFaviconSvg {}
-pub async fn serve_favicon_svg(_: GetFaviconSvg, Extension(state): Extension<TiberiusState>) -> TiberiusResult<FileResponse> {
+pub async fn serve_favicon_svg(_: GetFaviconSvg, State(state): State<TiberiusState>) -> TiberiusResult<FileResponse> {
     if state.config().try_use_ondisk_favicon {
         let base = PathBuf::from_str(&state.config().static_root)?;
         let favicon = base.join("favicon.svg");

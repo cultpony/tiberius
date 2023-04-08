@@ -1,4 +1,4 @@
-use axum::{response::Redirect, Extension, Form};
+use axum::{response::Redirect, Extension, Form, extract::State};
 use axum_extra::routing::TypedPath;
 use maud::{html, Markup, PreEscaped};
 use serde::Deserialize;
@@ -22,7 +22,7 @@ pub struct PathShowStaffPage {}
 
 #[instrument(skip(state, rstate))]
 pub async fn show(
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
     rstate: TiberiusRequestState<Unauthenticated>,
     _: PathShowStaffPage,
 ) -> TiberiusResult<TiberiusResponse<()>> {
@@ -243,8 +243,9 @@ pub struct PathNewCategory {}
 #[tracing::instrument]
 pub async fn new_category(
     _: PathNewCategory,
-    Extension(state): Extension<TiberiusState>,
-    mut rstate: TiberiusRequestState<Authenticated>,
+    State(state): State<TiberiusState>,
+    flash: Flash,
+    rstate: TiberiusRequestState<Authenticated>,
     new_category_request: Form<NewCategoryRequest>,
 ) -> TiberiusResult<(Flash, Redirect)> {
     let mut client: Client = state.get_db_client();
@@ -275,7 +276,7 @@ pub async fn new_category(
         .invalidate(&PageSubtextCacheTag::staff_page_content(&current_user))
         .await;
 
-    Ok((rstate.flash_mut().clone().error(format!(
+    Ok((flash.error(format!(
         "Created new category {} ({})",
         cat.display_name, cat.id
     )), Redirect::to(
@@ -297,8 +298,9 @@ pub struct PathAddUserToCategory {
 #[tracing::instrument]
 pub async fn add_user_to_category(
     PathAddUserToCategory { category }: PathAddUserToCategory,
-    Extension(state): Extension<TiberiusState>,
-    mut rstate: TiberiusRequestState<Authenticated>,
+    State(state): State<TiberiusState>,
+    flash: Flash,
+    rstate: TiberiusRequestState<Authenticated>,
     new_user_request: Form<AddUserCategoryRequest>,
 ) -> TiberiusResult<(Flash, Redirect)> {
     let mut client: Client = state.get_db_client();
@@ -336,7 +338,7 @@ pub async fn add_user_to_category(
         .invalidate(&PageSubtextCacheTag::staff_page_content(&current_user))
         .await;
 
-    Ok((rstate.flash_mut().clone().error(format!(
+    Ok((flash.error(format!(
         "Add user {:?} ({}) to category {}",
         cat_user.display_name, cat_user.id, cat_user.staff_category_id
     )), Redirect::to(
@@ -358,8 +360,9 @@ pub struct PathEditUserEntry {
 
 #[tracing::instrument]
 pub async fn edit_user_entry(
-    Extension(state): Extension<TiberiusState>,
-    mut rstate: TiberiusRequestState<Authenticated>,
+    State(state): State<TiberiusState>,
+    flash: Flash,
+    rstate: TiberiusRequestState<Authenticated>,
     PathEditUserEntry { entry_id }: PathEditUserEntry,
     edit_user_request: Form<EditUserCategoryRequest>,
 ) -> TiberiusResult<(Flash, Redirect)> {
@@ -417,7 +420,7 @@ pub async fn edit_user_entry(
         .invalidate(&PageSubtextCacheTag::staff_page_content(&current_user))
         .await;
 
-    Ok((rstate.flash_mut().clone().error("Entry saved"), Redirect::to(
+    Ok((flash.error("Entry saved"), Redirect::to(
         PathShowStaffPage {}.to_uri().to_string().as_str(),
     )))
 }

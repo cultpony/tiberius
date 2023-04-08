@@ -1,4 +1,5 @@
 use axum::http::Uri;
+use tiberius_core::CSPHeader;
 use tiberius_dependencies::{axum_csrf, axum_flash};
 use tiberius_dependencies::casbin::{CoreApi, MgmtApi, RbacApi};
 use clap::ArgMatches;
@@ -16,7 +17,7 @@ pub async fn grant_acl(args: &crate::cli::GrantAclCli, config: Configuration) ->
     let csrf_config = axum_csrf::CsrfConfig::default();
     let flash_key = axum_flash::Key::generate();
     let flash_config = axum_flash::Config::new(flash_key);
-    let state = TiberiusState::new(config.clone(), tiberius_core::state::UrlDirections { login_page: Uri::default() }, csrf_config, flash_config).await?;
+    let state = TiberiusState::new(config.clone(), tiberius_core::state::UrlDirections { login_page: Uri::default() }, csrf_config, flash_config, CSPHeader::default()).await?;
     let mut casbin = state.get_acl_enforcer().await?;
     let client = tiberius_models::Client::new(db_conn, config.search_dir.as_ref());
     let grant = args.act == GrantAclAction::Grant;

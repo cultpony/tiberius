@@ -33,7 +33,7 @@ pub async fn run_migrations(
     Ok(())
 }
 
-pub fn setup_all_routes(router: Router) -> Router {
+pub fn setup_all_routes(router: Router<TiberiusState>) -> Router<TiberiusState> {
 
     let router = crate::api::int::setup_api_int(router);
     let router = crate::api::well_known::setup_well_known(router);
@@ -54,6 +54,10 @@ pub fn setup_all_routes(router: Router) -> Router {
 pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResult<axum::Router> {
     let router = Router::new();
 
+    // TODO: store in config
+    let flash_key = axum_flash::Key::generate();
+    let csrf_config = axum_csrf::CsrfConfig::default();
+
     let router = setup_all_routes(router);
 
     use tiberius_dependencies::{axum_csrf, axum_database_sessions, axum_flash};
@@ -67,27 +71,8 @@ pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResu
     );
     axum_session_store.initiate().await?;
 
-    // TODO: store in config
-    let flash_key = axum_flash::Key::generate();
-    let csrf_config = axum_csrf::CsrfConfig::default();
-
     let router = router.layer(
         ServiceBuilder::new()
-            .layer(Extension(
-                TiberiusState::new(
-                    config.clone(),
-                    UrlDirections {
-                        login_page: PathSessionsLogin {}.to_uri(),
-                    },
-                    csrf_config,
-                    axum_flash::Config::new(flash_key).use_secure_cookies(true /* TODO: determine HTTPS protocol here */),
-                )
-                .await?,
-            ))
-            .layer(Extension(CSPHeader {
-                static_host: config.cdn_host.clone(),
-                camo_host: config.camo_config().map(|(host, _)| host.clone()),
-            }))
             .layer(axum_database_sessions::SessionLayer::new(
                 axum_session_store,
             ))
@@ -97,6 +82,20 @@ pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResu
     );
 
     let router = router.fallback(not_found_page);
+
+    let router = router.with_state::<()>(TiberiusState::new(
+        config.clone(),
+        UrlDirections {
+            login_page: PathSessionsLogin {}.to_uri(),
+        },
+        csrf_config,
+        axum_flash::Config::new(flash_key).use_secure_cookies(true /* TODO: determine HTTPS protocol here */),
+        CSPHeader {
+            static_host: config.cdn_host.clone(),
+            camo_host: config.camo_config().map(|(host, _)| host.clone()),
+        },
+    )
+    .await?);
 
     Ok(router)
 }

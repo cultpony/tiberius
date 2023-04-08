@@ -1,4 +1,4 @@
-use axum::{Extension, Form};
+use axum::{Extension, Form, extract::State};
 use axum_extra::routing::TypedPath;
 use maud::html;
 use tiberius_core::{
@@ -25,7 +25,7 @@ pub struct PathApiV3ImageChangeUploader {
 
 #[instrument(skip(state, rstate))]
 pub async fn change_image_uploader_user(
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
     rstate: TiberiusRequestState<Authenticated>,
     PathApiV3ImageChangeUploader { image }: PathApiV3ImageChangeUploader,
 ) -> TiberiusResult<TiberiusResponse<()>> {
@@ -55,7 +55,7 @@ pub async fn change_image_uploader_user(
 
 #[instrument(skip(state, rstate))]
 pub async fn change_image_uploader(
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
     rstate: TiberiusRequestState<Authenticated>,
     PathApiV3ImageChangeUploader { image }: PathApiV3ImageChangeUploader,
     Form(change_uploader): Form<ChangeUploader>,
@@ -103,7 +103,7 @@ pub async fn change_image_uploader(
     //TODO: issue reindex to philomena if necessary
     let image = image.save(&mut client).await?;
     Ok(TiberiusResponse::SafeJson(
-        SafeJsonResponse::safe_serialize(&image)?,
+        SafeJsonResponse::safe_serialize(image)?,
     ))
 }
 

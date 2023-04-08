@@ -1,6 +1,7 @@
 use std::fmt;
 
 use axum::Router;
+use axum::extract::State;
 use axum::{extract::Query, response::Redirect, Extension, Form};
 use axum_extra::routing::RouterExt;
 use axum_extra::{extract::cookie::Cookie, routing::TypedPath};
@@ -21,7 +22,7 @@ use axum_extra::extract::CookieJar;
 
 use crate::pages::common::{channels::channel_box, pagination::PaginationCtl};
 
-pub fn channel_pages(r: Router) -> Router {
+pub fn channel_pages(r: Router<TiberiusState>) -> Router<TiberiusState> {
     r
      .typed_get(list_channels)
      .typed_post(set_nsfw)
@@ -46,27 +47,25 @@ pub struct PathSetChannelNsfw {}
 pub async fn set_nsfw(
     _: PathSetChannelNsfw,
     rstate: TiberiusRequestState<Unauthenticated>,
+    flash: Flash,
     fd: Form<ApiFormDataEmpty>,
 ) -> TiberiusResult<(Flash, CookieJar, Redirect)> {
-    let mut rstate = rstate;
     let fd = fd.into_afd();
     match fd.method() {
         Some(FormMethod::Create) => {
             let cookie_jar = rstate.cookie_jar.clone().add(Cookie::new("chan_nsfw", "true"));
-            Ok((rstate.flash_mut().clone().error("NSFW Channels are now visible"), cookie_jar, Redirect::to(PathChannelsList {}.to_uri().to_string().as_str())))
+            Ok((flash.error("NSFW Channels are now visible"), cookie_jar, Redirect::to(PathChannelsList {}.to_uri().to_string().as_str())))
         }
         Some(FormMethod::Delete) => {
             let cookie_jar = rstate.cookie_jar.clone().add(Cookie::new("chan_nsfw", "false"));
             Ok((
-                rstate
-                    .flash_mut().clone()
-                    .error("NSFW Channels are now no longer visible"),
+                flash.error("NSFW Channels are now no longer visible"),
                 cookie_jar,
                 Redirect::to(PathChannelsList {}.to_uri().to_string().as_str())
             ))
         }
         _ => Ok((
-            rstate.flash_mut().clone(),
+            flash,
             rstate.cookie_jar,
             Redirect::to(PathChannelsList {}.to_uri().to_string().as_str())
         )),
@@ -90,7 +89,7 @@ pub struct PathChannelsList {}
 #[instrument(skip(state, rstate))]
 pub async fn list_channels(
     _: PathChannelsList,
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
     rstate: TiberiusRequestState<Unauthenticated>,
     Query(cq): Query<ChannelQuery>,
 ) -> TiberiusResult<TiberiusResponse<()>> {

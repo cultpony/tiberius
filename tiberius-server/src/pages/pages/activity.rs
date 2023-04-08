@@ -9,7 +9,7 @@ use crate::pages::{
     },
     images::{PathQuerySearch, PathSearchEmpty, QuerySearch},
 };
-use axum::{Extension, Router};
+use axum::{Extension, Router, extract::State};
 use axum_extra::routing::{RouterExt, TypedPath};
 use maud::{html, Markup, PreEscaped};
 use serde::Deserialize;
@@ -22,7 +22,7 @@ use tiberius_core::{
 };
 use tiberius_models::{Client, Image, ImageSortBy, SortDirection};
 
-pub fn activity_pages(r: Router) -> Router {
+pub fn activity_pages(r: Router<TiberiusState>) -> Router<TiberiusState> {
     r.typed_get(index)
 }
 
@@ -33,7 +33,7 @@ pub struct PathActivityIndex {}
 #[instrument(skip(state, rstate))]
 pub async fn index(
     _: PathActivityIndex,
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
     rstate: TiberiusRequestState<Unauthenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     let mut client: Client = state.get_db_client();

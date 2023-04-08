@@ -1,3 +1,4 @@
+use axum::extract::State;
 use axum::{Extension, Router};
 use axum_extra::routing::{TypedPath, RouterExt};
 use maud::html;
@@ -10,7 +11,7 @@ use tiberius_core::state::{TiberiusRequestState, TiberiusState};
 
 use crate::pages::common::filters::filter_listing_item;
 
-pub fn setup_filters(r: Router) -> Router {
+pub fn setup_filters(r: Router<TiberiusState>) -> Router<TiberiusState> {
     r.typed_get(index)
 }
 
@@ -21,7 +22,7 @@ pub struct PathFilters;
 #[instrument(skip(state, rstate))]
 pub async fn index(
     _: PathFilters,
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
     rstate: TiberiusRequestState<Unauthenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     //TODO: set image title correctly
@@ -113,7 +114,7 @@ pub struct FormSetSessionFilter {
 #[instrument(skip(state, rstate))]
 pub async fn set_filter(
     _: PathFilters,
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
     rstate: TiberiusRequestState<Unauthenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
     todo!()

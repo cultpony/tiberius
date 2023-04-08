@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use axum::{
-    extract::{FromRequest, Query, FromRequestParts},
+    extract::{FromRequest, Query, FromRequestParts, State},
     Extension, Json, http::request::Parts,
 };
 use axum_extra::routing::TypedPath;
@@ -61,7 +61,7 @@ where
 #[instrument(skip(state, rstate))]
 pub async fn fetch(
     _: PathTagsFetch,
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
     rstate: TiberiusRequestState<Unauthenticated>,
     QueryTagsFetch { ids }: QueryTagsFetch,
 ) -> TiberiusResult<Json<ApiResponse>> {

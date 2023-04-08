@@ -4,7 +4,7 @@ use async_std::path::PathBuf;
 use axum::{
     headers::{ContentType, HeaderMapExt},
     http::{HeaderMap, StatusCode},
-    Extension, Router,
+    Extension, Router, extract::State,
 };
 use axum_extra::{
     body::AsyncReadBody,
@@ -26,7 +26,7 @@ use tiberius_models::{Client, Image, ImageThumbType, PathImageThumbGet, PathImag
 use tokio::fs::File;
 use tracing::trace;
 
-pub fn static_file_pages(r: Router) -> Router {
+pub fn static_file_pages(r: Router<TiberiusState>) -> Router<TiberiusState> {
     r.typed_get(image_thumb_get)
         .typed_get(image_thumb_get_simple)
         .typed_get(image_full_get)
@@ -47,7 +47,7 @@ pub async fn image_thumb_get_simple(
         thumbtype,
         filename: _filename,
     }: PathImageThumbGetSimple,
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
 ) -> TiberiusResult<TiberiusResponse<AsyncReadBody<File>>> {
     let mut client = state.get_db_client();
     let image = Image::get_id(&mut client, id as i64).await?;
@@ -58,7 +58,7 @@ pub async fn image_thumb_get_simple(
         Some(image) => {
             let path = PathBuf::from(image.thumbnail_path(ImageThumbType::Small).await?);
             let config = state.config();
-            Ok(read_static(Extension(state), &path, Some(image)).await?)
+            Ok(read_static(State(state), &path, Some(image)).await?)
         }
     }
 }
@@ -96,7 +96,7 @@ pub async fn image_full_get(
         month,
         day,
     }: PathImageGetFull,
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
     rstate: TiberiusRequestState<Unauthenticated>,
 ) -> TiberiusResult<TiberiusResponse<AsyncReadBody<File>>> {
     let config = &state.config;
@@ -157,18 +157,18 @@ pub async fn image_thumb_get(
         id,
         filename,
     }: PathImageThumbGet,
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
 ) -> TiberiusResult<TiberiusResponse<AsyncReadBody<File>>> {
     let config = &state.config;
     let path = format!("images/thumbs/{year}/{month}/{day}/{id}/{filename}",);
     let mut client = state.get_db_client();
     let image = Image::get_id(&mut client, id as i64).await?;
-    Ok(read_static(Extension(state), &PathBuf::from(path), image).await?)
+    Ok(read_static(State(state), &PathBuf::from(path), image).await?)
 }
 
 #[instrument]
 async fn read_static(
-    Extension(state): Extension<TiberiusState>,
+    State(state): State<TiberiusState>,
     path: &PathBuf,
     image: Option<Image>,
 ) -> TiberiusResult<TiberiusResponse<AsyncReadBody<File>>> {
