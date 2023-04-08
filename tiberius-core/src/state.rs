@@ -217,14 +217,7 @@ impl std::fmt::Debug for TiberiusRequestState<Unauthenticated> {
 }
 
 impl<A: SessionMode> TiberiusRequestState<A> {
-    fn verify_staff_header(req: &Parts) -> Result<(), axum::response::Response> {
-        let state: &TiberiusState = match req.extensions.get() {
-            Some(v) => v,
-            None => {
-                error!("No state extension installed");
-                return Ok(())
-            }
-        };
+    fn verify_staff_header(req: &Parts, state: &TiberiusState) -> Result<(), axum::response::Response> {
         match state.staff_only() {
             None => Ok(()),
             Some(v) => {
@@ -302,7 +295,7 @@ impl FromRequestParts<TiberiusState> for TiberiusRequestState<Authenticated>
     type Rejection = Response;
     async fn from_request_parts(req: &mut Parts, state: &TiberiusState) -> Result<Self, Self::Rejection> {
         debug!("Checking out Authenticated Request State");
-        Self::verify_staff_header(req).map_err(|e| e.into_response())?;
+        Self::verify_staff_header(req, state).map_err(|e| e.into_response())?;
         let db_session: axum_database_sessions::Session<axum_database_sessions::SessionPgPool> =
             req.extract()
                 .await
@@ -339,7 +332,6 @@ impl FromRequestParts<TiberiusState> for TiberiusRequestState<Authenticated>
             csrf_token: CsrfToken::from_request_parts(req, &state).await
                 .map_err(|e: (StatusCode, &'static str)| e.into_response())?,
         };
-        let state = req.extensions.get::<TiberiusState>().unwrap();
         if state.config().enable_lock_down {
             if !verify_acl(state, &rstate, ACLObject::Site, ACLActionSite::Use)
                 .await
@@ -360,7 +352,7 @@ impl FromRequestParts<TiberiusState> for TiberiusRequestState<Unauthenticated>
     async fn from_request_parts(req: &mut Parts, state: &TiberiusState) -> Result<Self, Self::Rejection> {
         debug!("Checking out Unauthenticated Request State");
         let flash = Flash::from_request_parts(req, state).await.expect("flash unwrap is infallible");
-        Self::verify_staff_header(req).map_err(|e| (flash.clone(), e))?;
+        Self::verify_staff_header(req, state).map_err(|e| (flash.clone(), e))?;
         let allow_unauthenticated = req
             .extensions
             .get::<TiberiusState>()

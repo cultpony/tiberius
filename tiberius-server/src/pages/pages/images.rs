@@ -699,13 +699,11 @@ pub struct ImageUpload {
 }
 
 #[async_trait]
-impl<S> FromRequestParts<S> for ImageUpload
-where
-    S: Send + Sync,
+impl FromRequestParts<TiberiusState> for ImageUpload
 {
     type Rejection = TiberiusError;
 
-    async fn from_request_parts(req: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(req: &mut Parts, state: &TiberiusState) -> Result<Self, Self::Rejection> {
         let state = req.extensions.get::<TiberiusState>().unwrap().clone();
         let limit = state.config().upload_max_size;
         let multipart = todo!();

@@ -82,7 +82,7 @@ pub async fn serve_asset(GetStaticFile { path }: GetStaticFile) -> TiberiusResul
 pub async fn serve_static_file(file: PathBuf) -> TiberiusResult<FileResponse> {
     trace!("Serving static file {:?}", file);
     let path = file.clone();
-    let file = Assets::get(file.to_str().unwrap());
+    let file = Assets::get(&format!("/{}", file.to_str().unwrap()));
     Ok(match file {
         None => {
             return Err(TiberiusError::Other(format!(
