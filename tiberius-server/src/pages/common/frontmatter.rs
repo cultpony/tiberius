@@ -60,7 +60,7 @@ pub fn viewport_meta_tags<T: SessionMode>(rstate: &TiberiusRequestState<T>) -> M
             }
         }
     }
-    return html! { meta name="viewport" content="width=1024, initial-scale=1"; };
+    html! { meta name="viewport" content="width=1024, initial-scale=1"; }
 }
 
 pub async fn csrf_meta_tag<T: SessionMode>(rstate: &TiberiusRequestState<T>) -> Markup {
@@ -102,9 +102,7 @@ pub async fn open_graph(state: &TiberiusState, image: Option<Image>) -> Tiberius
             format!(
                 "{} - {} - Manebooru",
                 img.id,
-                img.tag_list_cache
-                    .as_ref()
-                    .map(|x| x.as_str())
+                img.tag_list_cache.as_deref()
                     .unwrap_or("")
             )
         })
@@ -114,7 +112,7 @@ pub async fn open_graph(state: &TiberiusState, image: Option<Image>) -> Tiberius
         meta name="theme-color" content="#618fc3";
         meta name="format-detection" content="telephone=no";
         @if let Some(image) = image {
-            meta name="keywords" content=(image.tag_list_cache.as_ref().map(|x| x.as_str()).unwrap_or(""));
+            meta name="keywords" content=(image.tag_list_cache.as_deref().unwrap_or(""));
             meta name="description" content=(description);
             meta property="og:title" content=(description);
             meta property="og:url" content=(PathShowImage{ image: (image.id as u64) }.to_uri().to_string());
@@ -132,7 +130,7 @@ pub async fn open_graph(state: &TiberiusState, image: Option<Image>) -> Tiberius
             link rel="alternate" type="application/json-oembed" href=(PathOembed{}.to_uri().to_string()) title="oEmbed JSON Profile";
             link rel="canonical" href=(PathShowImage{ image: (image.id as u64) }.to_uri().to_string());
 
-            @match (image.image_mime_type.as_ref().map(|x| x.as_str()), filtered) {
+            @match (image.image_mime_type.as_deref(), filtered) {
                 (Some("video/webm"), false) => {
                     meta property="og:type" content="video.other";
 
@@ -251,7 +249,7 @@ pub fn quick_tag_table(state: &TiberiusState) -> Markup {
                                 strong { (table.title) }
                                 @for tag_name in &table.tags {
                                     br;
-                                    (tag_link(false, &tag_name, &tag_name))
+                                    (tag_link(false, tag_name, tag_name))
                                 }
                             }
                         }
@@ -264,7 +262,7 @@ pub fn quick_tag_table(state: &TiberiusState) -> Markup {
                                     br;
                                     (name)
                                     " - "
-                                    (tag_link(false, &alias_name, &alias_name))
+                                    (tag_link(false, alias_name, alias_name))
                                 }
                             }
                         }
@@ -273,7 +271,7 @@ pub fn quick_tag_table(state: &TiberiusState) -> Markup {
                         //TODO: figure out how to bring up shipping tags automatically
                     },
                     QuickTagTableContent::Season(se) => {
-                        @for episode_chunk in &se.episodes.as_slice().into_iter().chunks(10) {
+                        @for episode_chunk in &se.episodes.as_slice().iter().chunks(10) {
                             div {
                                 @for episode in episode_chunk {
                                     (episode.episode_number)
@@ -334,7 +332,7 @@ pub async fn header<T: SessionMode>(
 
                 form.header__search.flex.flex--nowrap.flex--centered.hform action=(PathSearchEmpty{}.to_uri().to_string()) method="GET" {
                     input.input.header__input.header__input--search #q name="q" title="For terms all required, separate with ',' or 'AND'; also supports 'OR' for optional terms and '-' or 'NOT' for negation. Search with a blank query for more options or click the ? for syntax help."
-                        value=(rstate.search_query().await?.to_string()) placeholder="Search" autocapitalize="none";
+                        value=(rstate.search_query().await?) placeholder="Search" autocapitalize="none";
 
                     //TODO: sf+sd params https://github.com/derpibooru/philomena/blob/355ce491accae4702f273334271813e93a261e0f/lib/philomena_web/templates/layout/_header.html.slime#L17
 
@@ -359,7 +357,7 @@ pub async fn header<T: SessionMode>(
                         }
 
                         a.header__link href="/conversations" title="Conversations" {
-                            @if conversations.len() > 0 {
+                            @if !conversations.is_empty() {
                                 i.fa-embedded-unread-message { }
                                 span.fa-embedded__text.header__counter {
                                     (conversations.len());
@@ -499,7 +497,7 @@ pub fn header_staff_links() -> Markup {
 
 pub fn pretty_time(date: &NaiveDateTime) -> String {
     use tiberius_dependencies::chrono_humanize::HumanTime;
-    let date: DateTime<Utc> = DateTime::from_utc(date.clone(), Utc);
+    let date: DateTime<Utc> = DateTime::from_utc(*date, Utc);
     let ht = HumanTime::from(date);
     format!("{}", ht)
 }
@@ -608,7 +606,7 @@ pub async fn ignored_tag_list<T: SessionMode>(
     rstate: &TiberiusRequestState<T>,
 ) -> TiberiusResult<Vec<i32>> {
     let filter = rstate.filter(state).await?;
-    return Ok(filter.hidden_tag_ids.clone());
+    Ok(filter.hidden_tag_ids.clone())
 }
 
 macro_rules! insert_csd {
@@ -626,14 +624,14 @@ pub async fn image_clientside_data<T: SessionMode>(
     image: &Image,
     inner: PreEscaped<String>,
 ) -> TiberiusResult<Markup> {
-    Ok(state
+    state
         .csd_cache
         .try_get_with(
             image.id as u64,
             uncached_image_clientside_data(state, rstate, image, inner),
         )
         .await
-        .map_err(|e| TiberiusError::CacheError(format!("{}", e)))?)
+        .map_err(|e| TiberiusError::CacheError(format!("{}", e)))
 }
 
 #[instrument(skip(rstate, state, inner, image))]
@@ -668,7 +666,7 @@ async fn uncached_image_clientside_data<T: SessionMode>(
     insert_csd!(data, upvotes, image.upvotes_count);
     insert_csd!(data, uris, image.image_thumb_urls().await?);
 
-    Ok(csd_to_markup("image-show-container", data, inner).await?)
+    csd_to_markup("image-show-container", data, inner).await
 }
 
 #[instrument(skip(rstate, state))]
@@ -689,8 +687,7 @@ pub async fn clientside_data<'a, T: SessionMode>(
         hidden_filter,
         filter
             .hidden_complex_str
-            .as_ref()
-            .map(|x| x.clone())
+            .as_ref().cloned()
             .unwrap_or("".to_string())
     );
     insert_csd!(data, spoilered_tag_list, filter.spoilered_tag_ids);
@@ -699,8 +696,7 @@ pub async fn clientside_data<'a, T: SessionMode>(
         spoilered_filter,
         filter
             .spoilered_complex_str
-            .as_ref()
-            .map(|x| x.clone())
+            .as_ref().cloned()
             .unwrap_or("".to_string())
     );
     insert_csd!(data, user_is_signed_in, user.is_some());
@@ -750,7 +746,7 @@ pub async fn clientside_data<'a, T: SessionMode>(
         data.insert(k.clone(), v.clone());
     }
 
-    Ok(csd_to_markup("js-datastore", data, PreEscaped("".to_string())).await?)
+    csd_to_markup("js-datastore", data, PreEscaped("".to_string())).await
 }
 
 #[instrument(skip(class, data, inner))]
@@ -897,7 +893,7 @@ pub async fn app<T: SessionMode>(
             match page_title {
                 //TODO: make title customizable
                 Some(title) => {
-                    let title: String = title.clone().into();
+                    let title: String = title.into();
                     title + " - Manebooru"
                 },
                 None => "Manebooru".to_string(),

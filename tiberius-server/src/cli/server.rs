@@ -48,9 +48,9 @@ pub fn setup_all_routes(router: Router<TiberiusState>) -> Router<TiberiusState> 
     let router = pages::static_file_pages(router);
     let router = pages::tags::tags_pages(router);
     let router = pages::filters::setup_filters(router);
-    let router = tiberius_core::assets::embedded_file_pages(router);
+    
 
-    router
+    tiberius_core::assets::embedded_file_pages(router)
 }
 
 pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResult<axum::Router> {

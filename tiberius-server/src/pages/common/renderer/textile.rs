@@ -10,7 +10,7 @@ pub fn render_textile(inp: &str) -> PreEscaped<String> {
     opts.compress = true;
     let inp = inp.replace("! ", "\\u0021");
     let inp = inp.replace("- ", "\\u002d");
-    let unsafe_render = textile::render_with(inp.to_string(), opts);
+    let unsafe_render = textile::render_with(inp, opts);
     let unsafe_render = textile_extensions(unsafe_render.trim());
     let safe_render = ammonia::Builder::default()
         .link_rel(Some("noopener noreferrer"))
@@ -21,7 +21,7 @@ pub fn render_textile(inp: &str) -> PreEscaped<String> {
         .clean(&unsafe_render);
 
     let safe_render = safe_render.to_string().replace("\\u0021", "! ");
-    let safe_render = safe_render.to_string().replace("\\u002d", "- ");
+    let safe_render = safe_render.replace("\\u002d", "- ");
     PreEscaped(safe_render)
 }
 

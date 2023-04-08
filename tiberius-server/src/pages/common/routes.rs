@@ -17,7 +17,7 @@ pub async fn stylesheet_path<T: SessionMode>(
     Ok(if let Some(user) = user {
         let mut path = PathBuf::from_str("css/")?;
         assert!(
-            !user.user_settings.theme.contains("/"),
+            !user.user_settings.theme.contains('/'),
             "User theme cannot contain path segments: {:?}",
             user.user_settings.theme
         );

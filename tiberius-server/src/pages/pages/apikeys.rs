@@ -66,7 +66,7 @@ pub async fn manage_keys_page(
                     td { (api_key.id().to_string()) }
                     td { (api_key.secret()) }
                     td {
-                        form method="POST" action=(PathDeleteApiKey{uuid: api_key.id().clone()}.to_uri().to_string()) {
+                        form method="POST" action=(PathDeleteApiKey{uuid: *api_key.id()}.to_uri().to_string()) {
                             (csrf_input_tag(&rstate).await);
                             (form_method(FormMethod::Delete));
                             (form_submit_button("Delete Key"));
@@ -129,7 +129,7 @@ pub async fn create_api_key(
         .expect("we just inserted, cannot fail");
 
     Ok(TiberiusResponse::Json(JsonResponse {
-        content: serde_json::to_value(&key)?,
+        content: serde_json::to_value(key)?,
         headers: HeaderMap::new(),
     }))
 }
@@ -163,16 +163,14 @@ pub async fn delete_api_key(
         Some(v) => v,
     };
 
-    if Some(api_key.user_id()) != rstate.user(&state).await?.as_ref().map(|x| x.id()) {
-        if !admin_api_key {
-            return Err(TiberiusError::AccessDenied);
-        }
+    if Some(api_key.user_id()) != rstate.user(&state).await?.as_ref().map(|x| x.id()) && !admin_api_key {
+        return Err(TiberiusError::AccessDenied);
     }
 
     let ok = api_key.clone().delete(&mut client).await?;
 
     Ok(TiberiusResponse::Json(JsonResponse {
-        content: serde_json::to_value(&ok)?,
+        content: serde_json::to_value(ok)?,
         headers: HeaderMap::new(),
     }))
 }

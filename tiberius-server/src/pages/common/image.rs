@@ -28,10 +28,10 @@ pub enum ImageSize {
     Small,
 }
 
-impl Into<ImageThumbType> for ImageSize {
-    fn into(self) -> ImageThumbType {
+impl From<ImageSize> for ImageThumbType {
+    fn from(val: ImageSize) -> Self {
         use ImageSize::*;
-        match self {
+        match val {
             Large => ImageThumbType::Large,
             Medium => ImageThumbType::Medium,
             Small => ImageThumbType::Small,
@@ -373,7 +373,7 @@ impl RenderIntent {
                 _ => false,
             };
         let filtered = image.filter_or_spoiler_hits(client).await?;
-        let static_host = state.config.static_host(Some(&rstate));
+        let static_host = state.config.static_host(Some(rstate));
         fn apply_static_host(uri: Uri, host: Option<&String>) -> Uri {
             let host = match host {
                 None => return uri,
@@ -517,8 +517,8 @@ impl RenderIntent {
                 Some(&static_host),
             )
             .to_string();
-            let mp4_path = path.clone().to_string().replacen(".webm", ".mp4", 1);
-            let webm_path = path.clone().to_string();
+            let mp4_path = path.replacen(".webm", ".mp4", 1);
+            let webm_path = path;
             RenderIntent::Video {
                 webm: webm_path,
                 mp4: mp4_path,

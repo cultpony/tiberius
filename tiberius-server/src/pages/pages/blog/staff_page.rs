@@ -154,7 +154,7 @@ pub async fn show(
                         i.fa.fa-fw.fa-info-circle {}
                         (header.text)
                     }
-                    @if users.len() > 0 {
+                    @if !users.is_empty() {
                         .staff-block__grid {
                             @for user in users {
                                 .block.flex.flex--column {

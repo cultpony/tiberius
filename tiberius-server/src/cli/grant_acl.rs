@@ -71,7 +71,7 @@ pub async fn grant_acl(
         (Some(v), Some(w), Some(x)) => {
             if grant {
                 casbin
-                    .add_permission_for_user(&v, vec![w.clone(), x.clone()])
+                    .add_permission_for_user(v, vec![w.clone(), x.clone()])
                     .await?;
             } else if revoke {
                 todo!("revoke ACL")
@@ -105,19 +105,19 @@ pub async fn grant_acl(
     match (user.as_ref(), member_of.as_ref()) {
         (Some(v), Some(w)) => {
             if grant {
-                if casbin.has_role_for_user(&v, &w, None) {
+                if casbin.has_role_for_user(v, w, None) {
                     warn!("ACL already present: {} -> {}", w, v);
                     return Ok(());
                 }
                 info!("Granting membership {} -> {}", w, v);
-                casbin.add_role_for_user(&v, &w, None).await?;
+                casbin.add_role_for_user(v, w, None).await?;
             } else if revoke {
-                if !casbin.has_role_for_user(&v, &w, None) {
+                if !casbin.has_role_for_user(v, w, None) {
                     warn!("ACL already present: {} -> {}", w, v);
                     return Ok(());
                 }
                 info!("Revoking membership {} -> {}", w, v);
-                casbin.delete_role_for_user(&v, &w, None).await?;
+                casbin.delete_role_for_user(v, w, None).await?;
             } else if list {
                 error!("Cannot grant to user member-of");
             } else {
@@ -133,27 +133,27 @@ pub async fn grant_acl(
             info!("Listing membership of {}", v);
             for role in casbin.get_implicit_roles_for_user(v, None) {
                 println!("Role: {}", role);
-                return Ok(());
             }
+            return Ok(());
         }
         _ => {}
     }
     match (group.as_ref(), member_of.as_ref()) {
         (Some(v), Some(w)) => {
             if grant {
-                if casbin.has_role_for_user(&v, &w, None) {
+                if casbin.has_role_for_user(v, w, None) {
                     warn!("ACL already present: {} -> {}", w, v);
                     return Ok(());
                 }
                 info!("Granting membership {} -> {}", w, v);
-                casbin.add_role_for_user(&v, &w, None).await?;
+                casbin.add_role_for_user(v, w, None).await?;
             } else if revoke {
-                if !casbin.has_role_for_user(&v, &w, None) {
+                if !casbin.has_role_for_user(v, w, None) {
                     warn!("ACL already present: {} -> {}", w, v);
                     return Ok(());
                 }
                 info!("Revoking membership {} -> {}", w, v);
-                casbin.delete_role_for_user(&v, &w, None).await?;
+                casbin.delete_role_for_user(v, w, None).await?;
             } else if list {
                 error!("Cannot grant to group member-of");
             } else {

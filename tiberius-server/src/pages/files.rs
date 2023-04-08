@@ -117,12 +117,12 @@ pub async fn image_full_get(
         if let Some(image_path) = image.image {
             let path = PathBuf::from_str(&image_path)?;
             let path = PathBuf::from_str("images")?.join(path);
-            let path = config
+            
+            config
                 .data_root
                 .clone()
                 .expect("require static data root")
-                .join(path);
-            path
+                .join(path)
         } else {
             return Ok(TiberiusResponse::Error(TiberiusError::Other(
                 "Image not found".to_string(),

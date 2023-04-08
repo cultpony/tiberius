@@ -151,7 +151,7 @@ pub async fn list_channels(
 
             .block__content {
                 @for channel in channels.iter().filter(|x| x.nsfw == show_nsfw_state || !x.nsfw) {
-                    (channel_box(&state, &mut client, &channel).await?)
+                    (channel_box(&state, &mut client, channel).await?)
                 }
             }
 

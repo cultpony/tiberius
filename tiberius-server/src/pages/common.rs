@@ -43,7 +43,7 @@ pub async fn camoed_url(state: &TiberiusState, url: &url::Url) -> String {
                     error!("error in camo config: {}", e);
                     url.to_string()
                 }
-                Ok(config) => match config.get_camo_url(&url) {
+                Ok(config) => match config.get_camo_url(url) {
                     Err(e) => {
                         error!("could not generate camo urls: {}", e);
                         url.to_string()

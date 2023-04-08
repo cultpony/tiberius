@@ -51,7 +51,7 @@ pub fn render_markdown(inp: &str, meta: Option<&Meta>) -> String {
         .add_allowed_classes("span", &["spoiler"])
         .add_url_schemes(&["img"])
         .link_rel(None)
-        .clean(&*html_output.trim().to_string())
+        .clean(html_output.trim())
         .to_string()
 }
 

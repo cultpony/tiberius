@@ -27,14 +27,14 @@ pub fn tag_markup(tag: &TagView) -> Markup {
                 }
             }
             div.dropdown__content {
-                a.tag__dropdown__link data-method="delete" data-tag-action="unwatch" href=(PathTagsWatchTag{ tag_id: tag.id as u64 }.to_uri().to_string()) { "Unwatch" }
-                a.tag__dropdown__link data-method="post" data-tag-action="unwatch" href=(PathTagsWatchTag{ tag_id: tag.id as u64 }.to_uri().to_string()) { "Watch" }
+                a.tag__dropdown__link data-method="delete" data-tag-action="unwatch" href=(PathTagsWatchTag{ tag_id: tag.id }.to_uri().to_string()) { "Unwatch" }
+                a.tag__dropdown__link data-method="post" data-tag-action="unwatch" href=(PathTagsWatchTag{ tag_id: tag.id }.to_uri().to_string()) { "Watch" }
 
-                a.tag__dropdown__link data-method="delete" data-tag-action="unspoiler" href=(PathTagsSpoilerTag{ tag_id: tag.id as u64 }.to_uri().to_string()) { "Unspoiler" }
-                a.tag__dropdown__link data-method="post" data-tag-action="spoiler" href=(PathTagsSpoilerTag{ tag_id: tag.id as u64 }.to_uri().to_string()) { "Spoiler" }
+                a.tag__dropdown__link data-method="delete" data-tag-action="unspoiler" href=(PathTagsSpoilerTag{ tag_id: tag.id }.to_uri().to_string()) { "Unspoiler" }
+                a.tag__dropdown__link data-method="post" data-tag-action="spoiler" href=(PathTagsSpoilerTag{ tag_id: tag.id }.to_uri().to_string()) { "Spoiler" }
 
-                a.tag__dropdown__link data-method="delete" data-tag-action="unhide" href=(PathTagsHideTag{ tag_id: tag.id as u64 }.to_uri().to_string()) { "Unhide" }
-                a.tag__dropdown__link data-method="post" data-tag-action="hide" href=(PathTagsHideTag{ tag_id: tag.id as u64 }.to_uri().to_string()) { "Hide" }
+                a.tag__dropdown__link data-method="delete" data-tag-action="unhide" href=(PathTagsHideTag{ tag_id: tag.id }.to_uri().to_string()) { "Unhide" }
+                a.tag__dropdown__link data-method="post" data-tag-action="hide" href=(PathTagsHideTag{ tag_id: tag.id }.to_uri().to_string()) { "Hide" }
 
                 a.tag__dropdown__link href=(PathNewSession{}.to_uri().to_string()) { "Sign in to Watch" }
                 a.tag__dropdown__link href=(PathFilters{}.to_uri().to_string()) { "Filters" }

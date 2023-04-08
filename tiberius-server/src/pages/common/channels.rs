@@ -37,7 +37,7 @@ pub async fn channel_box(
         .media-box__content.media-box__content--channel {
             a href=(channel_route) {
                 .image-constrained.media-box__content--channel {
-                    img src=(camoed_url(state, &url::Url::parse(&channel.image())?).await) alt=(channel.title());
+                    img src=(camoed_url(state, &url::Url::parse(channel.image())?).await) alt=(channel.title());
                 }
             }
         }

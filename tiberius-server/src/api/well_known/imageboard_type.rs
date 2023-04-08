@@ -26,7 +26,7 @@ pub struct PathImageBoardTiberiusApiFlavor {}
 
 #[instrument]
 pub async fn imageboardapiflavor(_: PathImageBoardTiberiusApiFlavor) -> String {
-    format!("/api/v1")
+    "/api/v1".to_string()
 }
 
 #[derive(TypedPath, Deserialize)]
@@ -35,7 +35,7 @@ pub struct PathImageBoardPhilomenaIntApiFlavor {}
 
 #[instrument]
 pub async fn imageboardapiflavor_philomena_int(_: PathImageBoardPhilomenaIntApiFlavor) -> String {
-    format!("!")
+    "!".to_string()
 }
 
 #[derive(TypedPath, Deserialize)]
@@ -44,5 +44,5 @@ pub struct PathImageBoardPhilomenaApiFlavor {}
 
 #[instrument]
 pub async fn imageboardapiflavor_philomena_v1(_: PathImageBoardPhilomenaApiFlavor) -> String {
-    format!("/api/philomena/v1")
+    "/api/philomena/v1".to_string()
 }

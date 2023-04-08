@@ -62,8 +62,8 @@ pub fn image_pages(r: Router<TiberiusState>) -> Router<TiberiusState> {
     let r = r.typed_get(specific_show_image);
     let r = r.typed_get(show_random_image);
     let r = r.typed_get(show_image);
-    let r = r.typed_post(repair_image_thumbnail);
-    r
+    
+    r.typed_post(repair_image_thumbnail)
 }
 
 #[derive(TypedPath, Deserialize)]
@@ -165,7 +165,7 @@ pub async fn show_navigate_image(
     .map(|x| x.id().into())
     .unwrap_or(id);
     Ok(TiberiusResponse::Redirect(Redirect::temporary(
-        PathShowImage { image: image }.to_uri().to_string().as_str(),
+        PathShowImage { image }.to_uri().to_string().as_str(),
     )))
 }
 
@@ -689,7 +689,7 @@ pub async fn upload_image(
     };
     let app = crate::pages::common::frontmatter::app(
         &state,
-        &rstate.into(),
+        &rstate,
         Some(PageTitle::from("Image")),
         &mut client,
         body,
@@ -1001,7 +1001,7 @@ pub struct PathSearchEmpty {}
 
 #[tracing::instrument]
 pub async fn search_empty(_: PathSearchEmpty) -> TiberiusResult<HtmlResponse> {
-    Ok(search(
+    search(
         PathSearchEmpty {},
         Query(QuerySearch {
             search: "".to_string(),
@@ -1009,7 +1009,7 @@ pub async fn search_empty(_: PathSearchEmpty) -> TiberiusResult<HtmlResponse> {
             direction: None,
         }),
     )
-    .await?)
+    .await
 }
 
 #[derive(TypedPath, Deserialize, Debug)]
@@ -1094,7 +1094,7 @@ pub async fn spool_multipart(mut multipart: Multipart, limit: u64) -> TiberiusRe
                 let mut file = BufWriter::new(tokio::fs::File::from_std(file));
                 while let Some(chunk) = field.chunk().await? {
                     // TODO: limit write size
-                    file.write(&chunk).await?;
+                    file.write_all(&chunk).await?;
                 }
                 file.flush().await?;
                 upload.content_type =
