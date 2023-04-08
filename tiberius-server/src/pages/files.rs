@@ -162,7 +162,7 @@ pub async fn image_thumb_get(
     let path = format!("images/thumbs/{year}/{month}/{day}/{id}/{filename}",);
     let mut client = state.get_db_client();
     let image = Image::get_id(&mut client, id as i64).await?;
-    Ok(read_static(State(state), &PathBuf::from(path), image).await?)
+    read_static(State(state), &PathBuf::from(path), image).await
 }
 
 #[instrument]
@@ -187,12 +187,11 @@ async fn read_static(
                 if let Some(image_path) = image.image {
                     let path = PathBuf::from_str(&image_path)?;
                     let path = PathBuf::from_str("images")?.join(path);
-                    let path = config
+                    config
                         .data_root
                         .clone()
                         .expect("require static data root")
-                        .join(path);
-                    path
+                        .join(path)
                 } else {
                     path
                 }

@@ -9,15 +9,15 @@ lazy_static::lazy_static! {
 pub fn sluggify<S: AsRef<str>>(data: S) -> String {
     let data: &str = data.as_ref();
     let data: String = data.to_string();
-    let data = data.replace("-", "-dash-");
-    let data = data.replace("/", "-fwslash-");
-    let data = data.replace("\\", "-bwslash-");
-    let data = data.replace(":", "-colon-");
-    let data = data.replace(".", "-dot-");
-    let data = data.replace("+", "-plus-");
-    let data = data.replace(" ", "+");
+    let data = data.replace('-', "-dash-");
+    let data = data.replace('/', "-fwslash-");
+    let data = data.replace('\\', "-bwslash-");
+    let data = data.replace(':', "-colon-");
+    let data = data.replace('.', "-dot-");
+    let data = data.replace('+', "-plus-");
+    let data = data.replace(' ', "+");
 
-    data.to_ascii_lowercase().to_string()
+    data.to_ascii_lowercase()
 }
 
 pub fn destructive_sluggify<S: AsRef<str>>(data: S) -> String {
@@ -26,7 +26,7 @@ pub fn destructive_sluggify<S: AsRef<str>>(data: S) -> String {
     let data = DESTRUCTIVE_SLUG_NONPRINTABLE.replace_all(&data, "");
     let data = DESTRUCTIVE_SLUG_NONALPHARUNS.replace_all(&data, "-");
     let data = DESTRUCTIVE_SLUG_STARTENDHYPHENS.replace_all(&data, "");
-    data.to_ascii_lowercase().to_string()
+    data.to_ascii_lowercase()
 }
 
 #[cfg(test)]

@@ -124,7 +124,7 @@ pub struct Client {
 impl Client {
     pub fn new(db: PgPool, search_dir: Option<&std::path::PathBuf>) -> Self {
         assert!(
-            search_dir.map(|x| x.exists()).unwrap_or(true),
+            search_dir.map(|x| x.try_exists()).unwrap_or(Ok(true)).expect("error while accessing search directory"),
             "Search directory {:?} did not exist",
             search_dir
         );
@@ -185,8 +185,7 @@ impl Client {
                 };
                 drop(iwg);
                 trace!("Creating writer for new index");
-                let w = i.writer(10_000_000)?;
-                w
+                i.writer(10_000_000)?
             } else {
                 let index = index.unwrap();
                 trace!("Creating writer for open index");
@@ -213,7 +212,7 @@ impl Client {
             Some(v) => v.clone(),
             None => return Err(PhilomenaModelError::NoSearchConfigured),
         };
-        let i = T::open_or_create_index(search_dir.clone())?;
+        let i = T::open_or_create_index(search_dir)?;
         Ok(i.reader()?)
     }
     pub(crate) async fn clone_new_conn(&self, pool: &PgPool) -> Result<Self, PhilomenaModelError> {

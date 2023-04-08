@@ -24,7 +24,7 @@ impl UserToken {
     ) -> Result<Option<UserToken>, PhilomenaModelError> {
         trace!(
             "loading user session for token {}",
-            hex::encode(user_token.clone())
+            hex::encode(user_token)
         );
         let user_token = query_as!(
             UserToken,

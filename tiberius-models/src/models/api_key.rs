@@ -112,7 +112,7 @@ impl ApiKey {
         Ok(id.id)
     }
     pub async fn user(&self, client: &mut Client) -> Result<Option<User>, PhilomenaModelError> {
-        Ok(User::get_id(client, self.user_id.into()).await?)
+        User::get_id(client, self.user_id).await
     }
     pub fn id(&self) -> &Uuid {
         &self.id
