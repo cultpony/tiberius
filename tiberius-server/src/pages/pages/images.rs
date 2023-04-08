@@ -704,7 +704,6 @@ impl FromRequestParts<TiberiusState> for ImageUpload
     type Rejection = TiberiusError;
 
     async fn from_request_parts(req: &mut Parts, state: &TiberiusState) -> Result<Self, Self::Rejection> {
-        let state = req.extensions.get::<TiberiusState>().unwrap().clone();
         let limit = state.config().upload_max_size;
         let multipart = todo!();
         Ok(spool_multipart(multipart, limit).await?)
