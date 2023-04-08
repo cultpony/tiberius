@@ -1,8 +1,8 @@
 use std::ops::DerefMut;
 
-use tiberius_dependencies::chrono::NaiveDateTime;
-use maud::{PreEscaped, html};
+use maud::{html, PreEscaped};
 use sqlx::query_as;
+use tiberius_dependencies::chrono::NaiveDateTime;
 
 use crate::{Client, PhilomenaModelError, User};
 
@@ -37,22 +37,28 @@ impl Filter {
         Ok(filter)
     }
     pub async fn get_system(client: &mut Client) -> Result<Vec<Filter>, PhilomenaModelError> {
-        Ok(query_as!(
-            Filter,
-            "SELECT * FROM filters WHERE system IS TRUE"
-        ).fetch_all(client).await?)
+        Ok(
+            query_as!(Filter, "SELECT * FROM filters WHERE system IS TRUE")
+                .fetch_all(client)
+                .await?,
+        )
     }
-    pub async fn get_user_filters(client: &mut Client, user: &User) -> Result<Vec<Filter>, PhilomenaModelError> {
+    pub async fn get_user_filters(
+        client: &mut Client,
+        user: &User,
+    ) -> Result<Vec<Filter>, PhilomenaModelError> {
         Ok(query_as!(
             Filter,
             "SELECT * FROM filters WHERE system IS FALSE AND user_id = $1",
             user.id() as i32
-        ).fetch_all(client).await?)
+        )
+        .fetch_all(client)
+        .await?)
     }
     pub async fn get_user(&self, client: &mut Client) -> Result<Option<User>, PhilomenaModelError> {
         match self.user_id {
             Some(user_id) => User::get_id(client, user_id as i64).await,
-            None => Ok(None)
+            None => Ok(None),
         }
     }
     pub fn name(&self) -> &str {

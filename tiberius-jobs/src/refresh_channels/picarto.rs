@@ -1,9 +1,9 @@
+use serde;
 use tiberius_core::config::Configuration;
 use tiberius_core::error::TiberiusResult;
 use tiberius_core::http_client;
-use tiberius_models::{Client, Channel};
 use tiberius_dependencies::prelude::*;
-use serde;
+use tiberius_models::{Channel, Client};
 
 #[instrument]
 pub async fn refresh_picarto_channel(

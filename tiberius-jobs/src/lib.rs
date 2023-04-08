@@ -6,29 +6,29 @@
 #![allow(deprecated)]
 
 pub mod cleanup_sessions;
+pub mod generate_thumbnails;
 #[cfg(feature = "job_process_image")]
 pub mod process_image;
 pub mod refresh_cachelines;
 pub mod refresh_channels;
 pub mod reindex_images;
 pub mod reindex_tags;
-pub mod generate_thumbnails;
 pub mod scheduler;
 
 use std::error::Error;
 use std::str::FromStr;
 
-use tiberius_dependencies::chrono::Duration;
-use tiberius_dependencies::sqlxmq::JobRegistry;
 use tiberius_core::{
     app::DBPool, config::Configuration, error::TiberiusResult, state::TiberiusState,
 };
-use tiberius_dependencies::cron::Schedule;
-use tiberius_models::Client;
-use tiberius_dependencies::prelude::*;
+use tiberius_dependencies::chrono::Duration;
 use tiberius_dependencies::chrono::Utc;
-use tiberius_dependencies::tokio;
+use tiberius_dependencies::cron::Schedule;
+use tiberius_dependencies::prelude::*;
 use tiberius_dependencies::sqlxmq;
+use tiberius_dependencies::sqlxmq::JobRegistry;
+use tiberius_dependencies::tokio;
+use tiberius_models::Client;
 
 use crate::scheduler::{Instant, Job};
 
@@ -91,7 +91,7 @@ pub async fn scheduler(db: DBPool, config: Configuration) -> ! {
                         .await
                 });
                 Ok(())
-            })
+            }),
         });
     }
     {
@@ -104,7 +104,7 @@ pub async fn scheduler(db: DBPool, config: Configuration) -> ! {
             fun: Box::new(move |i: Instant| -> TiberiusResult<()> {
                 info!("Starting reindex_images job");
                 let db = db.clone();
-                let config = reindex_images::ImageReindexConfig{
+                let config = reindex_images::ImageReindexConfig {
                     only_new: true,
                     ..Default::default()
                 };
@@ -169,17 +169,22 @@ pub async fn scheduler(db: DBPool, config: Configuration) -> ! {
             }),
         })
     }
-    
+
     info!("Starting scheduler");
     loop {
         let time_to_next = sched.time_to_next();
         if time_to_next.num_milliseconds() < 0 {
-            warn!("Scheduler is being fucky, sleeping and forcing an update of the scheduler state");
+            warn!(
+                "Scheduler is being fucky, sleeping and forcing an update of the scheduler state"
+            );
             sched.force_update_next_tick();
             tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             continue;
         }
-        info!("Next scheduler tick: {:.3} sec", time_to_next.num_milliseconds() as f64 / 1000f64);
+        info!(
+            "Next scheduler tick: {:.3} sec",
+            time_to_next.num_milliseconds() as f64 / 1000f64
+        );
         tokio::time::sleep(time_to_next.to_std().unwrap()).await;
         match sched.run_unticked_jobs::<tiberius_core::error::TiberiusError>(Utc::now()) {
             Ok(_) => (),

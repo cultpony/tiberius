@@ -1,4 +1,4 @@
-use crate::pages::common::{pluralize, camoed_url};
+use crate::pages::common::{camoed_url, pluralize};
 use crate::pages::tags::{PathTagsByNameShowTag, PathTagsShowTag};
 use axum_extra::routing::TypedPath;
 use maud::{html, Markup};
@@ -6,7 +6,11 @@ use tiberius_core::error::TiberiusResult;
 use tiberius_core::state::TiberiusState;
 use tiberius_models::{Channel, Client};
 
-pub async fn channel_box(state: &TiberiusState, client: &mut Client, channel: &Channel) -> TiberiusResult<Markup> {
+pub async fn channel_box(
+    state: &TiberiusState,
+    client: &mut Client,
+    channel: &Channel,
+) -> TiberiusResult<Markup> {
     let channel_route = "";
     let link_class = "media-box__header media-box__header--channel media-box__header--link";
     let artist_tag = channel.associated_artist_tag(client).await?;

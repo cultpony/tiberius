@@ -3,12 +3,12 @@ use std::ops::Range;
 use crate::SharedCtx;
 use sqlxmq::{Checkpoint, CurrentJob};
 use tiberius_core::error::TiberiusResult;
-use tiberius_models::Image;
-use tiberius_dependencies::sentry;
 use tiberius_dependencies::prelude::*;
-use tiberius_dependencies::serde_json;
+use tiberius_dependencies::sentry;
 use tiberius_dependencies::serde;
+use tiberius_dependencies::serde_json;
 use tiberius_dependencies::sqlxmq;
+use tiberius_models::Image;
 
 #[derive(serde::Deserialize, serde::Serialize, Clone, Debug)]
 pub struct RefreshCachelineConfig {
@@ -21,13 +21,16 @@ pub async fn run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult
     sentry::configure_scope(|scope| {
         scope.clear();
     });
-    let tx = sentry::start_transaction(sentry::TransactionContext::new("refresh_cachelines", "queue.task"));
+    let tx = sentry::start_transaction(sentry::TransactionContext::new(
+        "refresh_cachelines",
+        "queue.task",
+    ));
     match tx_run_job(current_job, sctx).await {
         Ok(()) => {
             tx.set_status(sentry::protocol::SpanStatus::Ok);
             tx.finish();
             Ok(())
-        },
+        }
         Err(e) => {
             tx.set_status(sentry::protocol::SpanStatus::InternalError);
             tx.set_data("error_msg", serde_json::Value::String(e.to_string()));

@@ -1,4 +1,4 @@
-use axum::{response::Redirect, Extension, Form, Router, extract::State};
+use axum::{extract::State, response::Redirect, Extension, Form, Router};
 use axum_extra::routing::{RouterExt, TypedPath};
 use maud::{html, Markup, PreEscaped};
 use serde::Deserialize;
@@ -137,22 +137,23 @@ pub async fn post_new_session(
                 rstate.db_session_mut().set_longterm(true);
                 rstate.db_session_mut().set_store(true);
                 rstate.push_session_update().await;
-                Ok((flash.info("Login successfull!"), Redirect::to(
-                    PathActivityIndex {}.to_uri().to_string().as_str(),
-                )))
+                Ok((
+                    flash.info("Login successfull!"),
+                    Redirect::to(PathActivityIndex {}.to_uri().to_string().as_str()),
+                ))
             }
             UserLoginResult::Invalid => {
                 debug!("password disagree");
                 Ok((
                     flash.error("User or password incorrect"),
-                    Redirect::to(retry.to_string().as_str())
+                    Redirect::to(retry.to_string().as_str()),
                 ))
             }
             UserLoginResult::RetryWithTOTP => {
                 debug!("password agree, TOTP missing");
                 Ok((
                     flash.error("User or password incorrect"),
-                    Redirect::to(retry.to_string().as_str())
+                    Redirect::to(retry.to_string().as_str()),
                 ))
             }
         }
@@ -189,7 +190,8 @@ pub async fn get_destroy_session(
     session.unset_user();
     rstate.push_session_update().await;
     rstate.db_session_mut().destroy();
-    Ok((flash.info("You have been logged out"), Redirect::to(
-        PathActivityIndex {}.to_uri().to_string().as_str(),
-    )))
+    Ok((
+        flash.info("You have been logged out"),
+        Redirect::to(PathActivityIndex {}.to_uri().to_string().as_str()),
+    ))
 }

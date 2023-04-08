@@ -2,7 +2,6 @@ use std::{borrow::Cow, fmt::Display, path::PathBuf};
 
 use axum::http::Uri;
 use axum_extra::routing::TypedPath;
-use tiberius_dependencies::chrono::Datelike;
 use itertools::Itertools;
 use maud::{html, Markup, Render};
 use tiberius_core::{
@@ -10,13 +9,16 @@ use tiberius_core::{
     session::{SessionMode, Unauthenticated},
     state::{TiberiusRequestState, TiberiusState},
 };
+use tiberius_dependencies::chrono::Datelike;
 use tiberius_models::{
-    Client, Image, ImageSortBy, ImageThumbType, ImageThumbUrl, SortDirection, User, PathImageThumbGet,
+    Client, Image, ImageSortBy, ImageThumbType, ImageThumbUrl, PathImageThumbGet, SortDirection,
+    User,
 };
 
 use crate::pages::{
     common::{frontmatter::CSSWidth, pagination::PaginationCtl},
-    images::PathShowImage, PathImageThumbGetSimple,
+    images::PathShowImage,
+    PathImageThumbGetSimple,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -199,7 +201,6 @@ pub async fn image_block<
         }
     })
 }
-
 
 pub async fn show_vote_counts(
     state: &TiberiusState,

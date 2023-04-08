@@ -1,10 +1,12 @@
 use crate::session::SessionMode;
 
-
-pub fn render_link<S: AsRef<str>>(link: impl axum_extra::routing::TypedPath, text: S) -> maud::PreEscaped<String> {
+pub fn render_link<S: AsRef<str>>(
+    link: impl axum_extra::routing::TypedPath,
+    text: S,
+) -> maud::PreEscaped<String> {
     let url = link.to_uri().to_string();
     let texts: &str = text.as_ref();
-    maud::html!{
+    maud::html! {
         a href=(url) { (texts) }
     }
 }
@@ -13,14 +15,14 @@ pub fn render_ext_link<S: AsRef<str>>(link: axum::http::Uri, text: S) -> maud::P
     assert!(link.host().is_some(), "External Links must have host");
     let url = link.to_string();
     let texts: &str = text.as_ref();
-    maud::html!{
+    maud::html! {
         a href=(url) rel="external nofollow noopener noreferrer" referrerpolicy="no-referrer" { (texts) }
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::links::{render_link, render_ext_link};
+    use crate::links::{render_ext_link, render_link};
     use crate::session::Testing;
 
     #[test]
@@ -28,9 +30,13 @@ mod test {
         #[derive(axum_extra::routing::TypedPath, Debug, serde::Deserialize)]
         #[typed_path("/example/url")]
         struct BasicUrl {}
-        assert_eq!(maud::html!{
-            a href="/example/url" { "test" }
-        }.0, render_link(BasicUrl{}, "test").0);
+        assert_eq!(
+            maud::html! {
+                a href="/example/url" { "test" }
+            }
+            .0,
+            render_link(BasicUrl {}, "test").0
+        );
     }
 
     #[test]
@@ -45,6 +51,9 @@ mod test {
     #[should_panic = "External Links must have host"]
     pub fn test_ext_link_generation_non_external() {
         use std::str::FromStr;
-        assert_eq!("MUST PANIC", render_ext_link(axum::http::Uri::from_str("/folder/file").unwrap(), "test").0);
+        assert_eq!(
+            "MUST PANIC",
+            render_ext_link(axum::http::Uri::from_str("/folder/file").unwrap(), "test").0
+        );
     }
 }

@@ -1,4 +1,4 @@
-use axum::{response::Redirect, Extension, Form, extract::State};
+use axum::{extract::State, response::Redirect, Extension, Form};
 use axum_extra::routing::TypedPath;
 use maud::{html, Markup, PreEscaped};
 use serde::Deserialize;
@@ -276,12 +276,13 @@ pub async fn new_category(
         .invalidate(&PageSubtextCacheTag::staff_page_content(&current_user))
         .await;
 
-    Ok((flash.error(format!(
-        "Created new category {} ({})",
-        cat.display_name, cat.id
-    )), Redirect::to(
-        PathShowStaffPage {}.to_uri().to_string().as_str(),
-    )))
+    Ok((
+        flash.error(format!(
+            "Created new category {} ({})",
+            cat.display_name, cat.id
+        )),
+        Redirect::to(PathShowStaffPage {}.to_uri().to_string().as_str()),
+    ))
 }
 
 #[derive(Deserialize, Debug)]
@@ -338,12 +339,13 @@ pub async fn add_user_to_category(
         .invalidate(&PageSubtextCacheTag::staff_page_content(&current_user))
         .await;
 
-    Ok((flash.error(format!(
-        "Add user {:?} ({}) to category {}",
-        cat_user.display_name, cat_user.id, cat_user.staff_category_id
-    )), Redirect::to(
-        PathShowStaffPage {}.to_uri().to_string().as_str(),
-    )))
+    Ok((
+        flash.error(format!(
+            "Add user {:?} ({}) to category {}",
+            cat_user.display_name, cat_user.id, cat_user.staff_category_id
+        )),
+        Redirect::to(PathShowStaffPage {}.to_uri().to_string().as_str()),
+    ))
 }
 
 #[derive(Debug)]
@@ -420,9 +422,10 @@ pub async fn edit_user_entry(
         .invalidate(&PageSubtextCacheTag::staff_page_content(&current_user))
         .await;
 
-    Ok((flash.error("Entry saved"), Redirect::to(
-        PathShowStaffPage {}.to_uri().to_string().as_str(),
-    )))
+    Ok((
+        flash.error("Entry saved"),
+        Redirect::to(PathShowStaffPage {}.to_uri().to_string().as_str()),
+    ))
 }
 
 // TODO: allow user to hide from staff list

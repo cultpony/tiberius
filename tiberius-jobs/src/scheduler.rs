@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 
-use tiberius_dependencies::chrono::{DateTime, Utc, Duration};
-use tiberius_dependencies::futures_util::future::BoxFuture;
-use tiberius_dependencies::sqlx::Postgres;
 use tiberius_core::error::{TiberiusError, TiberiusResult};
 use tiberius_core::NodeId;
-use tiberius_dependencies::{cron, atomic, prelude::*, uuid::Uuid};
 use tiberius_dependencies::atomic::{Atomic, Ordering};
+use tiberius_dependencies::chrono::{DateTime, Duration, Utc};
+use tiberius_dependencies::futures_util::future::BoxFuture;
 use tiberius_dependencies::serde;
+use tiberius_dependencies::sqlx::Postgres;
+use tiberius_dependencies::{atomic, cron, prelude::*, uuid::Uuid};
 
 #[derive(Debug)]
 pub struct Scheduler {
@@ -35,7 +35,7 @@ impl Scheduler {
 
     /// Updates the next_scheduled variable in the struct to the nearest datetime that must
     /// be scheduled.
-    /// 
+    ///
     /// Will only update if the next_scheduled datetime has passed
     fn update_next_tick(&mut self) -> bool {
         if self.next_scheduled.load(Ordering::SeqCst) > Utc::now() {
@@ -55,7 +55,7 @@ impl Scheduler {
                 Some(time) if time < next => {
                     debug!("Found better schedule: {time:?} over {next:?}");
                     next = time
-                },
+                }
                 Some(_) => (),
             }
             if job.max_delay < shortest {
@@ -81,7 +81,7 @@ impl Scheduler {
                 None => (),
                 Some(next) => {
                     if time > next {
-                        jobs.push(j) 
+                        jobs.push(j)
                     }
                 }
             }
@@ -92,7 +92,7 @@ impl Scheduler {
     pub fn run_unticked_jobs<E>(&mut self, time: DateTime<Utc>) -> Result<(), TiberiusError> {
         let (jobs, moment) = self.unticked_jobs(time);
         for job in jobs {
-            let instant = Instant{
+            let instant = Instant {
                 call_time: Utc::now(),
                 sched_time: time,
                 plan_time: moment,
@@ -109,7 +109,7 @@ pub struct Job {
     /// Schedule of the job
     pub interval: cron::Schedule,
     /// Record the last time the job ran
-    /// 
+    ///
     /// When creating, this should be set to Utc::now, otherwise it's usable
     /// to determine when the job will *first* run.
     pub last: tiberius_dependencies::chrono::DateTime<Utc>,

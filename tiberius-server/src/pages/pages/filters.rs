@@ -1,11 +1,11 @@
 use axum::extract::State;
 use axum::{Extension, Router};
-use axum_extra::routing::{TypedPath, RouterExt};
+use axum_extra::routing::{RouterExt, TypedPath};
 use maud::html;
 use serde::Deserialize;
 use tiberius_core::app::PageTitle;
 use tiberius_core::error::TiberiusResult;
-use tiberius_core::request_helper::{TiberiusResponse, HtmlResponse};
+use tiberius_core::request_helper::{HtmlResponse, TiberiusResponse};
 use tiberius_core::session::Unauthenticated;
 use tiberius_core::state::{TiberiusRequestState, TiberiusState};
 
@@ -28,7 +28,7 @@ pub async fn index(
     //TODO: set image title correctly
     let mut client = state.get_db_client();
     let user = rstate.user(&state).await?;
-    let body = html!{
+    let body = html! {
         .walloftext {
             .block.block--fixed.block--warning {
                 h2 { "Content Safety" }
@@ -78,7 +78,7 @@ pub async fn index(
                     (filter_listing_item(&filter, &state, Some(user)).await?)
                 }
             } @else {
-                p { 
+                p {
                     "If you're logged in, you can create and maintain custom filters here"
                 }
             }

@@ -1,6 +1,10 @@
 use std::collections::BTreeMap;
 
-use axum::{handler::{Handler, HandlerWithoutStateExt}, http::Request, Extension, Router};
+use axum::{
+    handler::{Handler, HandlerWithoutStateExt},
+    http::Request,
+    Extension, Router,
+};
 use axum_extra::routing::TypedPath;
 use sentry::{Breadcrumb, TransactionContext};
 use serde_json::{json, Value};
@@ -14,7 +18,7 @@ use tiberius_core::{
     CSPHeader,
 };
 use tiberius_dependencies::{
-    axum_database_sessions::{SessionPgPool, SessionConfig, SessionStore},
+    axum_database_sessions::{SessionConfig, SessionPgPool, SessionStore},
     axum_sessions_auth, sentry,
     tower::ServiceBuilder,
 };
@@ -34,7 +38,6 @@ pub async fn run_migrations(
 }
 
 pub fn setup_all_routes(router: Router<TiberiusState>) -> Router<TiberiusState> {
-
     let router = crate::api::int::setup_api_int(router);
     let router = crate::api::well_known::setup_well_known(router);
     let router = pages::activity::activity_pages(router);
@@ -48,7 +51,6 @@ pub fn setup_all_routes(router: Router<TiberiusState>) -> Router<TiberiusState> 
     let router = tiberius_core::assets::embedded_file_pages(router);
 
     router
-
 }
 
 pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResult<axum::Router> {
@@ -83,19 +85,22 @@ pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResu
 
     let router = router.fallback(not_found_page);
 
-    let router = router.with_state::<()>(TiberiusState::new(
-        config.clone(),
-        UrlDirections {
-            login_page: PathSessionsLogin {}.to_uri(),
-        },
-        csrf_config,
-        axum_flash::Config::new(flash_key).use_secure_cookies(true /* TODO: determine HTTPS protocol here */),
-        CSPHeader {
-            static_host: config.cdn_host.clone(),
-            camo_host: config.camo_config().map(|(host, _)| host.clone()),
-        },
-    )
-    .await?);
+    let router = router.with_state::<()>(
+        TiberiusState::new(
+            config.clone(),
+            UrlDirections {
+                login_page: PathSessionsLogin {}.to_uri(),
+            },
+            csrf_config,
+            axum_flash::Config::new(flash_key)
+                .use_secure_cookies(true /* TODO: determine HTTPS protocol here */),
+            CSPHeader {
+                static_host: config.cdn_host.clone(),
+                camo_host: config.camo_config().map(|(host, _)| host.clone()),
+            },
+        )
+        .await?,
+    );
 
     Ok(router)
 }

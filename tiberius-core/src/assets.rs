@@ -3,7 +3,7 @@ use std::{borrow::Cow, collections::BTreeMap, path::PathBuf, str::FromStr};
 use anyhow::Context;
 use async_std::sync::RwLock;
 use axum::extract::State;
-use axum::{Router, Extension};
+use axum::{Extension, Router};
 use tiberius_dependencies::axum::headers::{ContentType, HeaderMapExt};
 use tokio::io::AsyncReadExt;
 use tracing::info;
@@ -35,7 +35,10 @@ pub struct Assets;
 #[typed_path("/favicon.ico")]
 pub struct GetFaviconIco {}
 
-pub async fn serve_favicon_ico(_: GetFaviconIco, State(state): State<TiberiusState>) -> TiberiusResult<FileResponse> {
+pub async fn serve_favicon_ico(
+    _: GetFaviconIco,
+    State(state): State<TiberiusState>,
+) -> TiberiusResult<FileResponse> {
     if state.config().try_use_ondisk_favicon {
         let base = PathBuf::from_str(&state.config().static_root)?;
         let favicon = base.join("favicon.ico");
@@ -49,7 +52,10 @@ pub async fn serve_favicon_ico(_: GetFaviconIco, State(state): State<TiberiusSta
 #[derive(TypedPath, serde::Deserialize)]
 #[typed_path("/favicon.svg")]
 pub struct GetFaviconSvg {}
-pub async fn serve_favicon_svg(_: GetFaviconSvg, State(state): State<TiberiusState>) -> TiberiusResult<FileResponse> {
+pub async fn serve_favicon_svg(
+    _: GetFaviconSvg,
+    State(state): State<TiberiusState>,
+) -> TiberiusResult<FileResponse> {
     if state.config().try_use_ondisk_favicon {
         let base = PathBuf::from_str(&state.config().static_root)?;
         let favicon = base.join("favicon.svg");
@@ -112,7 +118,10 @@ pub async fn serve_static_file(file: PathBuf) -> TiberiusResult<FileResponse> {
 
 pub async fn serve_disk_file(state: &TiberiusState, file: PathBuf) -> TiberiusResult<FileResponse> {
     trace!("Serving disk file {:?}", file);
-    assert!(file.starts_with(state.config().static_root.clone()), "Disk Files must come from Static Root or known safe file location");
+    assert!(
+        file.starts_with(state.config().static_root.clone()),
+        "Disk Files must come from Static Root or known safe file location"
+    );
     let path = file.clone();
     let file = tokio::fs::File::open(file).await;
     Ok(match file {
@@ -121,7 +130,7 @@ pub async fn serve_disk_file(state: &TiberiusState, file: PathBuf) -> TiberiusRe
             return Err(TiberiusError::Other(format!(
                 "file {} not found",
                 path.display()
-            )))
+            )));
         }
         Ok(mut file) => {
             let content_type =
@@ -137,7 +146,12 @@ pub async fn serve_disk_file(state: &TiberiusState, file: PathBuf) -> TiberiusRe
             hm.typed_insert(ContentType::from(content_type));
             let mut buffer = Vec::with_capacity(file.metadata().await?.len() as usize);
             let read = file.read_to_end(&mut buffer).await?;
-            assert!(read == buffer.len(), "Under or overread, wanted {} bytes got {} bytes", buffer.len(), read);
+            assert!(
+                read == buffer.len(),
+                "Under or overread, wanted {} bytes got {} bytes",
+                buffer.len(),
+                read
+            );
             let buffer = Cow::from(buffer);
             FileResponse {
                 content: buffer,

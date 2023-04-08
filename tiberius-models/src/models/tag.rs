@@ -1,11 +1,11 @@
 use std::{cmp::Ordering, ops::DerefMut, pin::Pin, sync::Arc};
 
 use async_std::sync::RwLock;
-use tiberius_dependencies::chrono::{NaiveDate, NaiveDateTime, Utc};
 use futures::Stream;
 use itertools::Itertools;
 use sqlx::{postgres::PgRow, query_as, Executor, PgPool};
 use tantivy::{Document, IndexWriter};
+use tiberius_dependencies::chrono::{NaiveDate, NaiveDateTime, Utc};
 use tiberius_search::{Queryable, SortIndicator};
 
 use crate::{

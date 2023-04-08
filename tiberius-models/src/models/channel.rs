@@ -1,9 +1,9 @@
 use std::{io::Write, ops::DerefMut, str::FromStr};
 
 use crate::{Client, PhilomenaModelError, Tag};
-use tiberius_dependencies::chrono::NaiveDateTime;
 use itertools::Itertools;
 use sqlx::{query_as, Postgres};
+use tiberius_dependencies::chrono::NaiveDateTime;
 use tracing::trace;
 
 #[derive(sqlx::FromRow, Debug, Clone, serde::Deserialize, serde::Serialize)]

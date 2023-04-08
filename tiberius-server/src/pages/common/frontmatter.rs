@@ -1,6 +1,5 @@
 use axum::headers::{HeaderMapExt, UserAgent};
 use axum_extra::routing::TypedPath;
-use tiberius_dependencies::chrono::{DateTime, NaiveDateTime, Utc};
 use itertools::Itertools;
 use std::{
     collections::BTreeMap,
@@ -16,6 +15,7 @@ use tiberius_core::{
     state::{SiteNotices, TiberiusRequestState, TiberiusState},
 };
 use tiberius_dependencies::axum_flash::{Flash, IncomingFlashes};
+use tiberius_dependencies::chrono::{DateTime, NaiveDateTime, Utc};
 
 use crate::{
     api::int::oembed::PathOembed,
@@ -720,8 +720,16 @@ pub async fn clientside_data<'a, T: SessionMode>(
         );
         insert_csd!(data, spoiler_type, user.user_settings.spoiler_type);
         insert_csd!(data, watched_tag_list, user.user_settings.watched_tag_ids);
-        insert_csd!(data, fancy_tag_edit, user.user_settings.fancy_tag_field_on_edit);
-        insert_csd!(data, fancy_tag_upload, user.user_settings.fancy_tag_field_on_upload);
+        insert_csd!(
+            data,
+            fancy_tag_edit,
+            user.user_settings.fancy_tag_field_on_edit
+        );
+        insert_csd!(
+            data,
+            fancy_tag_upload,
+            user.user_settings.fancy_tag_field_on_upload
+        );
         insert_csd!(
             data,
             ignored_tag_list,

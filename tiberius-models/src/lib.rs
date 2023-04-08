@@ -26,15 +26,15 @@ use async_std::sync::{RwLock, RwLockWriteGuard};
 use maud::PreEscaped;
 pub use models::*;
 
-use tiberius_dependencies::chrono::NaiveDateTime;
 pub use tantivy::TantivyError;
+use tiberius_dependencies::base64;
+use tiberius_dependencies::chrono::NaiveDateTime;
 use tiberius_dependencies::reqwest;
 use tiberius_dependencies::{
     moka::future::Cache,
     totp_rs::{self, TotpUrlError},
 };
 pub use tiberius_search::{QueryError, Queryable};
-use tiberius_dependencies::base64;
 
 use async_trait::async_trait;
 use sqlx::{pool::PoolConnection, PgPool, Postgres};
@@ -255,6 +255,9 @@ impl From<&mut PgPool> for Client {
     }
 }
 
+type BoxedFetchManyResult<DB> =
+    itertools::Either<<DB as sqlx::Database>::QueryResult, <DB as sqlx::Database>::Row>;
+
 impl<'c> sqlx::Executor<'c> for &mut Client {
     type Database = sqlx::Postgres;
 
@@ -262,22 +265,17 @@ impl<'c> sqlx::Executor<'c> for &mut Client {
     fn fetch_many<'e, 'q: 'e, E: 'q>(
         self,
         query: E,
-    ) -> futures::stream::BoxStream<
-        'e,
-        Result<
-            itertools::Either<
-                <Self::Database as sqlx::Database>::QueryResult,
-                <Self::Database as sqlx::Database>::Row,
-            >,
-            sqlx::Error,
-        >,
-    >
+    ) -> futures::stream::BoxStream<'e, Result<BoxedFetchManyResult<Self::Database>, sqlx::Error>>
     where
         'c: 'e,
         E: sqlx::Execute<'q, Self::Database>,
     {
         use tiberius_dependencies::tracing_futures::{Instrument, WithSubscriber};
-        Box::pin(self.db.fetch_many(query).instrument(tracing::span::Span::current()))
+        Box::pin(
+            self.db
+                .fetch_many(query)
+                .instrument(tracing::span::Span::current()),
+        )
         //Box::pin(self.db.fetch_many(query).instrument(tracing::debug_span!("fetch_many")))
     }
 
@@ -294,7 +292,11 @@ impl<'c> sqlx::Executor<'c> for &mut Client {
         E: sqlx::Execute<'q, Self::Database>,
     {
         use tiberius_dependencies::tracing_futures::Instrument;
-        Box::pin(self.db.fetch_optional(query).instrument(tracing::span::Span::current()))
+        Box::pin(
+            self.db
+                .fetch_optional(query)
+                .instrument(tracing::span::Span::current()),
+        )
     }
 
     #[instrument(skip(parameters))]
@@ -310,7 +312,11 @@ impl<'c> sqlx::Executor<'c> for &mut Client {
         'c: 'e,
     {
         use tiberius_dependencies::tracing_futures::Instrument;
-        Box::pin(self.db.prepare_with(sql, parameters).instrument(tracing::span::Span::current()))
+        Box::pin(
+            self.db
+                .prepare_with(sql, parameters)
+                .instrument(tracing::span::Span::current()),
+        )
     }
 
     #[instrument]
@@ -322,7 +328,11 @@ impl<'c> sqlx::Executor<'c> for &mut Client {
         'c: 'e,
     {
         use tiberius_dependencies::tracing_futures::Instrument;
-        Box::pin(self.db.describe(sql).instrument(tracing::span::Span::current()))
+        Box::pin(
+            self.db
+                .describe(sql)
+                .instrument(tracing::span::Span::current()),
+        )
     }
 }
 

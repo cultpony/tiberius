@@ -8,12 +8,10 @@ use std::{
 use async_std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use async_trait::async_trait;
 use axum::headers::{self, Header};
-use tiberius_dependencies::chrono::{Duration, NaiveDateTime, Utc};
 use sqlx::{pool::PoolConnection, PgPool, Postgres};
+use tiberius_dependencies::chrono::{Duration, NaiveDateTime, Utc};
 use tiberius_dependencies::uuid;
 use tiberius_dependencies::{
-    base64,
-    base64::Engine,
     async_once_cell::OnceCell,
     axum,
     axum::{
@@ -25,8 +23,10 @@ use tiberius_dependencies::{
         http::StatusCode,
         middleware::Next,
     },
-    axum_database_sessions::{DatabasePool, SessionPgPool, Session as AxumSession},
+    axum_database_sessions::{DatabasePool, Session as AxumSession, SessionPgPool},
     axum_extra::extract::{cookie::Cookie, CookieJar},
+    base64,
+    base64::Engine,
     http::Request,
 };
 use tiberius_models::{Client, User};
@@ -58,7 +58,7 @@ pub struct Unauthenticated {}
 
 #[cfg(test)]
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub struct Testing{}
+pub struct Testing {}
 
 impl SessionMode for Authenticated {}
 impl SessionMode for Unauthenticated {}

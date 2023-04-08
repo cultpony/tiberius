@@ -2,7 +2,7 @@ use std::{io::Seek, str::FromStr};
 
 use async_std::path::PathBuf;
 use async_trait::async_trait;
-use axum::extract::{RawQuery, FromRequestParts, State};
+use axum::extract::{FromRequestParts, RawQuery, State};
 use axum::http::request::Parts;
 use axum::{
     body::HttpBody,
@@ -11,7 +11,6 @@ use axum::{
     Extension, Router,
 };
 use axum_extra::routing::{RouterExt, TypedPath};
-use tiberius_dependencies::chrono::{DateTime, Utc};
 use itertools::Itertools;
 use maud::{html, Markup, PreEscaped};
 use serde::{Deserialize, Serialize};
@@ -27,6 +26,7 @@ use tiberius_core::{
     state::{TiberiusRequestState, TiberiusState},
     PathQuery,
 };
+use tiberius_dependencies::chrono::{DateTime, Utc};
 use tiberius_dependencies::serde_urlencoded;
 use tiberius_dependencies::{axum_flash::Flash, mime, sentry};
 use tiberius_models::PathImageGetFull;
@@ -134,12 +134,19 @@ pub async fn show_random_image(
     // TODO: ensure acceptable by filter
     let mut client = state.get_db_client();
     let image = Image::random(&mut client).await?;
-    Ok(TiberiusResponse::Redirect(Redirect::temporary(PathShowImage{image: image.id().into()}.to_uri().to_string().as_str())))
+    Ok(TiberiusResponse::Redirect(Redirect::temporary(
+        PathShowImage {
+            image: image.id().into(),
+        }
+        .to_uri()
+        .to_string()
+        .as_str(),
+    )))
 }
 
 #[instrument(skip(state, rstate))]
 pub async fn show_navigate_image(
-    PathNavigateImage{ image: id }: PathNavigateImage,
+    PathNavigateImage { image: id }: PathNavigateImage,
     raw_query: RawQuery,
     //Query(navigate): Query<NavigateRelation>,
     State(state): State<TiberiusState>,
@@ -147,15 +154,19 @@ pub async fn show_navigate_image(
 ) -> TiberiusResult<TiberiusResponse<()>> {
     set_scope_tx!("GET /images/:image/navigate");
     let query = raw_query.0.unwrap_or_default();
-    let QueryNavigateImage{ rel, .. } = serde_urlencoded::from_str(&query)?;
+    let QueryNavigateImage { rel, .. } = serde_urlencoded::from_str(&query)?;
     // TODO: ensure acceptable by filter
     let mut client = state.get_db_client();
     let image = match rel {
         NavigateRelation::Next => Image::get_next_from(&mut client, id as i64).await?,
         NavigateRelation::Find => None,
         NavigateRelation::Prev => Image::get_previous_from(&mut client, id as i64).await?,
-    }.map(|x| x.id().into()).unwrap_or(id);
-    Ok(TiberiusResponse::Redirect(Redirect::temporary(PathShowImage{image: image}.to_uri().to_string().as_str())))
+    }
+    .map(|x| x.id().into())
+    .unwrap_or(id);
+    Ok(TiberiusResponse::Redirect(Redirect::temporary(
+        PathShowImage { image: image }.to_uri().to_string().as_str(),
+    )))
 }
 
 #[derive(TypedPath, Deserialize)]
@@ -216,7 +227,8 @@ pub async fn show_image(
         None => {
             return Ok(TiberiusResponse::Redirect(Redirect::to(
                 PathActivityIndex {}.to_uri().to_string().as_str(),
-            )).with_flash(flash.warning("Image not found")));
+            ))
+            .with_flash(flash.warning("Image not found")));
         }
     };
     let allow_merge_duplicate: bool = verify_acl(
@@ -359,7 +371,8 @@ pub async fn show_image(
     //TODO: compute this
     let use_fullsize = true;
     let scaled_value: f32 = 1.0;
-    let data_uris = image.image_thumb_urls()
+    let data_uris = image
+        .image_thumb_urls()
         .await?
         .with_host(Some(state.config().static_host(Some(&rstate))));
     let data_uris = serde_json::to_string(&data_uris)?;
@@ -536,7 +549,8 @@ pub async fn show_image(
     .await?;
     Ok(TiberiusResponse::Html(HtmlResponse {
         content: app.into_string(),
-    }).with_flash(flash))
+    })
+    .with_flash(flash))
 }
 
 #[derive(TypedPath, Deserialize, Debug)]
@@ -699,11 +713,13 @@ pub struct ImageUpload {
 }
 
 #[async_trait]
-impl FromRequestParts<TiberiusState> for ImageUpload
-{
+impl FromRequestParts<TiberiusState> for ImageUpload {
     type Rejection = TiberiusError;
 
-    async fn from_request_parts(req: &mut Parts, state: &TiberiusState) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(
+        req: &mut Parts,
+        state: &TiberiusState,
+    ) -> Result<Self, Self::Rejection> {
         let limit = state.config().upload_max_size;
         let multipart = todo!();
         Ok(spool_multipart(multipart, limit).await?)
@@ -1137,9 +1153,7 @@ pub struct PathImageRepairThumbnails {
 
 #[instrument(skip(state, rstate))]
 pub async fn repair_image_thumbnail(
-    PathImageRepairThumbnails {
-        image,
-    }: PathImageRepairThumbnails,
+    PathImageRepairThumbnails { image }: PathImageRepairThumbnails,
     State(state): State<TiberiusState>,
     rstate: TiberiusRequestState<Unauthenticated>,
 ) -> TiberiusResult<TiberiusResponse<()>> {
@@ -1152,10 +1166,11 @@ pub async fn repair_image_thumbnail(
     )
     .await?;
     assert!(allow_repair_image);
-    let config = tiberius_jobs::generate_thumbnails::GenerateThumbnailConfig{
+    let config = tiberius_jobs::generate_thumbnails::GenerateThumbnailConfig {
         image_id: image as u64,
     };
-    tiberius_jobs::generate_thumbnails::generate_thumbnails(&mut state.get_db_client(), config).await?;
+    tiberius_jobs::generate_thumbnails::generate_thumbnails(&mut state.get_db_client(), config)
+        .await?;
     Ok(TiberiusResponse::Other(()))
 }
 
@@ -1166,22 +1181,18 @@ mod test {
 
     #[test]
     pub fn test_image_relation_deserialization() {
-        let query = QueryNavigateImage{
+        let query = QueryNavigateImage {
             rel: NavigateRelation::Next,
-            search_query: Some(QuerySearchQuery{
-                query: None,
-            }),
+            search_query: Some(QuerySearchQuery { query: None }),
         };
         let query_str = serde_qs::to_string(&query).unwrap();
         assert_eq!("rel=next", query_str);
         let query_dec = serde_qs::from_str(&query_str).unwrap();
         assert_eq!(query, query_dec);
 
-        let query = QueryNavigateImage{
+        let query = QueryNavigateImage {
             rel: NavigateRelation::Next,
-            search_query: Some(QuerySearchQuery{
-                query: None,
-            }),
+            search_query: Some(QuerySearchQuery { query: None }),
         };
         let query_str = serde_urlencoded::to_string(&query).unwrap();
         assert_eq!("rel=next", query_str);

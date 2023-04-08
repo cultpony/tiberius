@@ -1,7 +1,7 @@
 use std::ops::DerefMut;
 
-use tiberius_dependencies::chrono::NaiveDateTime;
 use sqlx::query_as;
+use tiberius_dependencies::chrono::NaiveDateTime;
 use tiberius_dependencies::hex;
 use tracing::trace;
 

@@ -1,3 +1,4 @@
+use crate::set_scope_tx;
 use axum::{
     extract::{Query, State},
     http::{HeaderMap, HeaderValue},
@@ -11,7 +12,6 @@ use tiberius_core::{
     state::{TiberiusRequestState, TiberiusState},
 };
 use tiberius_models::{Client, Tag, TagLike};
-use crate::set_scope_tx;
 
 use crate::pages::todo_page;
 

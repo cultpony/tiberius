@@ -1,5 +1,5 @@
-use tiberius_dependencies::chrono::{Utc, NaiveDateTime};
 use sqlx::types::ipnetwork::IpNetwork;
+use tiberius_dependencies::chrono::{NaiveDateTime, Utc};
 
 #[derive(sqlx::FromRow, Debug, Clone, PartialEq)]
 pub struct UserHistory {
@@ -28,7 +28,6 @@ pub struct UserHistory {
     pub last_renamed_at: NaiveDateTime,
     pub confirmed_at: Option<NaiveDateTime>,
     pub failed_attempts: Option<i32>,
-
 }
 
 impl Default for UserHistory {

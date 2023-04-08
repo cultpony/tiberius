@@ -1,7 +1,7 @@
 use std::ops::DerefMut;
 
-use tiberius_dependencies::chrono::NaiveDateTime;
 use sqlx::query_as;
+use tiberius_dependencies::chrono::NaiveDateTime;
 use tracing::trace;
 
 use crate::{Client, PhilomenaModelError};

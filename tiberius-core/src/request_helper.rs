@@ -11,7 +11,7 @@ use tiberius_dependencies::{
         headers::HeaderMapExt,
         response::{IntoResponse, Redirect},
     },
-    axum_csrf::{CsrfToken, self},
+    axum_csrf::{self, CsrfToken},
     axum_flash::Flash,
 };
 use tiberius_models::{ApiKey, Client, DirectSafeSerialize, Image, SafeSerialize};
@@ -141,7 +141,10 @@ where
     }
 }
 
-impl<T> TiberiusResponse<T> where T: IntoResponse {
+impl<T> TiberiusResponse<T>
+where
+    T: IntoResponse,
+{
     pub fn with_flash(self, flash: Flash) -> TiberiusResponse<(Flash, TiberiusResponse<T>)> {
         TiberiusResponse::Other((flash, self))
     }

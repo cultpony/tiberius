@@ -1,8 +1,9 @@
 use std::fmt;
 
-use axum::Router;
 use axum::extract::State;
+use axum::Router;
 use axum::{extract::Query, response::Redirect, Extension, Form};
+use axum_extra::extract::CookieJar;
 use axum_extra::routing::RouterExt;
 use axum_extra::{extract::cookie::Cookie, routing::TypedPath};
 use maud::{html, Markup};
@@ -18,14 +19,11 @@ use tiberius_core::{
 };
 use tiberius_dependencies::axum_flash::Flash;
 use tiberius_models::{Channel, Client, Image};
-use axum_extra::extract::CookieJar;
 
 use crate::pages::common::{channels::channel_box, pagination::PaginationCtl};
 
 pub fn channel_pages(r: Router<TiberiusState>) -> Router<TiberiusState> {
-    r
-     .typed_get(list_channels)
-     .typed_post(set_nsfw)
+    r.typed_get(list_channels).typed_post(set_nsfw)
 }
 
 #[derive(serde::Deserialize, Debug)]
@@ -53,21 +51,31 @@ pub async fn set_nsfw(
     let fd = fd.into_afd();
     match fd.method() {
         Some(FormMethod::Create) => {
-            let cookie_jar = rstate.cookie_jar.clone().add(Cookie::new("chan_nsfw", "true"));
-            Ok((flash.error("NSFW Channels are now visible"), cookie_jar, Redirect::to(PathChannelsList {}.to_uri().to_string().as_str())))
+            let cookie_jar = rstate
+                .cookie_jar
+                .clone()
+                .add(Cookie::new("chan_nsfw", "true"));
+            Ok((
+                flash.error("NSFW Channels are now visible"),
+                cookie_jar,
+                Redirect::to(PathChannelsList {}.to_uri().to_string().as_str()),
+            ))
         }
         Some(FormMethod::Delete) => {
-            let cookie_jar = rstate.cookie_jar.clone().add(Cookie::new("chan_nsfw", "false"));
+            let cookie_jar = rstate
+                .cookie_jar
+                .clone()
+                .add(Cookie::new("chan_nsfw", "false"));
             Ok((
                 flash.error("NSFW Channels are now no longer visible"),
                 cookie_jar,
-                Redirect::to(PathChannelsList {}.to_uri().to_string().as_str())
+                Redirect::to(PathChannelsList {}.to_uri().to_string().as_str()),
             ))
         }
         _ => Ok((
             flash,
             rstate.cookie_jar,
-            Redirect::to(PathChannelsList {}.to_uri().to_string().as_str())
+            Redirect::to(PathChannelsList {}.to_uri().to_string().as_str()),
         )),
     }
 }
@@ -106,7 +114,12 @@ pub async fn list_channels(
         "",
     )?;
     let show_hide_nsfw_uri = PathSetChannelNsfw {}.to_uri().to_string();
-    let show_nsfw_state = rstate.cookie_jar.get("chan_nsfw").map(|x| x.value()).unwrap_or("false") == "true";
+    let show_nsfw_state = rstate
+        .cookie_jar
+        .get("chan_nsfw")
+        .map(|x| x.value())
+        .unwrap_or("false")
+        == "true";
     let body = html! {
         h1 { "Livestreams" }
         form.hform {

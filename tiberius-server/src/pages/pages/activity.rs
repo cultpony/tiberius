@@ -9,7 +9,7 @@ use crate::pages::{
     },
     images::{PathQuerySearch, PathSearchEmpty, QuerySearch},
 };
-use axum::{Extension, Router, extract::State};
+use axum::{extract::State, Extension, Router};
 use axum_extra::routing::{RouterExt, TypedPath};
 use maud::{html, Markup, PreEscaped};
 use serde::Deserialize;

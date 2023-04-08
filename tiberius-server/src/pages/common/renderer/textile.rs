@@ -51,7 +51,7 @@ mod test {
     pub fn test_common_strike() {
         assert_eq!("<p>with <del>strike</del> text</p>", render_textile("with -strike- text").0);
     }
-    
+
     #[test]
     pub fn test_common_super() {
         assert_eq!("<p><sup>sup</sup></p>", render_textile("^sup^").0);

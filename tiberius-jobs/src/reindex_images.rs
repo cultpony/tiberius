@@ -1,15 +1,15 @@
+use tiberius_core::{config::Configuration, error::TiberiusResult, state::TiberiusState};
 use tiberius_dependencies::futures_util::stream::StreamExt;
 use tiberius_dependencies::itertools::Itertools;
-use tiberius_dependencies::sqlx::{FromRow, Pool, Postgres};
-use tiberius_dependencies::sqlxmq::{job, Checkpoint, CurrentJob};
-use tiberius_core::{config::Configuration, error::TiberiusResult, state::TiberiusState};
-use tiberius_models::{Channel, Client, Image, ImageSortBy};
 use tiberius_dependencies::prelude::*;
 use tiberius_dependencies::sentry;
+use tiberius_dependencies::serde;
 use tiberius_dependencies::serde_json;
 use tiberius_dependencies::sqlx;
-use tiberius_dependencies::serde;
+use tiberius_dependencies::sqlx::{FromRow, Pool, Postgres};
 use tiberius_dependencies::sqlxmq;
+use tiberius_dependencies::sqlxmq::{job, Checkpoint, CurrentJob};
+use tiberius_models::{Channel, Client, Image, ImageSortBy};
 
 use tiberius_models::Queryable;
 
@@ -23,7 +23,7 @@ pub struct ImageReindexConfig {
     pub image_ids: Option<Vec<i64>>,
     /// If set true, only images that are newer than the latest indexed image are reindexed
     /// in addition to all images listed in the image_ids list
-    /// 
+    ///
     /// If no image IDs are listed, this will result in indexing only new images
     pub only_new: bool,
 }
@@ -51,13 +51,16 @@ pub async fn run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult
     sentry::configure_scope(|scope| {
         scope.clear();
     });
-    let tx = sentry::start_transaction(sentry::TransactionContext::new("reindex_images", "queue.task"));
+    let tx = sentry::start_transaction(sentry::TransactionContext::new(
+        "reindex_images",
+        "queue.task",
+    ));
     match tx_run_job(current_job, sctx).await {
         Ok(()) => {
             tx.set_status(sentry::protocol::SpanStatus::Ok);
             tx.finish();
             Ok(())
-        },
+        }
         Err(e) => {
             tx.set_status(sentry::protocol::SpanStatus::InternalError);
             tx.set_data("error_msg", serde_json::Value::String(e.to_string()));
@@ -75,9 +78,16 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
     let progress: ImageReindexConfig = current_job
         .json()?
         .expect("job requires configuration copy");
-    debug!("Job {}: Reindexing listed images ({:?})", current_job.id(), progress.image_ids);
+    debug!(
+        "Job {}: Reindexing listed images ({:?})",
+        current_job.id(),
+        progress.image_ids
+    );
     let mut client = sctx.client;
-    debug!("Job {}: Completed creating missing metadata rows", current_job.id());
+    debug!(
+        "Job {}: Completed creating missing metadata rows",
+        current_job.id()
+    );
     match progress.image_ids {
         None if !progress.only_new => reindex_all(pool, &mut client).await?,
         None if progress.only_new => {
@@ -87,7 +97,7 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
         Some(v) if progress.only_new => {
             reindex_many(&mut client, v).await?;
             reindex_new(&mut client).await?;
-        },
+        }
         _ => unreachable!(),
     }
     debug!("Job {}: Reindex complete!", current_job.id());
@@ -123,13 +133,26 @@ pub async fn reindex_many(client: &mut Client, ids: Vec<i64>) -> TiberiusResult<
 pub async fn reindex_new(client: &mut Client) -> TiberiusResult<()> {
     let i = client.index_reader::<Image>()?;
     let dir = ImageSortBy::CreatedAt(tiberius_models::SortDirection::Descending);
-    let (_, last_image) = Image::search_item(&i, tiberius_search::Query::True, Vec::new(), Vec::new(), 1, 0, dir)?;
+    let (_, last_image) = Image::search_item(
+        &i,
+        tiberius_search::Query::True,
+        Vec::new(),
+        Vec::new(),
+        1,
+        0,
+        dir,
+    )?;
     if last_image.is_empty() {
         warn!("Reindex new failed, no images in index?");
         return Ok(());
     }
-    let last_db_image = Image::get_newest(client).await?.expect("this job requires atleast one image in the database");
-    debug!("Latest indexed image is {}, latest image in database is {}", last_image[0].1, last_db_image.id);
+    let last_db_image = Image::get_newest(client)
+        .await?
+        .expect("this job requires atleast one image in the database");
+    debug!(
+        "Latest indexed image is {}, latest image in database is {}",
+        last_image[0].1, last_db_image.id
+    );
     if last_image[0].1 as u64 == last_db_image.id as u64 {
         debug!("No new images, reindex job step complete");
     } else {

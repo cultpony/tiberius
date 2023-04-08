@@ -1,4 +1,4 @@
-use axum::{Extension, extract::State};
+use axum::{extract::State, Extension};
 use axum_extra::routing::TypedPath;
 use maud::html;
 use serde::Deserialize;

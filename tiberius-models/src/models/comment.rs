@@ -1,7 +1,7 @@
 use async_trait::async_trait;
-use tiberius_dependencies::chrono::NaiveDateTime;
 use sqlx::query_as;
 use sqlx::types::ipnetwork::IpNetwork;
+use tiberius_dependencies::chrono::NaiveDateTime;
 
 use crate::{Client, Identifiable, IdentifiesUser, PhilomenaModelError, User};
 

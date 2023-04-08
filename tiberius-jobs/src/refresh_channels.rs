@@ -4,12 +4,12 @@ use sqlxmq::{job, Checkpoint, CurrentJob};
 use tiberius_core::{
     config::Configuration, error::TiberiusResult, http_client, state::TiberiusState,
 };
-use tiberius_models::{Channel, Client};
 use tiberius_dependencies::prelude::*;
 use tiberius_dependencies::sentry;
-use tiberius_dependencies::serde_json;
 use tiberius_dependencies::serde;
+use tiberius_dependencies::serde_json;
 use tiberius_dependencies::sqlxmq;
+use tiberius_models::{Channel, Client};
 
 use crate::SharedCtx;
 
@@ -36,13 +36,16 @@ pub async fn run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult
     sentry::configure_scope(|scope| {
         scope.clear();
     });
-    let tx = sentry::start_transaction(sentry::TransactionContext::new("refresh_channels", "queue.task"));
+    let tx = sentry::start_transaction(sentry::TransactionContext::new(
+        "refresh_channels",
+        "queue.task",
+    ));
     match tx_run_job(current_job, sctx).await {
         Ok(()) => {
             tx.set_status(sentry::protocol::SpanStatus::Ok);
             tx.finish();
             Ok(())
-        },
+        }
         Err(e) => {
             tx.set_status(sentry::protocol::SpanStatus::InternalError);
             tx.set_data("error_msg", serde_json::Value::String(e.to_string()));
@@ -78,7 +81,11 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
     let mut checkpoint = Checkpoint::new();
     checkpoint.set_json(&progress)?;
     for mut channel in progress.all_channels.clone() {
-        debug!("Job {}: refreshing channel {}", current_job.id(), channel.id);
+        debug!(
+            "Job {}: refreshing channel {}",
+            current_job.id(),
+            channel.id
+        );
         if progress.done_channels.contains(&channel.id) {
             continue;
         }
@@ -88,9 +95,12 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
                 checkpoint.set_json(&progress)?;
                 current_job.checkpoint(&checkpoint).await?;
                 debug!("Completed refresh for channel {}", channel.id);
-            },
+            }
             Err(e) => {
-                debug!("Failed refresh on channel {} ({:?})", channel.id, channel.short_name);
+                debug!(
+                    "Failed refresh on channel {} ({:?})",
+                    channel.id, channel.short_name
+                );
                 current_job.checkpoint(&checkpoint).await?;
             }
         };

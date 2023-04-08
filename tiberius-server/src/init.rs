@@ -14,31 +14,30 @@ pub fn logging(config: &Configuration) {
     tracing_subscriber::registry()
         .with(sentry::integrations::tracing::layer())
         .with({
-            let f = fmt_layer
-                .with_filter(tracing::metadata::LevelFilter::from_level(def_level));
-                //#[cfg(not(debug_assertions))]
-                let f = f.with_filter(filter_fn(|metadata| -> bool {
-                    // We filter these in debugging as most of them are a bit noisy
-                    match metadata.module_path() {
-                        None => true,
-                        Some(v) => !{
-                            let v = v.to_ascii_lowercase();
-                            v.contains("hyper")
-                                || v.contains("html5ever")
-                                || v.contains("runtime")
-                                || v.contains("want")
-                                || v.contains("reqwest")
-                                || v.contains("tokio")
-                                || v.contains("mio")
-                                || v.contains("tantivy")
-                                || v.contains("sqlx")
-                                || v.contains("h2")
-                                || v.contains("rustls")
-                                || v.contains("tantivy")
-                        },
-                    }
-                }));
-                f
+            let f = fmt_layer.with_filter(tracing::metadata::LevelFilter::from_level(def_level));
+            //#[cfg(not(debug_assertions))]
+            let f = f.with_filter(filter_fn(|metadata| -> bool {
+                // We filter these in debugging as most of them are a bit noisy
+                match metadata.module_path() {
+                    None => true,
+                    Some(v) => !{
+                        let v = v.to_ascii_lowercase();
+                        v.contains("hyper")
+                            || v.contains("html5ever")
+                            || v.contains("runtime")
+                            || v.contains("want")
+                            || v.contains("reqwest")
+                            || v.contains("tokio")
+                            || v.contains("mio")
+                            || v.contains("tantivy")
+                            || v.contains("sqlx")
+                            || v.contains("h2")
+                            || v.contains("rustls")
+                            || v.contains("tantivy")
+                    },
+                }
+            }));
+            f
         })
         .init();
 }

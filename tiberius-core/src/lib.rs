@@ -23,8 +23,7 @@ use tiberius_dependencies::{
         response::Response,
         Extension,
     },
-    serde_qs,
-    reqwest,
+    reqwest, serde_qs,
     tower::{Layer, ServiceBuilder},
 };
 use tracing::trace;
@@ -37,11 +36,11 @@ pub mod assets;
 pub mod config;
 pub mod error;
 pub mod footer;
+pub mod links;
+pub mod nodeid;
 pub mod request_helper;
 pub mod session;
 pub mod state;
-pub mod nodeid;
-pub mod links;
 
 // How long to hold Subtext in Cache while they're being used
 pub const PAGE_SUBTEXT_CACHE_TTL: Duration = Duration::from_secs(5 * 60);
@@ -106,7 +105,10 @@ pub struct CSPHeader {
 
 impl Default for CSPHeader {
     fn default() -> Self {
-        Self { static_host: None, camo_host: None }
+        Self {
+            static_host: None,
+            camo_host: None,
+        }
     }
 }
 

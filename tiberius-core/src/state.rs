@@ -8,7 +8,13 @@ use std::{
 };
 
 use async_trait::async_trait;
-use axum::{response::{IntoResponse, Redirect}, body::Bytes, RequestExt, extract::{FromRequestParts, FromRef}, http::request::Parts, RequestPartsExt};
+use axum::{
+    body::Bytes,
+    extract::{FromRef, FromRequestParts},
+    http::request::Parts,
+    response::{IntoResponse, Redirect},
+    RequestExt, RequestPartsExt,
+};
 use tiberius_dependencies::{casbin::CoreApi, *};
 
 use async_std::{fs::File, path::Path, sync::RwLock};
@@ -17,10 +23,7 @@ use maud::{Markup, PreEscaped};
 use sqlx::{Pool, Postgres};
 use tiberius_dependencies::{
     async_once_cell::OnceCell,
-    axum::{
-        extract::FromRequest,
-        http::status::StatusCode,
-    },
+    axum::{extract::FromRequest, http::status::StatusCode},
     axum_csrf::CsrfToken,
     axum_flash::{Flash, IncomingFlashes},
 };
@@ -141,7 +144,6 @@ impl FromRef<&TiberiusState> for axum_flash::Config {
     }
 }
 
-
 impl FromRef<&TiberiusState> for axum_csrf::CsrfConfig {
     fn from_ref(input: &&TiberiusState) -> Self {
         input.csrf.clone()
@@ -153,7 +155,6 @@ impl FromRef<TiberiusState> for axum_flash::Config {
         state.flash.clone()
     }
 }
-
 
 impl FromRef<TiberiusState> for axum_csrf::CsrfConfig {
     fn from_ref(input: &TiberiusState) -> Self {
@@ -187,9 +188,15 @@ where
 #[cfg(test)]
 impl TiberiusRequestState<session::Testing> {
     pub async fn default() -> Self {
-        let request = axum::http::Request::builder().uri("/").body(axum::body::Body::empty()).unwrap();
+        let request = axum::http::Request::builder()
+            .uri("/")
+            .body(axum::body::Body::empty())
+            .unwrap();
         let state: TiberiusState = todo!();
-        let self1: TiberiusRequestState<Unauthenticated> = TiberiusRequestState::from_request(request, &state).await.unwrap();
+        let self1: TiberiusRequestState<Unauthenticated> =
+            TiberiusRequestState::from_request(request, &state)
+                .await
+                .unwrap();
         self1.into_testing()
     }
 }
@@ -217,7 +224,10 @@ impl std::fmt::Debug for TiberiusRequestState<Unauthenticated> {
 }
 
 impl<A: SessionMode> TiberiusRequestState<A> {
-    fn verify_staff_header(req: &Parts, state: &TiberiusState) -> Result<(), axum::response::Response> {
+    fn verify_staff_header(
+        req: &Parts,
+        state: &TiberiusState,
+    ) -> Result<(), axum::response::Response> {
         match state.staff_only() {
             None => Ok(()),
             Some(v) => {
@@ -257,7 +267,7 @@ impl<A: SessionMode> TiberiusRequestState<A> {
 #[cfg(test)]
 impl TiberiusRequestState<Unauthenticated> {
     pub fn into_testing(self) -> TiberiusRequestState<session::Testing> {
-        TiberiusRequestState::<session::Testing>{
+        TiberiusRequestState::<session::Testing> {
             cookie_jar: self.cookie_jar,
             uri: self.uri,
             session: self.session.into(),
@@ -273,9 +283,8 @@ impl TiberiusRequestState<Unauthenticated> {
 
 #[cfg(test)]
 impl TiberiusRequestState<Authenticated> {
-    
     pub fn into_testing(self) -> TiberiusRequestState<session::Testing> {
-        TiberiusRequestState::<session::Testing>{
+        TiberiusRequestState::<session::Testing> {
             cookie_jar: self.cookie_jar,
             uri: self.uri,
             session: self.session.into(),
@@ -290,10 +299,12 @@ impl TiberiusRequestState<Authenticated> {
 }
 
 #[async_trait]
-impl FromRequestParts<TiberiusState> for TiberiusRequestState<Authenticated>
-{
+impl FromRequestParts<TiberiusState> for TiberiusRequestState<Authenticated> {
     type Rejection = Response;
-    async fn from_request_parts(req: &mut Parts, state: &TiberiusState) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(
+        req: &mut Parts,
+        state: &TiberiusState,
+    ) -> Result<Self, Self::Rejection> {
         debug!("Checking out Authenticated Request State");
         Self::verify_staff_header(req, state).map_err(|e| e.into_response())?;
         let db_session: axum_database_sessions::Session<axum_database_sessions::SessionPgPool> =
@@ -326,10 +337,12 @@ impl FromRequestParts<TiberiusState> for TiberiusRequestState<Authenticated>
             db_session,
             headers,
             started_at: Instant::now(),
-            incoming_flashes: IncomingFlashes::from_request_parts(req, &state).await
-              .map_err(|e: (StatusCode, &'static str)| e.into_response())?,
+            incoming_flashes: IncomingFlashes::from_request_parts(req, &state)
+                .await
+                .map_err(|e: (StatusCode, &'static str)| e.into_response())?,
             cache_filter: OnceCell::new(),
-            csrf_token: CsrfToken::from_request_parts(req, &state).await
+            csrf_token: CsrfToken::from_request_parts(req, &state)
+                .await
                 .map_err(|e: (StatusCode, &'static str)| e.into_response())?,
         };
         if state.config().enable_lock_down {
@@ -345,13 +358,17 @@ impl FromRequestParts<TiberiusState> for TiberiusRequestState<Authenticated>
 }
 
 #[async_trait]
-impl FromRequestParts<TiberiusState> for TiberiusRequestState<Unauthenticated>
-{
+impl FromRequestParts<TiberiusState> for TiberiusRequestState<Unauthenticated> {
     type Rejection = (Flash, Response);
 
-    async fn from_request_parts(req: &mut Parts, state: &TiberiusState) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(
+        req: &mut Parts,
+        state: &TiberiusState,
+    ) -> Result<Self, Self::Rejection> {
         debug!("Checking out Unauthenticated Request State");
-        let flash = Flash::from_request_parts(req, state).await.expect("flash unwrap is infallible");
+        let flash = Flash::from_request_parts(req, state)
+            .await
+            .expect("flash unwrap is infallible");
         Self::verify_staff_header(req, state).map_err(|e| (flash.clone(), e))?;
         let allow_unauthenticated = req
             .extensions
@@ -374,7 +391,10 @@ impl FromRequestParts<TiberiusState> for TiberiusRequestState<Unauthenticated>
                 None => {
                     let uri = state.url_directions.login_page.clone();
                     if req.uri != uri {
-                        return Err((flash.error("You must login to access this website"), Redirect::temporary(uri.to_string().as_str()).into_response()));
+                        return Err((
+                            flash.error("You must login to access this website"),
+                            Redirect::temporary(uri.to_string().as_str()).into_response(),
+                        ));
                     } else {
                         Session::<Unauthenticated>::new(false)
                     }
@@ -384,24 +404,31 @@ impl FromRequestParts<TiberiusState> for TiberiusRequestState<Unauthenticated>
         let headers = req.headers.clone();
         let rstate = Self {
             cookie_jar: req.extract().await.map_err(|e| {
-                (flash.clone(), (StatusCode::INTERNAL_SERVER_ERROR, "Could not load cookies").into_response())
+                (
+                    flash.clone(),
+                    (StatusCode::INTERNAL_SERVER_ERROR, "Could not load cookies").into_response(),
+                )
             })?,
             uri: req.extract().await.map_err(|e| {
-                (flash.clone(), (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Could not load original URI",
+                (
+                    flash.clone(),
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Could not load original URI",
+                    )
+                        .into_response(),
                 )
-                    .into_response())
             })?,
             session,
             db_session,
             headers,
             started_at: Instant::now(),
-            incoming_flashes: 
-              IncomingFlashes::from_request_parts(req, &state).await
-              .map_err(|e: (StatusCode, &'static str)| (flash.clone(), e.into_response()))?,
+            incoming_flashes: IncomingFlashes::from_request_parts(req, &state)
+                .await
+                .map_err(|e: (StatusCode, &'static str)| (flash.clone(), e.into_response()))?,
             cache_filter: OnceCell::new(),
-            csrf_token: CsrfToken::from_request_parts(req, &state).await
+            csrf_token: CsrfToken::from_request_parts(req, &state)
+                .await
                 .map_err(|e: (StatusCode, &'static str)| (flash.clone(), e.into_response()))?,
         };
         if state.config().enable_lock_down {
@@ -422,7 +449,13 @@ impl FromRequestParts<TiberiusState> for TiberiusRequestState<Unauthenticated>
 
 impl TiberiusState {
     #[instrument(skip(config, csrf, flash, csp))]
-    pub async fn new(config: Configuration, url_dirs: UrlDirections, csrf: axum_csrf::CsrfConfig, flash: axum_flash::Config, csp: CSPHeader) -> TiberiusResult<Self> {
+    pub async fn new(
+        config: Configuration,
+        url_dirs: UrlDirections,
+        csrf: axum_csrf::CsrfConfig,
+        flash: axum_flash::Config,
+        csp: CSPHeader,
+    ) -> TiberiusResult<Self> {
         tracing::debug!("Grabbing Database Pool for HTTP Stateful Requests");
         let db_pool = config
             .db_conn()
@@ -493,7 +526,6 @@ impl TiberiusState {
 }
 
 impl<T: SessionMode> TiberiusRequestState<T> {
-
     pub fn session(&self) -> &Session<T> {
         &self.session
     }

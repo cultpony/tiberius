@@ -1,10 +1,10 @@
 use std::ops::DerefMut;
 
-use tiberius_dependencies::chrono::{DateTime, NaiveDate, NaiveDateTime, Utc, Duration};
 use ring::rand::SecureRandom;
 use sqlx::{query, query_as, types::Uuid};
 use std::convert::TryInto;
 use tiberius_dependencies::base64;
+use tiberius_dependencies::chrono::{DateTime, Duration, NaiveDate, NaiveDateTime, Utc};
 
 use crate::{Client, PhilomenaModelError, User};
 

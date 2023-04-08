@@ -84,23 +84,38 @@ fn main() -> TiberiusResult<()> {
                 traces_sample_rate: app.config.sentry_ratio.unwrap_or(0.0) as f32,
                 sample_rate: app.config.sentry_ratio.unwrap_or(1.0) as f32,
                 session_mode: sentry::SessionMode::Request,
-                http_proxy: app.config.proxy.clone().map(|x| std::borrow::Cow::from(x.to_string())),
-                https_proxy: app.config.proxy.clone().map(|x| std::borrow::Cow::from(x.to_string())),
+                http_proxy: app
+                    .config
+                    .proxy
+                    .clone()
+                    .map(|x| std::borrow::Cow::from(x.to_string())),
+                https_proxy: app
+                    .config
+                    .proxy
+                    .clone()
+                    .map(|x| std::borrow::Cow::from(x.to_string())),
                 in_app_include: vec![
-                    "tiberius-server", "tiberius-core", "tiberius-models", "tiberius-jobs",
-                    "tiberius-search", "tiberius-common-html", "tiberius-dependencies"
+                    "tiberius-server",
+                    "tiberius-core",
+                    "tiberius-models",
+                    "tiberius-jobs",
+                    "tiberius-search",
+                    "tiberius-common-html",
+                    "tiberius-dependencies",
                 ],
-                before_send: Some(std::sync::Arc::new(|mut event: sentry::types::protocol::v7::Event| {
-                    // Modify event here
-                    event.request = event.request.map(|mut f| {
-                        f.cookies = None;
-                        // TODO: keep some important headers
-                        f.headers.clear();
-                        f
-                    });
-                    event.server_name = None; // Don't send server name
-                    Some(event)
-                })),
+                before_send: Some(std::sync::Arc::new(
+                    |mut event: sentry::types::protocol::v7::Event| {
+                        // Modify event here
+                        event.request = event.request.map(|mut f| {
+                            f.cookies = None;
+                            // TODO: keep some important headers
+                            f.headers.clear();
+                            f
+                        });
+                        event.server_name = None; // Don't send server name
+                        Some(event)
+                    },
+                )),
                 ..Default::default()
             };
             info!("Starting with sentry tracing");
@@ -135,10 +150,8 @@ fn main() -> TiberiusResult<()> {
         Command::Worker(_) => {
             info!("Starting {} worker", package_full());
             runtime.block_on(async move {
-                tokio::spawn(async move {
-                    crate::cli::worker::worker_start(global_config).await
-                })
-                .await
+                tokio::spawn(async move { crate::cli::worker::worker_start(global_config).await })
+                    .await
             })??;
             runtime.shutdown_timeout(std::time::Duration::from_secs(10));
         }
@@ -174,7 +187,9 @@ fn main() -> TiberiusResult<()> {
             error!("MAKE BACKUPS OF THE {} DIRECTORY", base_path.display());
         }
         Command::GrantAcl(config) => {
-            runtime.block_on(async move { crate::cli::grant_acl::grant_acl(&config, global_config).await })?;
+            runtime.block_on(async move {
+                crate::cli::grant_acl::grant_acl(&config, global_config).await
+            })?;
         }
         Command::ListUsers(config) => {
             todo!()
@@ -190,9 +205,8 @@ fn main() -> TiberiusResult<()> {
             })?;
         }
         Command::GetConfRes => {
-            runtime.block_on(async move {
-                crate::cli::getconfres::getconfres(global_config).await
-            })?;
+            runtime
+                .block_on(async move { crate::cli::getconfres::getconfres(global_config).await })?;
         }
     }
     guard.map(|x| x.close(None));

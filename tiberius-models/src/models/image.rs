@@ -11,7 +11,6 @@ use std::{
 use async_std::{prelude::*, sync::RwLock};
 use async_trait::async_trait;
 use axum_extra::routing::TypedPath;
-use tiberius_dependencies::chrono::{DateTime, Datelike, NaiveDateTime, Utc};
 use futures::TryStreamExt;
 use itertools::Itertools;
 use sqlx::{
@@ -21,6 +20,7 @@ use tantivy::{
     collector::{Collector, TopDocs},
     Document, IndexWriter,
 };
+use tiberius_dependencies::chrono::{DateTime, Datelike, NaiveDateTime, Utc};
 use tiberius_dependencies::http::{
     uri::{Authority, Scheme},
     Uri,
@@ -506,7 +506,10 @@ impl Image {
         Ok(())
     }
 
-    pub async fn mark_thumbnails_generated(&self, client: &mut Client) -> Result<(), PhilomenaModelError> {
+    pub async fn mark_thumbnails_generated(
+        &self,
+        client: &mut Client,
+    ) -> Result<(), PhilomenaModelError> {
         query_as!(
             ImageMeta,
             "UPDATE images SET thumbnails_generated = true WHERE id = $1",
@@ -565,10 +568,20 @@ impl Image {
         use std::path::Path;
 
         let path: &Path = path.as_ref();
-        let timestamp: DateTime<Utc> = (std::time::UNIX_EPOCH + std::time::Duration::from_micros(timestamp))
-            .into();
-        let true_path = format!("{}{:09}.{}", timestamp.timestamp_micros(), pid, path.extension().unwrap().to_str().unwrap());
-        let true_path = format!("{}/{}/{}/{true_path}", timestamp.year(), timestamp.month(), timestamp.day());
+        let timestamp: DateTime<Utc> =
+            (std::time::UNIX_EPOCH + std::time::Duration::from_micros(timestamp)).into();
+        let true_path = format!(
+            "{}{:09}.{}",
+            timestamp.timestamp_micros(),
+            pid,
+            path.extension().unwrap().to_str().unwrap()
+        );
+        let true_path = format!(
+            "{}/{}/{}/{true_path}",
+            timestamp.year(),
+            timestamp.month(),
+            timestamp.day()
+        );
         let image = Image {
             id,
             created_at: timestamp.naive_utc(),
@@ -1343,8 +1356,11 @@ impl Queryable for Image {
         );
         doc.add_u64(
             schema.get_field("created_at_ts").unwrap(),
-            tiberius_dependencies::chrono::DateTime::<tiberius_dependencies::chrono::Utc>::from_utc(self.created_at, tiberius_dependencies::chrono::Utc).timestamp()
-                as u64,
+            tiberius_dependencies::chrono::DateTime::<tiberius_dependencies::chrono::Utc>::from_utc(
+                self.created_at,
+                tiberius_dependencies::chrono::Utc,
+            )
+            .timestamp() as u64,
         );
         doc.add_u64(schema.get_field("id").unwrap(), self.id as u64);
         if !omit_index_only {

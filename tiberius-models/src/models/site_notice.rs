@@ -1,5 +1,5 @@
-use tiberius_dependencies::chrono::NaiveDateTime;
 use sqlx::query_as;
+use tiberius_dependencies::chrono::NaiveDateTime;
 
 use crate::{Client, PhilomenaModelError};
 

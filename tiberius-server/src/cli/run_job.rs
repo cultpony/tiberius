@@ -1,4 +1,4 @@
-use crate::cli::{RunJobCli, ExecJobCli};
+use crate::cli::{ExecJobCli, RunJobCli};
 use tiberius_core::{app::DBPool, config::Configuration, error::TiberiusResult};
 use tiberius_jobs::{refresh_cachelines, reindex_images};
 use tiberius_models::Client;
@@ -19,9 +19,9 @@ pub async fn run_job(run_job: RunJobCli, config: Configuration) -> TiberiusResul
                 .expect("could not serialize job config")
                 .spawn(&db_conn)
                 .await?;
-        },
+        }
         crate::cli::RunJobSelect::ReindexImages { only_new } => {
-            let config = reindex_images::ImageReindexConfig{
+            let config = reindex_images::ImageReindexConfig {
                 only_new,
                 ..Default::default()
             };

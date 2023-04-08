@@ -1,11 +1,11 @@
 use clap::{Args, Parser, Subcommand};
 
+pub mod getconfres;
 pub mod grant_acl;
 pub mod list_users;
 pub mod run_job;
 pub mod server;
 pub mod worker;
-pub mod getconfres;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about = "The Lunar Image Board", long_about = None)]
@@ -109,7 +109,7 @@ pub enum RunJobSelect {
     ReindexImages {
         #[clap(short, long)]
         only_new: bool,
-    }
+    },
 }
 
 #[derive(Subcommand, Debug)]

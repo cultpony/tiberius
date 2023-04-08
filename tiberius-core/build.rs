@@ -27,8 +27,7 @@ fn main() {
         std::fs::remove_dir_all(assetdir).unwrap();
     }*/
     let builddir = "../res/assets";
-    let builddir = std::path::PathBuf::try_from(builddir)
-      .expect("asset path not readable");
+    let builddir = std::path::PathBuf::try_from(builddir).expect("asset path not readable");
     let builddir = builddir
         .canonicalize()
         .expect("could not canonicalize asset path");

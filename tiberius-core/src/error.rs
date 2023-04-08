@@ -1,19 +1,19 @@
 use axum::{headers::HeaderMapExt, http::HeaderMap};
-use tiberius_dependencies::{reqwest, uuid};
 use std::{io::Cursor, str::ParseBoolError};
 use thiserror::Error;
 use tiberius_dependencies::{
-    base64,
     axum,
     axum::{
         body::BoxBody,
         headers::ContentType,
         response::{IntoResponse, Response},
     },
+    base64,
     http::StatusCode,
     mime::FromStrError,
     totp_rs,
 };
+use tiberius_dependencies::{reqwest, uuid};
 
 #[derive(Debug, Error)]
 pub enum TiberiusError {

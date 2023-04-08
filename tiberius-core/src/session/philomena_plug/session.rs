@@ -397,8 +397,8 @@ mod test {
         });
         let cookie = r#"QTEyOEdDTQ.NItJo3ZSO034Y8MKkwONkbq6yAHrDJ5X-4RvNL2g24XS-ycGUaipaViOCHA.93XGZOc41D1VQuLE.rhjFuaKWSBVzLbg-pFUfUGW3TuXi0-_eU_Nypvhy4c1UcuDWMzoR9ojJEWVuwbp9Tj53aNHm3hi8gtatVoxx6v8L9Jgl3Ot9e9LMb5MY27Jk-1vnF6qgNOqo2ScBZ96laWUOro4ZIP8CNH_YMypDQaIJQRXqjNAEjodLjSxGfEYNKiQffE5ma6aa8BAyll77Yi5-u5u8_RsUbVNqADDmboJKjrIskEg45fVR6M4xedmTbuAMD72jbII8.N7CR_qyW5nCaWB6ZdP5org"#;
         let cookie = decode_cookie(cookie)?;
+        use base64::{engine::general_purpose::URL_SAFE_NO_PAD as b64c, Engine};
         use tiberius_dependencies::base64;
-        use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD as b64c};
         let expected = ElixirCookie{
             aad: (super::PHOENIX_AAD.to_vec()),
             cek: b64c.decode("NItJo3ZSO034Y8MKkwONkbq6yAHrDJ5X-4RvNL2g24XS-ycGUaipaViOCHA").unwrap(),
@@ -419,9 +419,18 @@ mod test {
         let term = erlang_term::Term::from_bytes(&decrypted).unwrap();
         println!("{:?}", term);
         let term = term.as_map().expect("must be a toplevel map");
-        assert!(term.contains_key(&erlang_term::Term::from("live_socket_id")), "{term:?} contains live socket id");
-        assert!(term.contains_key(&erlang_term::Term::from("_csrf_token")), "{term:?} contains csrf token");
-        assert!(term.contains_key(&erlang_term::Term::from("user_token")), "{term:?} contains user token");
+        assert!(
+            term.contains_key(&erlang_term::Term::from("live_socket_id")),
+            "{term:?} contains live socket id"
+        );
+        assert!(
+            term.contains_key(&erlang_term::Term::from("_csrf_token")),
+            "{term:?} contains csrf token"
+        );
+        assert!(
+            term.contains_key(&erlang_term::Term::from("user_token")),
+            "{term:?} contains user token"
+        );
         Ok(())
     }
 

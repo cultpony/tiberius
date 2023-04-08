@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use axum::extract::{FromRequest};
+use axum::extract::FromRequest;
 use reqwest::StatusCode;
 use tiberius_dependencies::reqwest;
 use tiberius_dependencies::{casbin, casbin::prelude::*};
@@ -203,7 +203,8 @@ impl ACLActionTrait for ACLActionFilter {
         match self {
             ACLActionFilter::EditOwned => "edit_own",
             ACLActionFilter::EditAll => "admin",
-        }.to_string()
+        }
+        .to_string()
     }
 
     fn action_of(&self, a: &ACLObject) -> bool {

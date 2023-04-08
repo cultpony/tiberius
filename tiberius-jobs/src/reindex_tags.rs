@@ -1,13 +1,13 @@
-use tiberius_dependencies::futures_util::stream::StreamExt;
-use tiberius_dependencies::sqlx::{FromRow, Pool, Postgres};
-use tiberius_dependencies::sqlxmq::{job, Checkpoint, CurrentJob};
 use tiberius_core::{config::Configuration, error::TiberiusResult, state::TiberiusState};
-use tiberius_models::{Channel, Client, Tag, TagLike};
+use tiberius_dependencies::futures_util::stream::StreamExt;
 use tiberius_dependencies::prelude::*;
 use tiberius_dependencies::sentry;
-use tiberius_dependencies::serde_json;
 use tiberius_dependencies::serde;
+use tiberius_dependencies::serde_json;
+use tiberius_dependencies::sqlx::{FromRow, Pool, Postgres};
 use tiberius_dependencies::sqlxmq;
+use tiberius_dependencies::sqlxmq::{job, Checkpoint, CurrentJob};
+use tiberius_models::{Channel, Client, Tag, TagLike};
 
 use tiberius_models::Queryable;
 
@@ -30,13 +30,16 @@ pub async fn run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult
     sentry::configure_scope(|scope| {
         scope.clear();
     });
-    let tx = sentry::start_transaction(sentry::TransactionContext::new("reindex_tags", "queue.task"));
+    let tx = sentry::start_transaction(sentry::TransactionContext::new(
+        "reindex_tags",
+        "queue.task",
+    ));
     match tx_run_job(current_job, sctx).await {
         Ok(()) => {
             tx.set_status(sentry::protocol::SpanStatus::Ok);
             tx.finish();
             Ok(())
-        },
+        }
         Err(e) => {
             tx.set_status(sentry::protocol::SpanStatus::InternalError);
             tx.set_data("error_msg", serde_json::Value::String(e.to_string()));

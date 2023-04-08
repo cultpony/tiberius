@@ -1,8 +1,8 @@
 use ammonia::Builder;
 //use pulldown_cmark::{html, Options, Parser};
-use tiberius_dependencies::comrak;
 use comrak::{markdown_to_html, ComrakOptions};
 use std::collections::HashMap;
+use tiberius_dependencies::comrak;
 
 use crate::pages::common::renderer::markdown_extensions;
 
@@ -22,7 +22,11 @@ fn common_options(meta: &Meta) -> ComrakOptions {
 
     //options.extension.camoifier = Some(|s| camo::image_url(s).unwrap_or_else(|| String::from("")));
 
-    options.extension.philomena_domains = if meta.sites.is_empty() { None } else { Some(meta.sites.clone()) };
+    options.extension.philomena_domains = if meta.sites.is_empty() {
+        None
+    } else {
+        Some(meta.sites.clone())
+    };
     options.extension.philomena_replacements = Some(meta.idmap.clone());
 
     /*if let Ok(domains) = env::var("SITE_DOMAINS") {
@@ -71,10 +75,22 @@ mod test {
 
     #[test]
     pub fn test_common() {
-        assert_eq!("<div><em>italics</em></div>", render_markdown("*italics*", None));
-        assert_eq!("<div><strong>bold</strong></div>", render_markdown("**bold**", None));
-        assert_eq!("<div><del>strike</del></div>", render_markdown("~~strike~~", None));
-        assert_eq!("<div><code>code</code></div>", render_markdown("`code`", None));
+        assert_eq!(
+            "<div><em>italics</em></div>",
+            render_markdown("*italics*", None)
+        );
+        assert_eq!(
+            "<div><strong>bold</strong></div>",
+            render_markdown("**bold**", None)
+        );
+        assert_eq!(
+            "<div><del>strike</del></div>",
+            render_markdown("~~strike~~", None)
+        );
+        assert_eq!(
+            "<div><code>code</code></div>",
+            render_markdown("`code`", None)
+        );
         assert_eq!(
             "<div><a href=\"/some-link\">On-site link</a></div>",
             render_markdown(r#"[On-site link](/some-link)"#, None)
@@ -111,14 +127,20 @@ mod test {
     pub fn test_philo_specifics_image_embed() {
         assert_eq!(
             r#"<div><img src="/img/embed/1/" alt=""></div>"#,
-            render_markdown(">>1", Some(&Meta{
-                idmap: {
-                    let mut hm = HashMap::new();
-                    hm.insert("1".to_string(), "<img src=\"/img/embed/1/\" alt=\"\">".to_string());
-                    hm
-                },
-                sites: Vec::new(),
-            }))
+            render_markdown(
+                ">>1",
+                Some(&Meta {
+                    idmap: {
+                        let mut hm = HashMap::new();
+                        hm.insert(
+                            "1".to_string(),
+                            "<img src=\"/img/embed/1/\" alt=\"\">".to_string(),
+                        );
+                        hm
+                    },
+                    sites: Vec::new(),
+                })
+            )
         );
     }
 
@@ -126,36 +148,54 @@ mod test {
     pub fn test_philo_specifics_image_embed_thumbnails() {
         assert_eq!(
             r#"<div><img src="/img/embed/1/t" alt=""></div>"#,
-            render_markdown(">>1t", Some(&Meta{
-                idmap: {
-                    let mut hm = HashMap::new();
-                    hm.insert("1t".to_string(), "<img src=\"/img/embed/1/t\" alt=\"\">".to_string());
-                    hm
-                },
-                sites: Vec::new(),
-            }))
+            render_markdown(
+                ">>1t",
+                Some(&Meta {
+                    idmap: {
+                        let mut hm = HashMap::new();
+                        hm.insert(
+                            "1t".to_string(),
+                            "<img src=\"/img/embed/1/t\" alt=\"\">".to_string(),
+                        );
+                        hm
+                    },
+                    sites: Vec::new(),
+                })
+            )
         );
         assert_eq!(
             r#"<div><img src="/img/embed/1/p" alt=""></div>"#,
-            render_markdown(">>1p", Some(&Meta{
-                idmap: {
-                    let mut hm = HashMap::new();
-                    hm.insert("1p".to_string(), "<img src=\"/img/embed/1/p\" alt=\"\">".to_string());
-                    hm
-                },
-                sites: Vec::new(),
-            }))
+            render_markdown(
+                ">>1p",
+                Some(&Meta {
+                    idmap: {
+                        let mut hm = HashMap::new();
+                        hm.insert(
+                            "1p".to_string(),
+                            "<img src=\"/img/embed/1/p\" alt=\"\">".to_string(),
+                        );
+                        hm
+                    },
+                    sites: Vec::new(),
+                })
+            )
         );
         assert_eq!(
             r#"<div><img src="/img/embed/1/s" alt=""></div>"#,
-            render_markdown(">>1s", Some(&Meta{
-                idmap: {
-                    let mut hm = HashMap::new();
-                    hm.insert("1s".to_string(), "<img src=\"/img/embed/1/s\" alt=\"\">".to_string());
-                    hm
-                },
-                sites: Vec::new(),
-            }))
+            render_markdown(
+                ">>1s",
+                Some(&Meta {
+                    idmap: {
+                        let mut hm = HashMap::new();
+                        hm.insert(
+                            "1s".to_string(),
+                            "<img src=\"/img/embed/1/s\" alt=\"\">".to_string(),
+                        );
+                        hm
+                    },
+                    sites: Vec::new(),
+                })
+            )
         );
     }
 
@@ -164,22 +204,17 @@ mod test {
         assert_eq!(
             concat!(
                 "<blockquote>\n",
-                  "<div>a</div>\n",
-                  "<blockquote>\n",
-                    "<div>b</div>\n",
-                    "<blockquote>\n",
-                      "<div>c</div>\n",
-                    "</blockquote>\n",
-                  "</blockquote>\n",
-                  "<div>d</div>\n",
+                "<div>a</div>\n",
+                "<blockquote>\n",
+                "<div>b</div>\n",
+                "<blockquote>\n",
+                "<div>c</div>\n",
+                "</blockquote>\n",
+                "</blockquote>\n",
+                "<div>d</div>\n",
                 "</blockquote>"
             ),
-            render_markdown(concat!(
-                "> a\n",
-                "> > b\n",
-                "> > > c\n",
-                "> d\n"
-            ), None)
+            render_markdown(concat!("> a\n", "> > b\n", "> > > c\n", "> d\n"), None)
         )
     }
 }

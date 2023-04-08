@@ -1,5 +1,5 @@
 use crate::pages::common::frontmatter::{csrf_input_tag, form_method, form_submit_button};
-use axum::{http::HeaderMap, Extension, Router, extract::State};
+use axum::{extract::State, http::HeaderMap, Extension, Router};
 use axum_extra::routing::{RouterExt, TypedPath};
 use maud::html;
 use serde::Deserialize;

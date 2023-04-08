@@ -1,8 +1,8 @@
 use std::{num::NonZeroU32, ops::DerefMut};
 
 use anyhow::Context;
-use tiberius_dependencies::chrono::{DateTime, Utc};
 use sqlx::{query, query_as};
+use tiberius_dependencies::chrono::{DateTime, Utc};
 use tracing::trace;
 
 use crate::{Client, PhilomenaModelError, User};

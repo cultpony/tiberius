@@ -2,11 +2,11 @@ use std::{net::SocketAddr, path::PathBuf, str::FromStr};
 
 use reqwest::header::HOST;
 use tiberius_dependencies::sha3::Digest;
-use tiberius_dependencies::{reqwest, sha3};
 use tiberius_dependencies::{
     axum::headers::{self, HeaderMapExt},
     http::uri::Authority,
 };
+use tiberius_dependencies::{reqwest, sha3};
 
 use crate::NodeId;
 use crate::{
@@ -189,7 +189,7 @@ pub struct Configuration {
     #[clap(long, default_value = "false")]
     pub try_use_ondisk_favicon: bool,
     /// The ID of the current node.
-    /// 
+    ///
     /// This must either be a 14 character string with a leading 0x like 0x000000000000 (ie, 6 bytes of data)
     /// or it must be unique per node and will be hashed into 6 bytes.
     #[clap(long)]
@@ -250,7 +250,10 @@ impl Configuration {
     }
 
     pub fn image_base(&self) -> PathBuf {
-        self.data_root.as_ref().expect("image root was needed but not set").join("images")
+        self.data_root
+            .as_ref()
+            .expect("image root was needed but not set")
+            .join("images")
     }
 
     /// Return the Node ID. If no node-id is configured, returns the hash of the hostname of the system
@@ -259,10 +262,10 @@ impl Configuration {
         match &self.node_id {
             Some(s) if s.starts_with("0x") => {
                 todo!("implement raw node id")
-            },
+            }
             Some(s) => {
                 todo!("implement hashed node id")
-            },
+            }
             None => {
                 let hostname = tiberius_dependencies::gethostname();
                 let hostname = hostname.to_string_lossy();

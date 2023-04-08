@@ -2,29 +2,31 @@ use std::{collections::BTreeMap, num::NonZeroU32, ops::DerefMut};
 
 use anyhow::Context;
 use async_trait::async_trait;
-use tiberius_dependencies::chrono::{NaiveDateTime, Utc};
 use either::Either;
 use maud::Markup;
-use sqlx::{query, query_as, PgPool, types::ipnetwork::IpNetwork};
+use sqlx::Executor;
+use sqlx::{query, query_as, types::ipnetwork::IpNetwork, PgPool};
+use tiberius_dependencies::base32;
+use tiberius_dependencies::base64;
+use tiberius_dependencies::chrono::{NaiveDateTime, Utc};
 use tiberius_dependencies::{
     axum_sessions_auth::{Authentication, HasPermission},
     hex, sentry, totp_rs,
 };
 use tracing::trace;
-use sqlx::Executor;
-use tiberius_dependencies::base32;
-use tiberius_dependencies::base64;
 
+pub mod history;
 pub mod otp;
 pub mod settings;
-pub mod history;
+pub use history::UserHistory;
 pub use otp::OTPSecret;
 pub use settings::UserSettings;
-pub use history::UserHistory;
 
 use crate::{Badge, BadgeAward, Client, Filter, PhilomenaModelError, UserToken};
 
-#[derive(sqlx::Type, Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq, Default)]
+#[derive(
+    sqlx::Type, Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq, Default,
+)]
 #[repr(transparent)]
 #[sqlx(rename = "citext")]
 pub struct CiText(String);
@@ -153,7 +155,10 @@ impl User {
             bcrypt::verify(password, &self.encrypted_password).context("BCrypt Verify")?;
 
         if self.otp_secret.otp_required_for_login() {
-            let dotp = self.otp_secret.decrypt_otp(otp_secret).context("TOTP decrypt")?;
+            let dotp = self
+                .otp_secret
+                .decrypt_otp(otp_secret)
+                .context("TOTP decrypt")?;
             if let Some(totp) = totp {
                 if let Some(dotp) = dotp {
                     //debug!("TOTP secret = {:?}", String::from_utf8_lossy(&dotp));
@@ -174,8 +179,7 @@ impl User {
                     assert!(time > 0, "We don't run before 1970");
                     let time = time as u64;
                     use totp_rs::{Algorithm, TOTP};
-                    let totpi =
-                        TOTP::new_unchecked(Algorithm::SHA1, 6, 1, 30, dotp);
+                    let totpi = TOTP::new_unchecked(Algorithm::SHA1, 6, 1, 30, dotp);
                     if totpi.check(&totp, time) {
                         return Ok(UserLoginResult::Valid);
                     } else {
@@ -285,10 +289,11 @@ impl User {
             .bind(user.name)
             .bind(user.slug)
             .bind(user.user_history.created_at)
-            .bind(user.user_history.updated_at)
-        ;
+            .bind(user.user_history.updated_at);
         client.execute(query).await?;
-        let user = User::get_id(client, user.id.into()).await?.expect("just created user, did not read back");
+        let user = User::get_id(client, user.id.into())
+            .await?
+            .expect("just created user, did not read back");
         Ok(user)
     }
 
@@ -301,14 +306,17 @@ impl User {
             id = $1"#;
         use futures::FutureExt;
         let query = sqlx::query(QUERY).bind(id);
-        let fetch = client.fetch_optional(query).map(|f| -> Result<Option<User>, sqlx::Error> {
+        let fetch = client
+            .fetch_optional(query)
+            .map(|f| -> Result<Option<User>, sqlx::Error> {
                 f.map(|f| {
                     use sqlx::FromRow;
                     match f {
                         Some(f) => Some(User::from_row(&f)),
                         None => None,
                     }
-                })?.transpose()
+                })?
+                .transpose()
             });
         Ok(client.cache_users.try_get_with(id, fetch).await?)
     }
@@ -368,7 +376,8 @@ impl Into<sentry::User> for User {
             id: Some(self.id.to_string()),
             email: Some(self.email.into()),
             ip_address: self
-                .user_history.current_sign_in_ip
+                .user_history
+                .current_sign_in_ip
                 .map(|x| sentry::protocol::IpAddress::Exact(x.ip())),
             username: Some(self.name),
             other: BTreeMap::new(),
@@ -412,8 +421,8 @@ impl HasPermission<PgPool> for User {
 #[cfg(test)]
 mod test {
 
-    use crate::{PhilomenaModelError, User, Client};
     use super::*;
+    use crate::{Client, PhilomenaModelError, User};
     use tiberius_dependencies::base64;
     use tiberius_dependencies::base64::Engine;
 
@@ -425,14 +434,16 @@ mod test {
                 .unwrap();
         let otp = "AAFFEFASAA1119119DEADBEEF".as_bytes();
 
-        user.otp_secret.encrypt_otp(&otp_secret, otp)
+        user.otp_secret
+            .encrypt_otp(&otp_secret, otp)
             .expect("could not encrypt OTP secret");
 
         assert!(user.otp_secret.encrypted_otp_secret.is_some());
         assert!(user.otp_secret.encrypted_otp_secret_iv.is_some());
         assert!(user.otp_secret.encrypted_otp_secret_salt.is_some());
 
-        let r = user.otp_secret
+        let r = user
+            .otp_secret
             .decrypt_otp(&otp_secret)
             .expect("could not decrypt OTP secret");
         let r = r.unwrap();
@@ -445,10 +456,8 @@ mod test {
     fn test_philo_decode_otp() -> Result<(), PhilomenaModelError> {
         let b64c = base64::engine::general_purpose::GeneralPurposeConfig::new()
             .with_decode_allow_trailing_bits(true);
-        let b64c = base64::engine::general_purpose::GeneralPurpose::new(
-            &base64::alphabet::STANDARD,
-            b64c
-        );
+        let b64c =
+            base64::engine::general_purpose::GeneralPurpose::new(&base64::alphabet::STANDARD, b64c);
         let test = "VmSaqD2h9SheJO5FXja8dBBV/AvfACBHqjGt+90qAIlJ27V47uGp9A==\x0A        ";
         let test = test.trim();
         let r = b64c.decode(test).expect("secret decode failed");
@@ -460,10 +469,8 @@ mod test {
     fn test_philo_decode_otp_iv() -> Result<(), PhilomenaModelError> {
         let b64c = base64::engine::general_purpose::GeneralPurposeConfig::new()
             .with_decode_allow_trailing_bits(true);
-        let b64c = base64::engine::general_purpose::GeneralPurpose::new(
-            &base64::alphabet::STANDARD,
-            b64c
-        );
+        let b64c =
+            base64::engine::general_purpose::GeneralPurpose::new(&base64::alphabet::STANDARD, b64c);
         let test = "Jtfmw9tM26CsdyPV\x0A        ";
         let test = test.trim();
         let r = b64c.decode(test).expect("IV decode failed");
@@ -475,10 +482,8 @@ mod test {
     fn test_philo_decode_otp_salt() -> Result<(), PhilomenaModelError> {
         let b64c = base64::engine::general_purpose::GeneralPurposeConfig::new()
             .with_decode_allow_trailing_bits(true);
-        let b64c = base64::engine::general_purpose::GeneralPurpose::new(
-            &base64::alphabet::STANDARD,
-            b64c
-        );
+        let b64c =
+            base64::engine::general_purpose::GeneralPurpose::new(&base64::alphabet::STANDARD, b64c);
         let test = "_hqD5fUkvYKdA+E77LoDWBA==\x0A        ";
         let test = test.trim();
         let test = test.trim_start_matches('_');

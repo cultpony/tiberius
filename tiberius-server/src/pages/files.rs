@@ -2,15 +2,15 @@ use std::str::FromStr;
 
 use async_std::path::PathBuf;
 use axum::{
+    extract::State,
     headers::{ContentType, HeaderMapExt},
     http::{HeaderMap, StatusCode},
-    Extension, Router, extract::State,
+    Extension, Router,
 };
 use axum_extra::{
     body::AsyncReadBody,
     routing::{RouterExt, TypedPath},
 };
-use tiberius_dependencies::chrono::Datelike;
 use lazy_static::lazy_static;
 use new_mime_guess::Mime;
 use regex::Regex;
@@ -21,8 +21,9 @@ use tiberius_core::{
     session::Unauthenticated,
     state::{TiberiusRequestState, TiberiusState},
 };
+use tiberius_dependencies::chrono::Datelike;
 use tiberius_dependencies::mime;
-use tiberius_models::{Client, Image, ImageThumbType, PathImageThumbGet, PathImageGetFull};
+use tiberius_models::{Client, Image, ImageThumbType, PathImageGetFull, PathImageThumbGet};
 use tokio::fs::File;
 use tracing::trace;
 
@@ -62,7 +63,6 @@ pub async fn image_thumb_get_simple(
         }
     }
 }
-
 
 #[derive(TypedPath, serde::Deserialize)]
 #[typed_path("/img/view/:year/:month/:day/:filename")]
@@ -146,7 +146,6 @@ pub async fn image_full_get(
         headers: hm,
     }))
 }
-
 
 #[instrument]
 pub async fn image_thumb_get(

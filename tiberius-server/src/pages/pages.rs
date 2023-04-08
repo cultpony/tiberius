@@ -24,11 +24,11 @@ pub mod apikeys;
 pub mod blog;
 pub mod channels;
 pub mod errors;
+pub mod filters;
 pub mod images;
 pub mod session;
 pub mod tags;
 pub mod user;
-pub mod filters;
 
 pub async fn todo_page<S: Into<String>>(name: S) -> TiberiusResult<Markup> {
     let name: String = name.into();
