@@ -29,6 +29,8 @@ jobs:
           POSTGRES_PASSWORD: github_actions
           POSTGRES_USER: github_actions
           POSTGRES_DB: philomena_db
+        ports:
+          - 5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
