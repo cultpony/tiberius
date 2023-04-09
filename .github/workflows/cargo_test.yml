@@ -17,17 +17,27 @@ name: Run Tests on Push/PR
 jobs:
   build_and_test:
     runs-on: ubuntu-22.04
+    services:
+      mailhog:
+        image: mailhog/mailhog:v1.0.0
+        ports:
+          - 1025
+          - 8025
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: github_actions
+          POSTGRES_USER: github_actions
+          POSTGRES_DB: philomena_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
 
-      - uses: harmon758/postgresql-action@v1
-        with:
-          postgresql version: '11'
-          postgresql db: philomena_db
-          postgresql user: github_actions
-          postgresql password: github_actions
-        
       - name: Cache Setup
         uses: Swatinem/rust-cache@v2
 
