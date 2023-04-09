@@ -1,0 +1,30 @@
+[package]
+name = "tiberius-mail"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-trait = "0.1.66"
+itertools = "0.10.4"
+either = "1.6.1"
+tracing = "0.1.29"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0.39"
+tiberius-dependencies = { path = "../tiberius-dependencies" }
+tokio = { version = "1.27" }
+url = { version = "2.3", features = ["serde"] }
+anyhow = "1.0"
+tiberius-common-html = { path = "../tiberius-common-html" }
+tiberius-models = { path = "../tiberius-models" }
+tiberius-core = { path = "../tiberius-core" }
+maud = { version = "*", features = ["axum"] }
+lettre = { version = "0.10", default-features = false, features = [
+    "smtp-transport", 
+    "file-transport",
+    "rustls-tls", "pool", 
+    "builder", 
+    "tokio1", "tokio1-rustls-tls",
+] }

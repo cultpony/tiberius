@@ -70,7 +70,7 @@ mod test {
             let render = render_markdown(file, None);
         }
         let elapsed = start.elapsed();
-        assert!(false, "Took {elapsed:?}");
+        println!("Took {elapsed:?}");
     }
 
     #[test]

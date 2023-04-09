@@ -23,6 +23,7 @@
               pkgs.nodejs-14_x
               pkgs.cargo-cross
               pkgs.sqlx-cli
+              pkgs.mailhog # Required for testing SMTP
               (pkgs.yarn.override { nodejs = pkgs.nodejs-14_x; })
               (pkgs.nodePackages.npm.override { nodejs = pkgs.nodejs-14_x; })
               fenix.packages.${system}.stable.toolchain

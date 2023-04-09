@@ -1,3 +1,5 @@
+pub mod email;
+
 use maud::{html, Markup};
 
 /**
