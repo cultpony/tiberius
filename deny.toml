@@ -223,3 +223,12 @@ name = "spin"
 
 [[bans.skip]]
 name = "syn"
+
+[[bans.skip]]
+name = "webpki-roots"
+
+[[bans.skip]]
+name = "tokio-rustls"
+
+[[bans.skip]]
+name = "rustls"
