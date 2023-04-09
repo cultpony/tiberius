@@ -21,8 +21,8 @@ jobs:
       mailhog:
         image: mailhog/mailhog:v1.0.0
         ports:
-          - 1025
-          - 8025
+          - 1025:1025
+          - 8025:8025
       postgres:
         image: postgres
         env:
@@ -30,7 +30,7 @@ jobs:
           POSTGRES_USER: github_actions
           POSTGRES_DB: philomena_db
         ports:
-          - 5432
+          - 5432:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
