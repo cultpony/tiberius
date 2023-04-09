@@ -124,7 +124,10 @@ pub struct Client {
 impl Client {
     pub fn new(db: PgPool, search_dir: Option<&std::path::PathBuf>) -> Self {
         assert!(
-            search_dir.map(|x| x.try_exists()).unwrap_or(Ok(true)).expect("error while accessing search directory"),
+            search_dir
+                .map(|x| x.try_exists())
+                .unwrap_or(Ok(true))
+                .expect("error while accessing search directory"),
             "Search directory {:?} did not exist",
             search_dir
         );

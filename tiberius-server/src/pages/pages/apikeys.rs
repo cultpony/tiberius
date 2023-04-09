@@ -163,7 +163,9 @@ pub async fn delete_api_key(
         Some(v) => v,
     };
 
-    if Some(api_key.user_id()) != rstate.user(&state).await?.as_ref().map(|x| x.id()) && !admin_api_key {
+    if Some(api_key.user_id()) != rstate.user(&state).await?.as_ref().map(|x| x.id())
+        && !admin_api_key
+    {
         return Err(TiberiusError::AccessDenied);
     }
 

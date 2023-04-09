@@ -8,7 +8,9 @@ use crate::pages::error_page;
 
 #[tracing::instrument]
 pub async fn server_error() -> TiberiusResponse<()> {
-    let content = error_page(&TiberiusError::Other("Sorry for that, we encountered an issue with your request.".to_string()))
+    let content = error_page(&TiberiusError::Other(
+        "Sorry for that, we encountered an issue with your request.".to_string(),
+    ))
     .await
     .into_string();
     TiberiusResponse::Html(HtmlResponse { content })

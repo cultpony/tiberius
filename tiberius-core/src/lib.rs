@@ -9,7 +9,7 @@
 extern crate tracing;
 
 use async_trait::async_trait;
-use axum::http::Uri;
+use axum::{extract::State, http::Uri, middleware::FromFnLayer};
 use axum_extra::routing::TypedPath;
 use reqwest::{header::HeaderMap, Proxy};
 use state::TiberiusState;
@@ -158,21 +158,16 @@ impl CSPHeader {
     }
 }
 
-async fn csp_header<B>(req: Request<B>, state: &TiberiusState, next: Next<B>) -> Response {
+pub async fn csp_header<B>(
+    State(state): State<TiberiusState>,
+    req: Request<B>,
+    next: Next<B>,
+) -> Response {
     let csp_header = state.csp();
     let mut resp = next.run(req).await;
     resp.headers_mut()
         .insert(csp_header.header_name(), csp_header.header_value());
     resp
-}
-
-pub fn sb_add_csp<B>(config: &Configuration) -> impl Layer<B> {
-    ServiceBuilder::new()
-        .layer(Extension(CSPHeader {
-            static_host: config.static_host.clone(),
-            camo_host: config.camo_host.clone(),
-        }))
-        .layer(middleware::from_fn::<_, Response>(csp_header::<B>))
 }
 
 pub fn get_user_agent<T: SessionMode>(

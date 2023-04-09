@@ -62,7 +62,7 @@ pub fn image_pages(r: Router<TiberiusState>) -> Router<TiberiusState> {
     let r = r.typed_get(specific_show_image);
     let r = r.typed_get(show_random_image);
     let r = r.typed_get(show_image);
-    
+
     r.typed_post(repair_image_thumbnail)
 }
 

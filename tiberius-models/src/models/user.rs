@@ -212,10 +212,7 @@ impl User {
         client: &mut Client,
         session_id: &[u8],
     ) -> Result<Option<User>, PhilomenaModelError> {
-        trace!(
-            "getting user for session {}",
-            hex::encode(session_id)
-        );
+        trace!("getting user for session {}", hex::encode(session_id));
         let user_token = UserToken::get_user_token_for_session(client, &session_id).await?;
         let user_token = match user_token {
             None => return Ok(None),

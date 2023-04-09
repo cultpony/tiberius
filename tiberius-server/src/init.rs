@@ -16,7 +16,7 @@ pub fn logging(config: &Configuration) {
         .with({
             let f = fmt_layer.with_filter(tracing::metadata::LevelFilter::from_level(def_level));
             //#[cfg(not(debug_assertions))]
-            
+
             f.with_filter(filter_fn(|metadata| -> bool {
                 // We filter these in debugging as most of them are a bit noisy
                 match metadata.module_path() {

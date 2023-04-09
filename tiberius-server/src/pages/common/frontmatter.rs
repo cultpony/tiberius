@@ -102,8 +102,7 @@ pub async fn open_graph(state: &TiberiusState, image: Option<Image>) -> Tiberius
             format!(
                 "{} - {} - Manebooru",
                 img.id,
-                img.tag_list_cache.as_deref()
-                    .unwrap_or("")
+                img.tag_list_cache.as_deref().unwrap_or("")
             )
         })
         .unwrap_or("# - # - Manebooru".to_string());
@@ -687,7 +686,8 @@ pub async fn clientside_data<'a, T: SessionMode>(
         hidden_filter,
         filter
             .hidden_complex_str
-            .as_ref().cloned()
+            .as_ref()
+            .cloned()
             .unwrap_or("".to_string())
     );
     insert_csd!(data, spoilered_tag_list, filter.spoilered_tag_ids);
@@ -696,7 +696,8 @@ pub async fn clientside_data<'a, T: SessionMode>(
         spoilered_filter,
         filter
             .spoilered_complex_str
-            .as_ref().cloned()
+            .as_ref()
+            .cloned()
             .unwrap_or("".to_string())
     );
     insert_csd!(data, user_is_signed_in, user.is_some());

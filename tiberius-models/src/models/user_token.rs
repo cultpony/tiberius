@@ -22,10 +22,7 @@ impl UserToken {
         client: &mut Client,
         user_token: &[u8],
     ) -> Result<Option<UserToken>, PhilomenaModelError> {
-        trace!(
-            "loading user session for token {}",
-            hex::encode(user_token)
-        );
+        trace!("loading user session for token {}", hex::encode(user_token));
         let user_token = query_as!(
             UserToken,
             "SELECT * FROM user_tokens WHERE token = $1 AND context = $2",

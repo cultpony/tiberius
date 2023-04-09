@@ -117,7 +117,7 @@ pub async fn image_full_get(
         if let Some(image_path) = image.image {
             let path = PathBuf::from_str(&image_path)?;
             let path = PathBuf::from_str("images")?.join(path);
-            
+
             config
                 .data_root
                 .clone()

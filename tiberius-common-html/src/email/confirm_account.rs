@@ -33,7 +33,8 @@ pub fn build(user_name: &str, reset_url: &str) -> maud::Markup {
 }
 
 pub fn build_txt(user_name: &str, reset_url: &str) -> String {
-    format!(r#"
+    format!(
+        r#"
 {SEPARATOR}
 
 {GREETING} {user_name},
@@ -45,5 +46,6 @@ pub fn build_txt(user_name: &str, reset_url: &str) -> String {
 {IGNORE_REQ}
 
 {SEPARATOR}
-"#)
+"#
+    )
 }

@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use axum::{
     handler::{Handler, HandlerWithoutStateExt},
     http::Request,
-    Extension, Router,
+    middleware, Extension, Router,
 };
 use axum_extra::routing::TypedPath;
 use sentry::{Breadcrumb, TransactionContext};
@@ -12,6 +12,7 @@ use sqlx::Postgres;
 use tiberius_core::{
     app::DBPool,
     config::Configuration,
+    csp_header,
     error::TiberiusResult,
     session::{PostgresSessionStore, Unauthenticated},
     state::{TiberiusRequestState, TiberiusState, UrlDirections},
@@ -48,7 +49,6 @@ pub fn setup_all_routes(router: Router<TiberiusState>) -> Router<TiberiusState> 
     let router = pages::static_file_pages(router);
     let router = pages::tags::tags_pages(router);
     let router = pages::filters::setup_filters(router);
-    
 
     tiberius_core::assets::embedded_file_pages(router)
 }
@@ -59,6 +59,21 @@ pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResu
     // TODO: store in config
     let flash_key = axum_flash::Key::generate();
     let csrf_config = axum_csrf::CsrfConfig::default();
+
+    let state = TiberiusState::new(
+        config.clone(),
+        UrlDirections {
+            login_page: PathSessionsLogin {}.to_uri(),
+        },
+        csrf_config,
+        axum_flash::Config::new(flash_key)
+            .use_secure_cookies(true /* TODO: determine HTTPS protocol here */),
+        CSPHeader {
+            static_host: config.cdn_host.clone(),
+            camo_host: config.camo_config().map(|(host, _)| host.clone()),
+        },
+    )
+    .await?;
 
     let router = setup_all_routes(router);
 
@@ -83,24 +98,11 @@ pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResu
             .layer(tiberius_dependencies::sentry_tower::SentryHttpLayer::with_transaction()),
     );
 
+    let router = router.route_layer(middleware::from_fn_with_state(state.clone(), csp_header));
+
     let router = router.fallback(not_found_page);
 
-    let router = router.with_state::<()>(
-        TiberiusState::new(
-            config.clone(),
-            UrlDirections {
-                login_page: PathSessionsLogin {}.to_uri(),
-            },
-            csrf_config,
-            axum_flash::Config::new(flash_key)
-                .use_secure_cookies(true /* TODO: determine HTTPS protocol here */),
-            CSPHeader {
-                static_host: config.cdn_host.clone(),
-                camo_host: config.camo_config().map(|(host, _)| host.clone()),
-            },
-        )
-        .await?,
-    );
+    let router = router.with_state::<()>(state);
 
     Ok(router)
 }

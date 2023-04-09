@@ -72,7 +72,10 @@ pub async fn fetch(
     let tags: Vec<TagApiResponse> = tags
         .iter()
         .map(|x| {
-            let spoiler_img = x.image.as_ref().map(|image| format!("{}/{}", site_config.tag_url_root(), image));
+            let spoiler_img = x
+                .image
+                .as_ref()
+                .map(|image| format!("{}/{}", site_config.tag_url_root(), image));
             TagApiResponse {
                 id: x.id as i64,
                 name: x.full_name(),
