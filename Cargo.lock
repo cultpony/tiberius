@@ -478,11 +478,12 @@ dependencies = [
 
 [[package]]
 name = "axum-extra"
-version = "0.7.2"
+version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ea61f9f77592526b73fd14fe0f5938412bda49423f8b9f372ac76a9d6cf0ad2"
+checksum = "fe82ff817f40f735cdfd7092f810d3de63bf875f50d1f0c17928e28cdab64437"
 dependencies = [
  "axum",
+ "axum-core 0.3.4",
  "axum-macros",
  "bytes",
  "cookie 0.17.0",
@@ -5291,7 +5292,7 @@ dependencies = [
  "async-std",
  "async-trait",
  "axum",
- "axum-extra 0.7.2",
+ "axum-extra 0.7.3",
  "bcrypt",
  "change-detection",
  "clap 4.2.1",
@@ -5329,7 +5330,7 @@ dependencies = [
  "async-trait",
  "atomic",
  "axum",
- "axum-extra 0.7.2",
+ "axum-extra 0.7.3",
  "axum-flash",
  "axum_csrf",
  "axum_database_sessions",
@@ -5431,7 +5432,7 @@ dependencies = [
  "async-std",
  "async-trait",
  "axum",
- "axum-extra 0.7.2",
+ "axum-extra 0.7.3",
  "bcrypt",
  "either",
  "futures",
@@ -5481,7 +5482,7 @@ dependencies = [
  "async-std",
  "async-trait",
  "axum",
- "axum-extra 0.7.2",
+ "axum-extra 0.7.3",
  "bcrypt",
  "better-panic",
  "camo-url",
