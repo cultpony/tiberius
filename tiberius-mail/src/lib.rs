@@ -1,8 +1,5 @@
 use lettre::AsyncTransport;
-use lettre::{
-    message::{header, Mailbox, SinglePart},
-    Message,
-};
+use lettre::{message::Mailbox, Message};
 use tiberius_models::User;
 
 #[derive(Debug, thiserror::Error)]
@@ -23,13 +20,6 @@ pub trait EmailService {
     async fn send_email_reset(&self, user: &User, reset_url: &str) -> Result<()>;
     async fn send_unlock_account(&self, user: &User, unlock_url: &str) -> Result<()>;
     async fn send_update_email(&self, user: &User, update_url: &str) -> Result<()>;
-}
-
-/// Outputs files into a folder in EML.json format
-pub struct EML {
-    folder: lettre::AsyncFileTransport<lettre::Tokio1Executor>,
-    from: lettre::message::Mailbox,
-    reply_to: lettre::message::Mailbox,
 }
 
 pub struct SMTP {
@@ -75,10 +65,10 @@ impl SMTP {
 impl EmailService for SMTP {
     async fn send_signup_welcome(&self, user: &User, register_url: &str) -> Result<()> {
         let body: String =
-            tiberius_common_html::email::confirm_account::build(&*user.name, register_url)
+            tiberius_common_html::email::confirm_account::build(&user.name, register_url)
                 .into_string();
         let body_txt: String =
-            tiberius_common_html::email::confirm_account::build_txt(&*user.name, register_url);
+            tiberius_common_html::email::confirm_account::build_txt(&user.name, register_url);
         let body = lettre::message::MultiPart::alternative_plain_html(body_txt, body);
         let email = Message::builder()
             .from(self.from.clone())
@@ -89,7 +79,7 @@ impl EmailService for SMTP {
             ))
             .date_now()
             .subject(tiberius_common_html::email::confirm_account::subject(
-                &*user.name,
+                &user.name,
             ))
             .multipart(body)?;
         self.transport.send(email).await?;
@@ -98,10 +88,9 @@ impl EmailService for SMTP {
 
     async fn send_email_reset(&self, user: &User, reset_url: &str) -> Result<()> {
         let body: String =
-            tiberius_common_html::email::password_reset::build(&*user.name, reset_url)
-                .into_string();
+            tiberius_common_html::email::password_reset::build(&user.name, reset_url).into_string();
         let body_txt: String =
-            tiberius_common_html::email::password_reset::build_txt(&*user.name, reset_url);
+            tiberius_common_html::email::password_reset::build_txt(&user.name, reset_url);
         let body = lettre::message::MultiPart::alternative_plain_html(body_txt, body);
         let email = Message::builder()
             .from(self.from.clone())
@@ -112,7 +101,7 @@ impl EmailService for SMTP {
             ))
             .date_now()
             .subject(tiberius_common_html::email::password_reset::subject(
-                &*user.name,
+                &user.name,
             ))
             .multipart(body)?;
         self.transport.send(email).await?;
@@ -120,10 +109,10 @@ impl EmailService for SMTP {
     }
     async fn send_unlock_account(&self, user: &User, unlock_url: &str) -> Result<()> {
         let body: String =
-            tiberius_common_html::email::unlock_account::build(&*user.name, unlock_url)
+            tiberius_common_html::email::unlock_account::build(&user.name, unlock_url)
                 .into_string();
         let body_txt: String =
-            tiberius_common_html::email::unlock_account::build_txt(&*user.name, unlock_url);
+            tiberius_common_html::email::unlock_account::build_txt(&user.name, unlock_url);
         let body = lettre::message::MultiPart::alternative_plain_html(body_txt, body);
         let email = Message::builder()
             .from(self.from.clone())
@@ -134,7 +123,7 @@ impl EmailService for SMTP {
             ))
             .date_now()
             .subject(tiberius_common_html::email::unlock_account::subject(
-                &*user.name,
+                &user.name,
             ))
             .multipart(body)?;
         self.transport.send(email).await?;
@@ -142,9 +131,9 @@ impl EmailService for SMTP {
     }
     async fn send_update_email(&self, user: &User, update_url: &str) -> Result<()> {
         let body: String =
-            tiberius_common_html::email::update_email::build(&*user.name, update_url).into_string();
+            tiberius_common_html::email::update_email::build(&user.name, update_url).into_string();
         let body_txt: String =
-            tiberius_common_html::email::update_email::build_txt(&*user.name, update_url);
+            tiberius_common_html::email::update_email::build_txt(&user.name, update_url);
         let body = lettre::message::MultiPart::alternative_plain_html(body_txt, body);
         let email = Message::builder()
             .from(self.from.clone())
@@ -155,7 +144,7 @@ impl EmailService for SMTP {
             ))
             .date_now()
             .subject(tiberius_common_html::email::update_email::subject(
-                &*user.name,
+                &user.name,
             ))
             .multipart(body)?;
         self.transport.send(email).await?;

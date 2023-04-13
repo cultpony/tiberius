@@ -12,7 +12,7 @@ use tiberius_dependencies::axum_flash::Flash;
 use tiberius_models::{Client, User, UserLoginResult};
 
 use crate::{
-    api::v3::misc::sessho::PathApiV3MiscSessionHandover, pages::activity::PathActivityIndex,
+    api::v3::misc::sessho::PathApiV3MiscSessionHandover, templates::activity::PathActivityIndex,
 };
 
 pub fn session_pages(r: Router<TiberiusState>) -> Router<TiberiusState> {
@@ -77,7 +77,7 @@ pub async fn new_session(
         }
     };
     let page: PreEscaped<String> = html! {
-        (crate::pages::common::frontmatter::app(&state, &rstate, None, &mut client, body, None).await?);
+        (crate::templates::common::frontmatter::app(&state, &rstate, None, &mut client, body, None).await?);
     };
     Ok(TiberiusResponse::Html(HtmlResponse {
         content: page.into_string(),

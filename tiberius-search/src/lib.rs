@@ -141,8 +141,7 @@ pub trait Queryable {
         let aq_len = aq.len();
         let mut aq: Vec<Box<dyn tantivy::query::Query>> = aq
             .into_iter()
-            .map(|x| x.into_tantivy_search(&schema))
-            .flatten()
+            .flat_map(|x| x.into_tantivy_search(&schema))
             .collect();
         if aq.len() != aq_len {
             return Err(QueryError::AuxQueryError(
@@ -152,8 +151,7 @@ pub trait Queryable {
         let anq_len = anq.len();
         let anq: Vec<Box<dyn tantivy::query::Query>> = anq
             .into_iter()
-            .map(|x| x.into_tantivy_search(&schema))
-            .flatten()
+            .flat_map(|x| x.into_tantivy_search(&schema))
             .collect();
         if anq.len() != anq_len {
             return Err(QueryError::AuxQueryError(
@@ -187,9 +185,9 @@ pub trait Queryable {
         use tantivy::collector::*;
         let coll = TopDocs::with_limit(limit).and_offset(offset);
         let coll = {
-            let field = Self::schema().get_field(dir.field()).expect(&format!(
-                "direction indicator faulty, indicated invalid field {dir:?}"
-            ));
+            let field = Self::schema().get_field(dir.field()).unwrap_or_else(|| {
+                panic!("direction indicator faulty, indicated invalid field {dir:?}")
+            });
             let field_type = dir.field_type();
             let dir: f64 = if dir.invert_sort() { -1.0 } else { 1.0 };
             match field_type {
@@ -229,10 +227,8 @@ pub trait Queryable {
             let doc = searcher.doc(*addr)?;
             trace!("Got document: {:?}", doc);
             let value = doc.get_first(field);
-            let value = value.map(|x| x.as_u64()).flatten();
-            match value {
-                Some(v) => out.push((*score, v)),
-                None => continue,
+            if let Some(v) = value.and_then(|x| x.as_u64()) {
+                out.push((*score, v))
             }
         }
 
@@ -264,13 +260,11 @@ pub trait Queryable {
         };
         let aq: Vec<Query> = aq
             .into_iter()
-            .map(|s| crate::query::Query::from_str(&s.into()))
-            .flatten()
+            .flat_map(|s| crate::query::Query::from_str(&s.into()))
             .collect();
         let anq: Vec<Query> = anq
             .into_iter()
-            .map(|s| crate::query::Query::from_str(&s.into()))
-            .flatten()
+            .flat_map(|s| crate::query::Query::from_str(&s.into()))
             .collect();
         Self::search_item(i, q, aq, anq, limit, offset, dir)
     }

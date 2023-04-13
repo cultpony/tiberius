@@ -5,7 +5,7 @@ use tiberius_dependencies::base64;
 use tiberius_dependencies::base64::engine::Engine;
 use tiberius_dependencies::totp_rs::{Algorithm, TOTP};
 
-#[derive(sqlx::FromRow, Debug, Clone, PartialEq)]
+#[derive(sqlx::FromRow, Debug, Clone, PartialEq, Default)]
 pub struct OTPSecret {
     pub encrypted_otp_secret: Option<String>,
     pub encrypted_otp_secret_iv: Option<String>,
@@ -20,19 +20,6 @@ pub struct OTPSecret {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct OTPEncryptionKey(Vec<u8>);
-
-impl Default for OTPSecret {
-    fn default() -> Self {
-        Self {
-            encrypted_otp_secret: None,
-            encrypted_otp_secret_iv: None,
-            encrypted_otp_secret_salt: None,
-            consumed_timestep: None,
-            otp_required_for_login: None,
-            otp_backup_codes: None,
-        }
-    }
-}
 
 const fn b64c_default() -> base64::engine::general_purpose::GeneralPurpose {
     base64::engine::general_purpose::GeneralPurpose::new(
@@ -59,8 +46,8 @@ impl OTPSecret {
         let time = Self::time();
         Ok(match (totp, totp_required) {
             (Some(totp), true) => self
-                .algo(&key)?
-                .map(|algo| algo.check(&*totp.to_string(), time))
+                .algo(key)?
+                .map(|algo| algo.check(&totp.to_string(), time))
                 .unwrap_or(false),
             (Some(totp), false) => false,
             (None, true) => false,
@@ -135,7 +122,7 @@ impl OTPSecret {
         let iv = self.encrypted_otp_secret_iv.as_ref().unwrap();
         // PG may stoer garbage codepoints, remove them
         let iv = iv.trim();
-        let iv = b64c.decode(&iv).context("Base64 IV Decode")?;
+        let iv = b64c.decode(iv).context("Base64 IV Decode")?;
         let iv: Result<[u8; 12], Vec<u8>> = iv.try_into();
         let iv = match iv {
             Ok(v) => v,
@@ -150,7 +137,7 @@ impl OTPSecret {
             ring::pbkdf2::PBKDF2_HMAC_SHA1,
             NonZeroU32::new(2000).unwrap(),
             &salt,
-            &otp_secret,
+            otp_secret,
             &mut key,
         );
         use ring::aead::*;
@@ -175,7 +162,7 @@ impl OTPSecret {
             ring::pbkdf2::PBKDF2_HMAC_SHA1,
             NonZeroU32::new(2000).unwrap(),
             &salt,
-            &otp_secret,
+            otp_secret,
             &mut key,
         );
         use ring::aead::*;

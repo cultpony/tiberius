@@ -4,7 +4,7 @@ use comrak::{markdown_to_html, ComrakOptions};
 use std::collections::HashMap;
 use tiberius_dependencies::comrak;
 
-use crate::pages::common::renderer::markdown_extensions;
+use crate::templates::common::renderer::markdown_extensions;
 
 fn common_options(meta: &Meta) -> ComrakOptions {
     let mut options = ComrakOptions::default();

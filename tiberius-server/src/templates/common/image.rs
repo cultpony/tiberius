@@ -15,7 +15,7 @@ use tiberius_models::{
     User,
 };
 
-use crate::pages::{
+use crate::templates::{
     common::{frontmatter::CSSWidth, pagination::PaginationCtl},
     images::PathShowImage,
     PathImageThumbGetSimple,
@@ -92,6 +92,7 @@ impl ToString for ImageBlockHeader {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn image_block_default_sort<
     S: Into<String> + std::fmt::Debug,
     S1: Into<String> + std::fmt::Debug,
@@ -125,6 +126,7 @@ pub async fn image_block_default_sort<
     .await
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn image_block<
     S1: Into<String> + std::fmt::Debug,
     S4: Into<String> + std::fmt::Debug,
@@ -245,7 +247,7 @@ pub enum DisplaySize {
 }
 
 impl DisplaySize {
-    pub fn to_width(&self) -> CSSWidth {
+    pub fn into_width(self) -> CSSWidth {
         match self {
             DisplaySize::Normal => CSSWidth::Pixels(248),
             DisplaySize::Featured => CSSWidth::Pixels(326),
@@ -255,7 +257,7 @@ impl DisplaySize {
 
 impl Display for DisplaySize {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.to_width().to_string())
+        f.write_str(&self.into_width().to_string())
     }
 }
 
@@ -366,12 +368,10 @@ impl RenderIntent {
             .unwrap_or(false);
         let use_gif = vid
             && !webm
-            && match size {
-                ImageThumbType::Thumb => true,
-                ImageThumbType::ThumbSmall => true,
-                ImageThumbType::ThumbTiny => true,
-                _ => false,
-            };
+            && matches!(
+                size,
+                ImageThumbType::Thumb | ImageThumbType::ThumbSmall | ImageThumbType::ThumbTiny
+            );
         let filtered = image.filter_or_spoiler_hits(client).await?;
         let static_host = state.config.static_host(Some(rstate));
         fn apply_static_host(uri: Uri, host: Option<&String>) -> Uri {

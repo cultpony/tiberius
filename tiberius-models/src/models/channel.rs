@@ -202,7 +202,7 @@ impl Channel {
         }
     }
     pub fn image(&self) -> &String {
-        &self.banner_image.as_ref().unwrap_or(
+        self.banner_image.as_ref().unwrap_or(
             self.channel_image
                 .as_ref()
                 .expect("must have iether channel or banner"),

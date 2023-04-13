@@ -13,15 +13,9 @@ use tiberius_models::Queryable;
 
 use crate::SharedCtx;
 
-#[derive(serde::Deserialize, serde::Serialize, Clone, Debug)]
+#[derive(serde::Deserialize, serde::Serialize, Clone, Debug, Default)]
 pub struct TagReindexConfig {
     pub tag_ids: Option<Vec<i64>>,
-}
-
-impl Default for TagReindexConfig {
-    fn default() -> Self {
-        Self { tag_ids: None }
-    }
 }
 
 #[instrument(skip(current_job, sctx))]

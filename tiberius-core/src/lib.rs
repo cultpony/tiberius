@@ -97,19 +97,10 @@ pub const fn package_version() -> &'static str {
     VERSION
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct CSPHeader {
     pub static_host: Option<String>,
     pub camo_host: Option<String>,
-}
-
-impl Default for CSPHeader {
-    fn default() -> Self {
-        Self {
-            static_host: None,
-            camo_host: None,
-        }
-    }
 }
 
 impl CSPHeader {
@@ -119,13 +110,13 @@ impl CSPHeader {
     fn header_value(&self) -> HeaderValue {
         use csp::*;
         let default_src = match &self.static_host {
-            Some(static_host) => Sources::new_with(Source::Self_).add(Source::Host(&static_host)),
+            Some(static_host) => Sources::new_with(Source::Self_).add(Source::Host(static_host)),
             None => Sources::new_with(Source::Self_),
         };
         let style_src = match &self.static_host {
             Some(static_host) => Sources::new_with(Source::Self_)
                 .add(Source::UnsafeInline)
-                .add(Source::Host(&static_host)),
+                .add(Source::Host(static_host)),
             None => Sources::new_with(Source::Self_).add(Source::UnsafeInline),
         };
         let img_src = {
@@ -135,11 +126,11 @@ impl CSPHeader {
                 .add(Source::Host("images.picarto.tv"))
                 .add(Source::Host("*.picarto.tv"));
             let s = match &self.static_host {
-                Some(static_host) => s.add(Source::Host(&static_host)),
+                Some(static_host) => s.add(Source::Host(static_host)),
                 None => s,
             };
             let s = match &self.camo_host {
-                Some(v) => s.add(Source::Host(&v)),
+                Some(v) => s.add(Source::Host(v)),
                 None => s,
             };
             s
@@ -210,9 +201,9 @@ impl std::str::FromStr for Query {
     type Err = TiberiusError;
 
     fn from_str(s: &str) -> TiberiusResult<Self> {
-        return Ok(Self {
+        Ok(Self {
             query: Some(either::Left(s.to_string())),
-        });
+        })
     }
 }
 

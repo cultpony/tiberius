@@ -16,8 +16,8 @@ use tiberius_core::{
 };
 use tiberius_dependencies::axum_database_sessions::Session;
 
-use crate::pages::session::PathSessionsLogin;
 use crate::set_scope_tx;
+use crate::templates::session::PathSessionsLogin;
 
 pub mod activity;
 pub mod apikeys;

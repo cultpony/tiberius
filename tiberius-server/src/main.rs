@@ -31,7 +31,7 @@ use tiberius_core::{
 mod api;
 mod cli;
 mod init;
-mod pages;
+mod templates;
 #[cfg(test)]
 mod tests;
 

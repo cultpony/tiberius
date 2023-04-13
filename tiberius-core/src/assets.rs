@@ -26,10 +26,17 @@ pub fn embedded_file_pages(r: Router<TiberiusState>) -> Router<TiberiusState> {
         .typed_get(serve_asset)
 }
 
-#[derive(rust_embed::RustEmbed)]
-#[folder = "../res/assets-build/"]
-#[prefix = "/"]
-pub struct Assets;
+mod asset {
+    #![allow(clippy::disallowed_methods)]
+
+    use tiberius_dependencies::rust_embed;
+    #[derive(rust_embed::RustEmbed)]
+    #[folder = "../res/assets-build/"]
+    #[prefix = "/"]
+    pub struct Assets;
+}
+
+pub use asset::Assets;
 
 #[derive(TypedPath, serde::Deserialize)]
 #[typed_path("/favicon.ico")]
@@ -272,7 +279,7 @@ impl AssetLoader {
         let siteconf = std::fs::File::open(siteconf).context("Could not find site config data")?;
         let siteconf: SiteConfig =
             serde_json::from_reader(siteconf).context("Could not parse site config data")?;
-        let mut quicktagtable = dataroot.clone();
+        let mut quicktagtable = dataroot;
         quicktagtable.push("quick_tag_table.json");
         let quicktagtable =
             std::fs::File::open(quicktagtable).context("Could not find quick tag table")?;

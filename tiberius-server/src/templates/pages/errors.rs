@@ -4,7 +4,7 @@ use tiberius_core::{
     request_helper::{HtmlResponse, TiberiusResponse},
 };
 
-use crate::pages::error_page;
+use crate::templates::error_page;
 
 #[tracing::instrument]
 pub async fn server_error() -> TiberiusResponse<()> {

@@ -19,7 +19,7 @@ use tiberius_dependencies::chrono::{DateTime, NaiveDateTime, Utc};
 
 use crate::{
     api::int::oembed::PathOembed,
-    pages::{
+    templates::{
         common::routes::{cdn_host, dark_stylesheet_path, static_path, stylesheet_path},
         images::{PathSearchEmpty, PathShowImage},
         session::{PathNewSession, PathRegistration, PathSessionLogout},

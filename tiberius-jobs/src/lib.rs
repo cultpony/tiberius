@@ -55,10 +55,7 @@ pub async fn runner(db: DBPool, config: Configuration) -> TiberiusResult<()> {
     let mut registry = registry()?;
     let client = TiberiusState::get_db_client_standalone(db.clone(), &config).await?;
     registry.set_error_handler(job_err_handler);
-    registry.set_context(SharedCtx {
-        client: client,
-        config: config,
-    });
+    registry.set_context(SharedCtx { client, config });
     let handle = registry.runner(&db).set_concurrency(1, 20).run().await?;
     let handle = handle.into_inner();
     handle.await?;
@@ -190,7 +187,6 @@ pub async fn scheduler(db: DBPool, config: Configuration) -> ! {
             Ok(_) => (),
             Err(e) => {
                 error!("Error in scheduler: {e:?}");
-                ()
             }
         };
         tokio::task::yield_now().await;

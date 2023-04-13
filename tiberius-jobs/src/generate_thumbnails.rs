@@ -29,7 +29,7 @@ pub async fn generate_thumbnails<'a, E: sqlx::Executor<'a, Database = sqlx::Post
 
 #[instrument(skip(img))]
 pub async fn make_thumb(
-    img: std::sync::Arc<Box<image::DynamicImage>>,
+    img: std::sync::Arc<image::DynamicImage>,
     thumb_size: ImageThumbType,
 ) -> TiberiusResult<Box<image::DynamicImage>> {
     let res = thumb_size.to_resolution_limit();
@@ -49,7 +49,7 @@ pub async fn make_thumb(
             })
             .await?
         }
-        None => (**img).clone(),
+        None => (*img).clone(),
     }))
 }
 
@@ -114,13 +114,13 @@ async fn tx_run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<
 
     let img = tokio::task::spawn_blocking(move || image::load(img, format)).await??;
 
-    let img = Arc::new(Box::new(img));
+    let img = Arc::new(img);
 
     async fn do_make_thumb(
         thumb_type: ImageThumbType,
         store_to: PathBuf,
         format: image::ImageFormat,
-        img: Arc<Box<image::DynamicImage>>,
+        img: Arc<image::DynamicImage>,
     ) -> TiberiusResult<()> {
         debug!(
             "Clamping image to {:?}, {:?}",

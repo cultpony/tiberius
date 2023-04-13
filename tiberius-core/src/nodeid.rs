@@ -12,7 +12,7 @@ pub struct NodeId {
 impl std::fmt::Debug for NodeId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("NodeId")
-            .field("node_id", &hex::encode(&self.node_id))
+            .field("node_id", &hex::encode(self.node_id))
             .finish()
     }
 }
@@ -34,6 +34,6 @@ impl From<[u8; 6]> for NodeId {
 impl NodeId {
     // Generates a new UUID that is monotonically increasing and contains the node ID
     pub fn uuid(&self) -> Uuid {
-        Uuid::now_v6(&self)
+        Uuid::now_v6(self)
     }
 }

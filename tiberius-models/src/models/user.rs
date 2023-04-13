@@ -31,9 +31,9 @@ use crate::{Badge, BadgeAward, Client, Filter, PhilomenaModelError, UserToken};
 #[sqlx(rename = "citext")]
 pub struct CiText(String);
 
-impl Into<String> for CiText {
-    fn into(self) -> String {
-        self.0.to_lowercase()
+impl From<CiText> for String {
+    fn from(value: CiText) -> Self {
+        value.0.to_lowercase()
     }
 }
 
@@ -181,22 +181,22 @@ impl User {
                     use totp_rs::{Algorithm, TOTP};
                     let totpi = TOTP::new_unchecked(Algorithm::SHA1, 6, 1, 30, dotp);
                     if totpi.check(&totp, time) {
-                        return Ok(UserLoginResult::Valid);
+                        Ok(UserLoginResult::Valid)
                     } else {
                         debug!("Invalid TOTP, stopping login session");
                         // TODO: retry with backup codes if not [0-9]{6} format
-                        return Ok(UserLoginResult::Invalid);
+                        Ok(UserLoginResult::Invalid)
                     }
                 } else {
                     // User has required TOTP but no TOTP setup, so reject the attempt
-                    return Ok(UserLoginResult::Invalid);
+                    Ok(UserLoginResult::Invalid)
                 }
             } else {
                 // User did not supply any TOTP
-                return Ok(UserLoginResult::RetryWithTOTP);
+                Ok(UserLoginResult::RetryWithTOTP)
             }
         } else {
-            return Ok(UserLoginResult::Valid);
+            Ok(UserLoginResult::Valid)
         }
     }
     pub async fn badge_awards(
@@ -213,7 +213,7 @@ impl User {
         session_id: &[u8],
     ) -> Result<Option<User>, PhilomenaModelError> {
         trace!("getting user for session {}", hex::encode(session_id));
-        let user_token = UserToken::get_user_token_for_session(client, &session_id).await?;
+        let user_token = UserToken::get_user_token_for_session(client, session_id).await?;
         let user_token = match user_token {
             None => return Ok(None),
             Some(v) => v,
@@ -261,7 +261,7 @@ impl User {
         &self,
         client: &mut Client,
     ) -> Result<Vec<Filter>, PhilomenaModelError> {
-        Ok(Filter::get_user_filters(client, self).await?)
+        Filter::get_user_filters(client, self).await
     }
 
     #[cfg(test)]
@@ -273,7 +273,7 @@ impl User {
             slug: "testuser".to_string(),
             ..Default::default()
         };
-        const QUERY: &'static str = r#"
+        const QUERY: &str = r#"
         INSERT INTO users (
             id, email, name, slug, created_at, updated_at,
             authentication_token, role
@@ -295,7 +295,7 @@ impl User {
     }
 
     pub async fn get_id(client: &mut Client, id: i64) -> Result<Option<User>, PhilomenaModelError> {
-        const QUERY: &'static str = r#"
+        const QUERY: &str = r#"
         SELECT
             *
         FROM users 
@@ -308,10 +308,7 @@ impl User {
             .map(|f| -> Result<Option<User>, sqlx::Error> {
                 f.map(|f| {
                     use sqlx::FromRow;
-                    match f {
-                        Some(f) => Some(User::from_row(&f)),
-                        None => None,
-                    }
+                    f.map(|f| User::from_row(&f))
                 })?
                 .transpose()
             });
@@ -367,16 +364,16 @@ impl User {
     }
 }
 
-impl Into<sentry::User> for User {
-    fn into(self) -> sentry::User {
+impl From<User> for sentry::User {
+    fn from(value: User) -> Self {
         sentry::User {
-            id: Some(self.id.to_string()),
-            email: Some(self.email.into()),
-            ip_address: self
+            id: Some(value.id.to_string()),
+            email: Some(value.email.into()),
+            ip_address: value
                 .user_history
                 .current_sign_in_ip
                 .map(|x| sentry::protocol::IpAddress::Exact(x.ip())),
-            username: Some(self.name),
+            username: Some(value.name),
             other: BTreeMap::new(),
         }
     }
@@ -458,7 +455,7 @@ mod test {
         let test = "VmSaqD2h9SheJO5FXja8dBBV/AvfACBHqjGt+90qAIlJ27V47uGp9A==\x0A        ";
         let test = test.trim();
         let r = b64c.decode(test).expect("secret decode failed");
-        assert!(r.len() > 0, "Decode must be non-empty");
+        assert!(!r.is_empty(), "Decode must be non-empty");
         Ok(())
     }
 
@@ -471,7 +468,7 @@ mod test {
         let test = "Jtfmw9tM26CsdyPV\x0A        ";
         let test = test.trim();
         let r = b64c.decode(test).expect("IV decode failed");
-        assert!(r.len() > 0, "Decode must be non-empty");
+        assert!(!r.is_empty(), "Decode must be non-empty");
         Ok(())
     }
 
@@ -485,7 +482,7 @@ mod test {
         let test = test.trim();
         let test = test.trim_start_matches('_');
         let r = b64c.decode(test).expect("salt decode failed");
-        assert!(r.len() > 0, "Decode must be non-empty");
+        assert!(!r.is_empty(), "Decode must be non-empty");
         Ok(())
     }
 

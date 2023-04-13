@@ -37,7 +37,7 @@ impl Default for UserStaffEntry {
 
 impl UserStaffEntry {
     pub async fn get_user(&self, client: &mut Client) -> Result<Option<User>, PhilomenaModelError> {
-        Ok(User::get_id(client, self.user_id as i64).await?)
+        User::get_id(client, self.user_id).await
     }
 
     /// Returns the display name the user configured. It accepts a client to resolve the display name to the user

@@ -6,7 +6,7 @@ use tiberius_core::state::TiberiusRequestState;
 use tiberius_core::{error::TiberiusResult, session::Unauthenticated, state::TiberiusState};
 use tiberius_models::{Client, Identifiable, IdentifiesUser, User};
 
-use crate::pages::user::{PathUserAvatar, PathUserProfileId};
+use crate::templates::user::{PathUserAvatar, PathUserProfileId};
 
 pub fn user_attribution_avatar(
     state: &TiberiusState,

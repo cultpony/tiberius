@@ -73,7 +73,7 @@ impl IdentifiesUser for &Comment {
         })
     }
     fn user_id(&self) -> Option<i64> {
-        self.user_id.clone().map(|x| x as i64)
+        self.user_id.map(|x| x as i64)
     }
     fn is_anonymous(&self) -> bool {
         self.anonymous.unwrap_or(false)

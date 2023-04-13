@@ -15,7 +15,7 @@ use tiberius_models::Queryable;
 
 use crate::SharedCtx;
 
-#[derive(serde::Deserialize, serde::Serialize, Clone, Debug)]
+#[derive(serde::Deserialize, serde::Serialize, Clone, Debug, Default)]
 pub struct ImageReindexConfig {
     /// If none and only_new is false, all images are reindexed
     /// If none and only_new is true, only new images are reindex
@@ -26,15 +26,6 @@ pub struct ImageReindexConfig {
     ///
     /// If no image IDs are listed, this will result in indexing only new images
     pub only_new: bool,
-}
-
-impl Default for ImageReindexConfig {
-    fn default() -> Self {
-        Self {
-            image_ids: None,
-            only_new: false,
-        }
-    }
 }
 
 pub async fn reindex_images<'a, E: sqlx::Executor<'a, Database = sqlx::Postgres>>(
@@ -153,10 +144,10 @@ pub async fn reindex_new(client: &mut Client) -> TiberiusResult<()> {
         "Latest indexed image is {}, latest image in database is {}",
         last_image[0].1, last_db_image.id
     );
-    if last_image[0].1 as u64 == last_db_image.id as u64 {
+    if last_image[0].1 == last_db_image.id as u64 {
         debug!("No new images, reindex job step complete");
     } else {
-        let images = Image::get_range(client, (last_image[0].1 as u64)..(last_db_image.id as u64))
+        let images = Image::get_range(client, (last_image[0].1)..(last_db_image.id as u64))
             .await?
             .iter()
             .map(|x| x.id as i64)

@@ -5,7 +5,7 @@ use tiberius_core::{
 };
 use tiberius_models::{comment::Comment, Client, Identifiable, Image, User};
 
-use crate::pages::common::{
+use crate::templates::common::{
     frontmatter::pretty_time,
     renderer::textile::render_textile,
     user::{user_attribution_avatar, user_attribution_main, user_attribution_title},

@@ -197,7 +197,7 @@ impl Tokenizer {
             .unwrap_or(false)
     }
     fn is_forced_token_border(&mut self) -> bool {
-        if self.cur == None && self.next == None {
+        if self.cur.is_none() && self.next.is_none() {
             true
         } else {
             Self::is_forced_token_border_char(self.cur)

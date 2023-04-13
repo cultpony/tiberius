@@ -31,7 +31,7 @@ pub async fn handover_session<T: SessionMode>(
         None => {
             trace!("No user token, user logged out, terminating session");
             // Turn session into unauthenticated
-            session.set_data(METADATA_KEY, "terminated".into())?;
+            session.set_data(METADATA_KEY, "terminated")?;
             session.user_id = None;
             Ok(())
         }
@@ -60,17 +60,17 @@ pub async fn handover_session<T: SessionMode>(
                 if session.user_id.is_none() {
                     trace!("User exists, not logged in, handover accepted");
                     session.user_id = Some(user.id());
-                    session.set_data(METADATA_KEY, "true".into())?;
+                    session.set_data(METADATA_KEY, "true")?;
                 } else {
                     trace!("User exists but logged in, rejecting handover");
-                    session.set_data(METADATA_KEY, "rejected".into())?;
+                    session.set_data(METADATA_KEY, "rejected")?;
                 }
             } else {
                 trace!(
                     "User for token {:?} does not exist, handover failed",
                     hex::encode(user_token)
                 );
-                session.set_data(METADATA_KEY, "false".into())?;
+                session.set_data(METADATA_KEY, "false")?;
             }
             Ok(())
         }

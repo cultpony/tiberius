@@ -13,7 +13,7 @@ use tiberius_core::{
 };
 use tiberius_models::{Client, Tag, TagLike};
 
-use crate::pages::todo_page;
+use crate::templates::todo_page;
 
 pub fn tags_pages(r: Router<TiberiusState>) -> Router<TiberiusState> {
     r.typed_get(list_tags)

@@ -7,6 +7,7 @@ use tiberius_dependencies::{
     http::uri::Authority,
 };
 use tiberius_dependencies::{reqwest, sha3};
+use tracing::Level;
 
 use crate::NodeId;
 use crate::{
@@ -84,10 +85,9 @@ impl FromStr for LogLevel {
     }
 }
 
-impl Into<tracing::Level> for LogLevel {
-    fn into(self) -> tracing::Level {
-        use tracing::Level;
-        match self {
+impl From<LogLevel> for tracing::Level {
+    fn from(value: LogLevel) -> Self {
+        match value {
             LogLevel::Error => Level::ERROR,
             LogLevel::Warn => Level::WARN,
             LogLevel::Info => Level::INFO,
@@ -198,20 +198,16 @@ pub struct Configuration {
 
 impl Configuration {
     pub async fn db_conn(&self) -> TiberiusResult<DBPool> {
-        let opts = sqlx::postgres::PgConnectOptions::from_str(&self.database_url.to_string())?
+        let opts = sqlx::postgres::PgConnectOptions::from_str(self.database_url.as_str())?
             .application_name(&crate::package_full());
         let conn = sqlx::PgPool::connect_with(opts).await?;
 
         Ok(conn)
     }
-    pub fn camo_config<'a>(&'a self) -> Option<(&'a String, &'a String)> {
-        match &self.camo_host {
-            Some(camo_host) => match &self.camo_key {
-                Some(camo_key) => Some((camo_host, camo_key)),
-                None => None,
-            },
-            None => None,
-        }
+    pub fn camo_config(&self) -> Option<(&String, &String)> {
+        self.camo_host
+            .as_ref()
+            .and_then(|camo_host| self.camo_key.as_ref().map(|camo_key| (camo_host, camo_key)))
     }
     pub fn static_host<T: SessionMode>(&self, rstate: Option<&TiberiusRequestState<T>>) -> String {
         match rstate {
@@ -231,6 +227,14 @@ impl Configuration {
         self.philomena_secret.as_ref()
     }
 
+    /// Sets the Staff Key to be used for accessing Tiberius
+    ///
+    /// # Safety
+    ///
+    /// This function must only be called once during startup. Calling this function
+    /// outside tests or startup immediately compromises all security guarantees the application makes
+    /// regarding access control.
+    ///
     pub unsafe fn set_staff_key(&mut self, staff_secret: Option<String>) {
         self.staff_secret = staff_secret
     }
@@ -246,7 +250,7 @@ impl Configuration {
         }
     }
     pub fn password_pepper(&self) -> Option<&str> {
-        self.password_pepper.as_ref().map(|x| x.as_str())
+        self.password_pepper.as_deref()
     }
 
     pub fn image_base(&self) -> PathBuf {

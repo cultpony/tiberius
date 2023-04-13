@@ -11,7 +11,7 @@ use tiberius_dependencies::chrono::NaiveDateTime;
 use tiberius_dependencies::hex;
 use tracing::{error, warn};
 
-use crate::pages::session::PathSessionsLogin;
+use crate::templates::session::PathSessionsLogin;
 
 pub mod channels;
 pub mod comment;

@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "tiberius-captcha",
     "tiberius-common-html",
     "tiberius-core",
     "tiberius-dependencies",

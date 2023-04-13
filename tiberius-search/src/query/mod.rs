@@ -133,7 +133,7 @@ pub enum QueryError {
     #[error("An operator is missing one or two operands: {0}")]
     OperatorError(String),
     #[error("Could not parse date: {0}")]
-    DateTimeError(#[from] htp::HTPError),
+    DateTimeError(#[from] Box<htp::HTPError>),
     #[error("Could not parse date: {0}")]
     ChronoEnglish(#[from] chrono_english::DateError),
     #[error("We're working hard on making the query syntax accept more things")]
@@ -143,6 +143,12 @@ pub enum QueryError {
     TantivyError(#[from] tantivy::TantivyError),
     #[error("Auxiliary Query Error: {0}")]
     AuxQueryError(String),
+}
+
+impl From<htp::HTPError> for QueryError {
+    fn from(value: htp::HTPError) -> Self {
+        Self::DateTimeError(Box::new(value))
+    }
 }
 
 use either::Either;
@@ -423,8 +429,7 @@ impl Query {
             ])),
             Query::Group { v } => Box::new(BooleanQuery::new(
                 v.into_iter()
-                    .map(|q| q.into_tantivy_search(schema))
-                    .flatten()
+                    .flat_map(|q| q.into_tantivy_search(schema))
                     .map(|q| (Occur::Must, q))
                     .collect(),
             )),
@@ -557,16 +562,16 @@ impl Query {
                             chrono_english::Dialect::Uk,
                         )?;
                         let strval = tantivy::DateTime::from_timestamp_secs(strval.timestamp());
-                        let strval_term = Term::from_field_date(field, strval.clone());
+                        let strval_term = Term::from_field_date(field, strval);
                         match cmp {
                             Comparator::Equal => Box::new(TermQuery::new(
-                                tantivy::Term::from_field_date(field, strval.clone()),
+                                tantivy::Term::from_field_date(field, strval),
                                 IndexRecordOption::Basic,
                             )),
                             Comparator::NotEqual => Box::new(BooleanQuery::new(vec![(
                                 Occur::MustNot,
                                 Box::new(TermQuery::new(
-                                    tantivy::Term::from_field_date(field, strval.clone()),
+                                    tantivy::Term::from_field_date(field, strval),
                                     IndexRecordOption::Basic,
                                 )),
                             )])),

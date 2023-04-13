@@ -109,17 +109,24 @@ pub enum TiberiusError {
     #[error("ACL Error: {0:?}")]
     ACLError(#[from] tiberius_dependencies::casbin::Error),
     #[error("Query Error: {0:?}")]
-    QueryError(#[from] tiberius_search::QueryError),
+    QueryError(Box<tiberius_search::QueryError>),
 }
 
 pub type TiberiusResult<T> = std::result::Result<T, TiberiusError>;
+
+// Query Error can be large
+impl From<tiberius_search::QueryError> for TiberiusError {
+    fn from(value: tiberius_search::QueryError) -> Self {
+        Self::QueryError(Box::new(value))
+    }
+}
 
 impl axum::response::IntoResponse for TiberiusError {
     fn into_response(self) -> Response {
         match self {
             TiberiusError::AccessDenied => {
                 let c = maud::html! {
-                    b { (format!("{}", self.to_string())) };
+                    b { (format!("{}", self)) };
                 };
                 let c: String = c.into_string();
                 let mut hm = HeaderMap::new();

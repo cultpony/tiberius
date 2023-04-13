@@ -59,7 +59,7 @@ pub enum PhilomenaModelError {
     #[error("URL error: {}", .0)]
     Url(#[from] url::ParseError),
     #[error("Error in search parser: {}", .0)]
-    Searcher(#[from] tiberius_search::QueryError),
+    Searcher(Box<tiberius_search::QueryError>),
     #[error("Error in search index: {}", .0)]
     Tantivy(#[from] TantivyError),
     #[error("IO Error: {}", .0)]
@@ -90,6 +90,12 @@ pub enum PhilomenaModelError {
     ParseInt(#[from] std::num::ParseIntError),
     #[error("Consumed this TOTP Step already")]
     ConsumedTOTPAlready,
+}
+
+impl From<tiberius_search::QueryError> for PhilomenaModelError {
+    fn from(value: tiberius_search::QueryError) -> Self {
+        Self::Searcher(Box::new(value))
+    }
 }
 
 impl From<Arc<sqlx::Error>> for PhilomenaModelError {
@@ -147,6 +153,7 @@ impl Client {
     }
 
     /// Returns an instance of the recommendation engine used to show users images they might like
+    #[allow(clippy::result_unit_err)]
     pub fn recommendation_engine(&self) -> Result<(), ()> {
         todo!()
     }

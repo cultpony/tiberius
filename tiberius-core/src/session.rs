@@ -98,33 +98,33 @@ pub struct Session<MODE: SessionMode> {
 impl<T: SessionMode> Clone for Session<T> {
     fn clone(&self) -> Self {
         Self {
-            _type: self._type.clone(),
-            id: self.id.clone(),
-            created: self.created.clone(),
-            expires: self.expires.clone(),
+            _type: self._type,
+            id: self.id,
+            created: self.created,
+            expires: self.expires,
             csrf_token: self.csrf_token.clone(),
-            user_id: self.user_id.clone(),
+            user_id: self.user_id,
             data: self.data.clone(),
-            dirty: self.dirty.clone(),
-            ephemeral: self.ephemeral.clone(),
-            waiting_on_totp: self.waiting_on_totp.clone(),
-            cache_user: OnceCell::new_with(self.cache_user.get().map(|x| x.clone())),
+            dirty: self.dirty,
+            ephemeral: self.ephemeral,
+            waiting_on_totp: self.waiting_on_totp,
+            cache_user: OnceCell::new_with(self.cache_user.get().cloned()),
         }
     }
 }
 
-impl Into<Session<Unauthenticated>> for Session<Authenticated> {
-    fn into(self) -> Session<Unauthenticated> {
+impl From<Session<Authenticated>> for Session<Unauthenticated> {
+    fn from(value: Session<Authenticated>) -> Self {
         Session::<Unauthenticated> {
             _type: PhantomData::<Unauthenticated>,
-            id: self.id,
-            created: self.created,
-            expires: self.expires,
-            csrf_token: self.csrf_token,
+            id: value.id,
+            created: value.created,
+            expires: value.expires,
+            csrf_token: value.csrf_token,
             user_id: None,
-            data: self.data,
-            dirty: self.dirty,
-            ephemeral: self.ephemeral,
+            data: value.data,
+            dirty: value.dirty,
+            ephemeral: value.ephemeral,
             waiting_on_totp: false,
 
             cache_user: OnceCell::new(),
@@ -133,18 +133,18 @@ impl Into<Session<Unauthenticated>> for Session<Authenticated> {
 }
 
 #[cfg(test)]
-impl Into<Session<Testing>> for Session<Unauthenticated> {
-    fn into(self) -> Session<Testing> {
+impl From<Session<Unauthenticated>> for Session<Testing> {
+    fn from(value: Session<Unauthenticated>) -> Session<Testing> {
         Session::<Testing> {
             _type: PhantomData::<Testing>,
-            id: self.id,
-            created: self.created,
-            expires: self.expires,
-            csrf_token: self.csrf_token,
+            id: value.id,
+            created: value.created,
+            expires: value.expires,
+            csrf_token: value.csrf_token,
             user_id: None,
-            data: self.data,
-            dirty: self.dirty,
-            ephemeral: self.ephemeral,
+            data: value.data,
+            dirty: value.dirty,
+            ephemeral: value.ephemeral,
             waiting_on_totp: false,
 
             cache_user: OnceCell::new(),
@@ -153,24 +153,25 @@ impl Into<Session<Testing>> for Session<Unauthenticated> {
 }
 
 #[cfg(test)]
-impl Into<Session<Testing>> for Session<Authenticated> {
-    fn into(self) -> Session<Testing> {
+impl From<Session<Authenticated>> for Session<Testing> {
+    fn from(value: Session<Authenticated>) -> Session<Testing> {
         Session::<Testing> {
             _type: PhantomData::<Testing>,
-            id: self.id,
-            created: self.created,
-            expires: self.expires,
-            csrf_token: self.csrf_token,
+            id: value.id,
+            created: value.created,
+            expires: value.expires,
+            csrf_token: value.csrf_token,
             user_id: None,
-            data: self.data,
-            dirty: self.dirty,
-            ephemeral: self.ephemeral,
+            data: value.data,
+            dirty: value.dirty,
+            ephemeral: value.ephemeral,
             waiting_on_totp: false,
 
             cache_user: OnceCell::new(),
         }
     }
 }
+
 impl<T: SessionMode> Session<T> {
     pub fn id(&self) -> Uuid {
         self.id
@@ -201,7 +202,7 @@ impl<T: SessionMode> Session<T> {
     pub fn set_data(&mut self, key: &str, value: &str) -> TiberiusResult<Option<String>> {
         Ok(self
             .set_json_data(key.to_string(), serde_json::to_value(value)?)
-            .map(|x| serde_json::from_value(x))
+            .map(serde_json::from_value)
             .transpose()?)
     }
     pub fn set_json_data(
@@ -349,13 +350,8 @@ impl Session<Unauthenticated> {
     }
 }
 
+#[derive(Default)]
 pub struct SessionID(pub Option<Uuid>);
-
-impl Default for SessionID {
-    fn default() -> Self {
-        Self(None)
-    }
-}
 
 impl SessionID {
     fn as_str(&self) -> String {

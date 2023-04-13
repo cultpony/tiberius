@@ -139,7 +139,7 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
 
         debug!("Kick off thumbnail jobs");
 
-        let imagef = std::sync::Arc::new(Box::new(imagef));
+        let imagef = std::sync::Arc::new(imagef);
         let large = make_thumb(imagef.clone(), ImageThumbType::Large);
         let medium = make_thumb(imagef.clone(), ImageThumbType::Medium);
         let small = make_thumb(imagef.clone(), ImageThumbType::Small);
@@ -251,7 +251,7 @@ mod test {
             "Took {:.5} seconds to load image",
             start.elapsed().as_secs_f32()
         );
-        let img = Arc::new(Box::new(img));
+        let img = Arc::new(img);
 
         // Test Small Thumb
         let thumb_type = ImageThumbType::Small;
@@ -270,7 +270,7 @@ mod test {
 
     async fn testfun_make_thumb(
         thumb_type: ImageThumbType,
-        img: Arc<Box<image::DynamicImage>>,
+        img: Arc<image::DynamicImage>,
     ) -> TiberiusResult<()> {
         println!(
             "Clamping to {:?}, {:?}",

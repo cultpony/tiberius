@@ -12,7 +12,7 @@ use tiberius_core::{
 use tiberius_dependencies::axum_flash::Flash;
 use tiberius_models::{Client, StaffCategory, StaffCategoryColor, User, UserStaffEntry};
 
-use crate::pages::common::frontmatter::{
+use crate::templates::common::frontmatter::{
     csrf_input_tag, form_submit_button, user_attribution, user_attribution_avatar,
 };
 
@@ -220,7 +220,7 @@ pub async fn show(
         Err(e) => panic!("{}", e), //TODO: don't panic on this
     };
     let page: PreEscaped<String> = html! {
-        (crate::pages::common::frontmatter::app(&state, &rstate, None, &mut client, body, None).await?);
+        (crate::templates::common::frontmatter::app(&state, &rstate, None, &mut client, body, None).await?);
     };
     Ok(TiberiusResponse::Html(HtmlResponse {
         content: page.into_string(),

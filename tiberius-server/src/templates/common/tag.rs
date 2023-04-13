@@ -3,7 +3,7 @@ use either::Either;
 use maud::{html, Markup};
 use tiberius_models::{Tag, TagView};
 
-use crate::pages::{
+use crate::templates::{
     session::PathNewSession,
     tags::{
         PathTagsByNameShowTag, PathTagsHideTag, PathTagsShowTag, PathTagsSpoilerTag,

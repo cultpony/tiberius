@@ -73,14 +73,14 @@ impl TryFrom<Configuration> for KeyData {
             ring::pbkdf2::PBKDF2_HMAC_SHA256,
             NonZeroU32::new(1000).unwrap(),
             SALT.as_bytes(),
-            &secret,
+            secret,
             &mut key,
         );
         ring::pbkdf2::derive(
             ring::pbkdf2::PBKDF2_HMAC_SHA256,
             NonZeroU32::new(1000).unwrap(),
             SIGN_SALT.as_bytes(),
-            &secret,
+            secret,
             &mut sign_key,
         );
         Ok(KeyData { key, sign_key })
@@ -101,7 +101,7 @@ pub struct PhilomenaCookie {
 
 impl PhilomenaCookie {
     pub fn user_token(&self) -> Option<&[u8]> {
-        self.user_token.as_ref().map(|x| x.as_slice())
+        self.user_token.as_deref()
     }
 }
 
@@ -112,24 +112,18 @@ impl TryFrom<Term> for PhilomenaCookie {
         let value = value.as_map().ok_or(TiberiusError::ErlangTermDecode(
             "Philomena Cookie invalid".to_string(),
         ))?;
-        let live_socket_id: Option<String>;
-        let csrf_token: Option<String>;
-        let user_token: Option<Vec<u8>>;
-        live_socket_id = value
+        let live_socket_id: Option<String> = value
             .get(&erlang_term::Term::from("live_socket_id"))
             .cloned()
-            .map(|x| x.as_string())
-            .flatten();
-        csrf_token = value
+            .and_then(|x| x.as_string());
+        let csrf_token: Option<String> = value
             .get(&erlang_term::Term::from("_csrf_token"))
             .cloned()
-            .map(|x| x.as_string())
-            .flatten();
-        user_token = value
+            .and_then(|x| x.as_string());
+        let user_token: Option<Vec<u8>> = value
             .get(&erlang_term::Term::from("user_token"))
             .cloned()
-            .map(|x| x.as_bytes())
-            .flatten();
+            .and_then(|x| x.as_bytes());
         Ok(PhilomenaCookie {
             live_socket_id,
             csrf_token,
@@ -142,20 +136,20 @@ impl TryFrom<(&Configuration, &str)> for PhilomenaCookie {
     type Error = TiberiusError;
 
     fn try_from((config, cookie): (&Configuration, &str)) -> Result<Self, Self::Error> {
-        Ok(request_cookie_data(config, cookie)?)
+        request_cookie_data(config, cookie)
     }
 }
 
 pub(crate) const PHOENIX_AAD: [u8; 7] = *b"A128GCM";
-const SALT: &'static str = "authenticated encrypted cookie";
-const SIGN_SALT: &'static str = "signed cookie";
+const SALT: &str = "authenticated encrypted cookie";
+const SIGN_SALT: &str = "signed cookie";
 
-pub fn request_authenticated<'a>(c: &Configuration, cookie: &str) -> TiberiusResult<bool> {
+pub fn request_authenticated(c: &Configuration, cookie: &str) -> TiberiusResult<bool> {
     let key: KeyData = c.clone().try_into()?;
     determine(&key, cookie)
 }
 
-pub fn ip_authenticated<'a>(c: &Configuration, cookie: &str, ip: &IpAddr) -> TiberiusResult<bool> {
+pub fn ip_authenticated(c: &Configuration, cookie: &str, ip: &IpAddr) -> TiberiusResult<bool> {
     let key: KeyData = c.clone().try_into()?;
     determine_ip(&key, cookie, ip)
 }
@@ -166,12 +160,12 @@ pub fn request_cookie_data(
 ) -> TiberiusResult<PhilomenaCookie> {
     let key_data: KeyData = KeyData::try_from(config.clone())?;
     let term = decode(&key_data, cookie)?;
-    Ok(PhilomenaCookie::try_from(term)?)
+    PhilomenaCookie::try_from(term)
 }
 
-fn decode<'a>(key: &KeyData, cookie: &str) -> TiberiusResult<Term> {
+fn decode(key: &KeyData, cookie: &str) -> TiberiusResult<Term> {
     let decoded = decode_cookie(cookie)?;
-    let cek = unwrap_cek(&key, &decoded)?;
+    let cek = unwrap_cek(key, &decoded)?;
     let decrypted = decrypt_session(
         &cek,
         &decoded.aad,
@@ -188,25 +182,27 @@ fn decode<'a>(key: &KeyData, cookie: &str) -> TiberiusResult<Term> {
     Ok(term)
 }
 
-fn determine<'a>(key: &KeyData, cookie: &str) -> TiberiusResult<bool> {
+#[allow(clippy::diverging_sub_expression)]
+fn determine(key: &KeyData, cookie: &str) -> TiberiusResult<bool> {
     let term = decode(key, cookie)?;
     let decrypted: &[u8] = todo!();
-    let determined = session_important(&decrypted);
+    let determined = session_important(decrypted);
 
     Ok(determined)
 }
 
-fn determine_ip<'a>(key: &KeyData, cookie: &str, ip: &IpAddr) -> TiberiusResult<bool> {
+#[allow(clippy::diverging_sub_expression)]
+fn determine_ip(key: &KeyData, cookie: &str, ip: &IpAddr) -> TiberiusResult<bool> {
     let term = decode(key, cookie)?;
     let decrypted: &[u8] = todo!();
-    let important = session_important(&decrypted);
-    let determined = important && contains_ip(&decrypted, ip);
+    let important = session_important(decrypted);
+    let determined = important && contains_ip(decrypted, ip);
 
     Ok(determined)
 }
 
-fn decode_cookie<'a>(cookie: &str) -> TiberiusResult<ElixirCookie> {
-    let parts: Vec<&str> = cookie.split(".").collect();
+fn decode_cookie(cookie: &str) -> TiberiusResult<ElixirCookie> {
+    let parts: Vec<&str> = cookie.split('.').collect();
 
     if parts.len() != 5 {
         return Err(TiberiusError::InvalidPhilomenaCookie);
@@ -231,7 +227,7 @@ fn decode_cookie<'a>(cookie: &str) -> TiberiusResult<ElixirCookie> {
     })
 }
 
-pub(crate) fn unwrap_cek<'a>(key: &KeyData, cookie: &ElixirCookie) -> TiberiusResult<Vec<u8>> {
+pub(crate) fn unwrap_cek(key: &KeyData, cookie: &ElixirCookie) -> TiberiusResult<Vec<u8>> {
     debug_assert!(
         cookie.cek.len() == 44,
         "CEK must be 44 bytes, is {}",
@@ -259,7 +255,7 @@ pub(crate) fn unwrap_cek<'a>(key: &KeyData, cookie: &ElixirCookie) -> TiberiusRe
         let sign_key = Aad::from(&key.sign_key);
         let cipher_text_and_tag = &cookie.cek[0..32].to_vec();
         let mut cipher_text_and_tag = cipher_text_and_tag.clone();
-        let nonce = Nonce::try_assume_unique_for_key(&iv)?;
+        let nonce = Nonce::try_assume_unique_for_key(iv)?;
         lskey.open_in_place(nonce, sign_key, &mut cipher_text_and_tag)?;
         cipher_text_and_tag[0..16].to_vec()
     };
@@ -267,18 +263,18 @@ pub(crate) fn unwrap_cek<'a>(key: &KeyData, cookie: &ElixirCookie) -> TiberiusRe
 }
 
 fn decrypt_session(
-    cek: &Vec<u8>,
-    aad: &Vec<u8>,
-    iv: &Vec<u8>,
-    data: &Vec<u8>,
-    auth_tag: &Vec<u8>,
+    cek: &[u8],
+    aad: &[u8],
+    iv: &[u8],
+    data: &[u8],
+    auth_tag: &[u8],
 ) -> TiberiusResult<Vec<u8>> {
     use ring::aead::*;
-    let cek = LessSafeKey::new(UnboundKey::new(&AES_128_GCM, &cek)?);
-    let nonce = Nonce::try_assume_unique_for_key(&iv)?;
+    let cek = LessSafeKey::new(UnboundKey::new(&AES_128_GCM, cek)?);
+    let nonce = Nonce::try_assume_unique_for_key(iv)?;
     let aad = Aad::from(aad);
-    let mut in_out = data.clone();
-    in_out.extend_from_slice(&auth_tag);
+    let mut in_out = data.to_vec();
+    in_out.extend_from_slice(auth_tag);
     let out = cek.open_in_place(nonce, aad, &mut in_out)?;
     Ok(out.to_vec())
 }
@@ -371,16 +367,14 @@ mod test {
     #[test]
     fn test_cookie_decode() -> TiberiusResult<()> {
         let config = config();
-        let key_data: KeyData = config.clone().try_into().unwrap();
+        let key_data: KeyData = config.try_into().unwrap();
         assert_eq!(key_data, {
             let key =
                 hex::decode("845a1b1b9f9c6e1e124bfd9d284c48b18c679491f72f4e9c5359dfb2b816402f")
                     .unwrap();
             let key = {
                 let mut keya: [u8; 32] = [0; 32];
-                for i in 0..32 {
-                    keya[i] = key[i];
-                }
+                keya[..32].copy_from_slice(&key[..32]);
                 keya
             };
             let sign_key =
@@ -388,9 +382,7 @@ mod test {
                     .unwrap();
             let sign_key = {
                 let mut sign_keya: [u8; 32] = [0; 32];
-                for i in 0..32 {
-                    sign_keya[i] = sign_key[i];
-                }
+                sign_keya[..32].copy_from_slice(&sign_key[..32]);
                 sign_keya
             };
             KeyData { key, sign_key }

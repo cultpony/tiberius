@@ -9,7 +9,7 @@ use tiberius_core::request_helper::{HtmlResponse, TiberiusResponse};
 use tiberius_core::session::Unauthenticated;
 use tiberius_core::state::{TiberiusRequestState, TiberiusState};
 
-use crate::pages::common::filters::filter_listing_item;
+use crate::templates::common::filters::filter_listing_item;
 
 pub fn setup_filters(r: Router<TiberiusState>) -> Router<TiberiusState> {
     r.typed_get(index)
@@ -90,7 +90,7 @@ pub async fn index(
             }
         }
     };
-    let app = crate::pages::common::frontmatter::app(
+    let app = crate::templates::common::frontmatter::app(
         &state,
         &rstate,
         Some(PageTitle::from("Filters")),

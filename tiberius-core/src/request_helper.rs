@@ -74,7 +74,7 @@ impl ApiFormDataEmpty {
     pub fn into_afd(&self) -> ApiFormData<()> {
         ApiFormData {
             csrf_token: self.csrf_token.clone(),
-            method: self.method.clone(),
+            method: self.method,
             data: (),
         }
     }
@@ -215,7 +215,7 @@ impl JsonResponse {
         headers: HeaderMap,
     ) -> TiberiusResult<Self> {
         Ok(JsonResponse {
-            content: serde_json::to_value(&v)?,
+            content: serde_json::to_value(v)?,
             headers,
         })
     }
@@ -233,7 +233,7 @@ impl SafeJsonResponse {
     }
     pub fn direct_safe_serialize<T: DirectSafeSerialize>(v: &T) -> TiberiusResult<Self> {
         Ok(SafeJsonResponse {
-            content: serde_json::to_value(&v)?,
+            content: serde_json::to_value(v)?,
         })
     }
 }

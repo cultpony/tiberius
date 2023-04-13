@@ -47,17 +47,17 @@ pub struct TagView {
     pub images_count: i32,
 }
 
-impl Into<TagView> for Tag {
-    fn into(self) -> TagView {
+impl From<Tag> for TagView {
+    fn from(value: Tag) -> Self {
         TagView {
-            id: self.id as u64,
-            name: self.name,
-            namespace: self.namespace,
-            name_in_namespace: self.name_in_namespace,
-            category: self.category,
-            slug: Some(self.slug),
-            description: self.description,
-            images_count: self.images_count,
+            id: value.id as u64,
+            name: value.name,
+            namespace: value.namespace,
+            name_in_namespace: value.name_in_namespace,
+            category: value.category,
+            slug: Some(value.slug),
+            description: value.description,
+            images_count: value.images_count,
         }
     }
 }
@@ -157,12 +157,12 @@ impl PartialOrd for Tag {
         if scat == ocat {
             return Some(self.full_name().cmp(&other.full_name()));
         }
-        let scat = category_priority(&*scat);
-        let ocat = category_priority(&*ocat);
+        let scat = category_priority(scat);
+        let ocat = category_priority(ocat);
         match scat.cmp(&ocat) {
-            Ordering::Less => return Some(Ordering::Less),
-            Ordering::Equal => return Some(self.full_name().cmp(&other.full_name())),
-            Ordering::Greater => return Some(Ordering::Greater),
+            Ordering::Less => Some(Ordering::Less),
+            Ordering::Equal => Some(self.full_name().cmp(&other.full_name())),
+            Ordering::Greater => Some(Ordering::Greater),
         }
     }
 }
@@ -197,12 +197,12 @@ impl PartialOrd for TagView {
         if scat == ocat {
             return Some(self.full_name().cmp(&other.full_name()));
         }
-        let scat = category_priority(&*scat);
-        let ocat = category_priority(&*ocat);
+        let scat = category_priority(scat);
+        let ocat = category_priority(ocat);
         match scat.cmp(&ocat) {
-            Ordering::Less => return Some(Ordering::Less),
-            Ordering::Equal => return Some(self.full_name().cmp(&other.full_name())),
-            Ordering::Greater => return Some(Ordering::Greater),
+            Ordering::Less => Some(Ordering::Less),
+            Ordering::Equal => Some(self.full_name().cmp(&other.full_name())),
+            Ordering::Greater => Some(Ordering::Greater),
         }
     }
 }
@@ -364,10 +364,7 @@ pub enum TagSortBy {
 
 impl SortIndicator for TagSortBy {
     fn random(&self) -> bool {
-        match self {
-            TagSortBy::Random => true,
-            _ => false,
-        }
+        matches!(self, TagSortBy::Random)
     }
 
     fn field(&self) -> &'static str {
@@ -496,8 +493,7 @@ impl Queryable for Tag {
         reader: crate::IndexReader,
         id: u64,
     ) -> std::result::Result<Option<Document>, Self::IndexError> {
-        let term =
-            tantivy::Term::from_field_u64(Self::schema().get_field("id").unwrap(), id as u64);
+        let term = tantivy::Term::from_field_u64(Self::schema().get_field("id").unwrap(), id);
         let coll = tantivy::collector::TopDocs::with_limit(1).and_offset(0);
         let query = tantivy::query::TermQuery::new(term, tantivy::schema::IndexRecordOption::Basic);
         let res = reader.searcher().search(&query, &coll)?;

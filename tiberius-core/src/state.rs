@@ -187,6 +187,7 @@ where
 
 #[cfg(test)]
 impl TiberiusRequestState<session::Testing> {
+    #[allow(clippy::diverging_sub_expression)]
     pub async fn default() -> Self {
         let request = axum::http::Request::builder()
             .uri("/")
@@ -247,13 +248,13 @@ impl<A: SessionMode> TiberiusRequestState<A> {
                 let is_eq = ring::constant_time::verify_slices_are_equal(hdr, v.as_bytes()).is_ok();
                 if !is_eq {
                     debug!("No staff key, denying access");
-                    return Err((
+                    Err((
                         StatusCode::UNAUTHORIZED,
                         "Staff-Only Mode Enabled, lacking Staff Key",
                     )
-                        .into_response());
+                        .into_response())
                 } else {
-                    return Ok(());
+                    Ok(())
                 }
             }
         }
@@ -314,7 +315,7 @@ impl FromRequestParts<TiberiusState> for TiberiusRequestState<Authenticated> {
         let session: Session<Authenticated> = db_session
             .get_session()
             .await
-            .ok_or_else(|| (StatusCode::UNAUTHORIZED, "Access Denied"))
+            .ok_or((StatusCode::UNAUTHORIZED, "Access Denied"))
             .map_err(|e| e.into_response())?;
         let headers = req.headers.clone();
         let rstate = Self {
@@ -345,13 +346,12 @@ impl FromRequestParts<TiberiusState> for TiberiusRequestState<Authenticated> {
                 .await
                 .map_err(|e: (StatusCode, &'static str)| e.into_response())?,
         };
-        if state.config().enable_lock_down {
-            if !verify_acl(state, &rstate, ACLObject::Site, ACLActionSite::Use)
+        if state.config().enable_lock_down
+            && !verify_acl(state, &rstate, ACLObject::Site, ACLActionSite::Use)
                 .await
                 .unwrap_or(false)
-            {
-                return Err(TiberiusError::AccessDenied.into_response());
-            }
+        {
+            return Err(TiberiusError::AccessDenied.into_response());
         }
         Ok(rstate)
     }
@@ -435,7 +435,7 @@ impl FromRequestParts<TiberiusState> for TiberiusRequestState<Unauthenticated> {
             let uri = state.url_directions.login_page.clone();
             if req.uri != uri {
                 // TODO: we should handle errors here but for the ACL it doesn't matter that much
-                if !verify_acl(&state, &rstate, ACLObject::Site, ACLActionSite::Use)
+                if !verify_acl(state, &rstate, ACLObject::Site, ACLActionSite::Use)
                     .await
                     .unwrap_or(false)
                 {
@@ -549,14 +549,14 @@ impl<T: SessionMode> TiberiusRequestState<T> {
     pub async fn theme_name(&self, state: &TiberiusState) -> TiberiusResult<String> {
         let user = self.user(state).await?;
         Ok(if let Some(user) = user {
-            user.user_settings.theme.clone()
+            user.user_settings.theme
         } else {
             "default".to_string()
         })
     }
     #[instrument(skip(self, state))]
     pub async fn user(&self, state: &TiberiusState) -> TiberiusResult<Option<User>> {
-        Ok(self.session.get_user(&mut state.get_db_client()).await?)
+        self.session.get_user(&mut state.get_db_client()).await
     }
 
     pub async fn filter<'a>(&'a self, state: &'a TiberiusState) -> TiberiusResult<&'a Filter> {
@@ -606,10 +606,5 @@ impl<T: SessionMode> TiberiusRequestState<T> {
 pub type ClientSideExtra = std::collections::BTreeMap<String, serde_json::Value>;
 pub type Interactions = Vec<()>;
 
+#[derive(Default)]
 pub struct SiteNotices(pub Vec<SiteNotice>);
-
-impl Default for SiteNotices {
-    fn default() -> Self {
-        Self(Vec::new())
-    }
-}

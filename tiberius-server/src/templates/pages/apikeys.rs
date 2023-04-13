@@ -1,4 +1,4 @@
-use crate::pages::common::frontmatter::{csrf_input_tag, form_method, form_submit_button};
+use crate::templates::common::frontmatter::{csrf_input_tag, form_method, form_submit_button};
 use axum::{extract::State, http::HeaderMap, Extension, Router};
 use axum_extra::routing::{RouterExt, TypedPath};
 use maud::html;
@@ -82,7 +82,7 @@ pub async fn manage_keys_page(
             }
         }
     };
-    let app = crate::pages::common::frontmatter::app(
+    let app = crate::templates::common::frontmatter::app(
         &state,
         &rstate,
         Some(PageTitle::from("API - Manage API Keys")),

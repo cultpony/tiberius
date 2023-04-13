@@ -1,5 +1,5 @@
-use crate::pages::common::{camoed_url, pluralize};
-use crate::pages::tags::{PathTagsByNameShowTag, PathTagsShowTag};
+use crate::templates::common::{camoed_url, pluralize};
+use crate::templates::tags::{PathTagsByNameShowTag, PathTagsShowTag};
 use axum_extra::routing::TypedPath;
 use maud::{html, Markup};
 use tiberius_core::error::TiberiusResult;

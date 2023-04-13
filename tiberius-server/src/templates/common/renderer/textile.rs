@@ -1,4 +1,4 @@
-use crate::pages::common::renderer::textile_extensions;
+use crate::templates::common::renderer::textile_extensions;
 use ammonia::{self, UrlRelative};
 use maplit::hashset;
 use maud::PreEscaped;
@@ -6,8 +6,10 @@ use regex::Regex;
 use tiberius_dependencies::textile;
 
 pub fn render_textile(inp: &str) -> PreEscaped<String> {
-    let mut opts = textile::RenderOptions::default();
-    opts.compress = true;
+    let opts = textile::RenderOptions {
+        compress: true,
+        ..Default::default()
+    };
     let inp = inp.replace("! ", "\\u0021");
     let inp = inp.replace("- ", "\\u002d");
     let unsafe_render = textile::render_with(inp, opts);

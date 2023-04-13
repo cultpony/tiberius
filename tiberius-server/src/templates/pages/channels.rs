@@ -20,7 +20,7 @@ use tiberius_core::{
 use tiberius_dependencies::axum_flash::Flash;
 use tiberius_models::{Channel, Client, Image};
 
-use crate::pages::common::{channels::channel_box, pagination::PaginationCtl};
+use crate::templates::common::{channels::channel_box, pagination::PaginationCtl};
 
 pub fn channel_pages(r: Router<TiberiusState>) -> Router<TiberiusState> {
     r.typed_get(list_channels).typed_post(set_nsfw)
@@ -175,7 +175,7 @@ pub async fn list_channels(
             "A: Send a private message to a site administrator with a link to the stream and the artist tag if applicable."
         }
     };
-    let app = crate::pages::common::frontmatter::app(
+    let app = crate::templates::common::frontmatter::app(
         &state,
         &rstate,
         Some(PageTitle::from("Livestreams")),

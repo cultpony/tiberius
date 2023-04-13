@@ -39,7 +39,7 @@ pub async fn change_image_uploader_user(
             input type="submit" value="Submit" { "Submit" }
         }
     };
-    let app = crate::pages::common::frontmatter::app(
+    let app = crate::templates::common::frontmatter::app(
         &state,
         &rstate,
         Some(PageTitle::from("API - Change Uploader")),

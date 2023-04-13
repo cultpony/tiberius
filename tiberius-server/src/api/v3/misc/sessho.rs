@@ -34,7 +34,7 @@ pub async fn session_handover_user(
             br;
         }
     };
-    let app = crate::pages::common::frontmatter::app(
+    let app = crate::templates::common::frontmatter::app(
         &state,
         &rstate,
         Some(PageTitle::from("API - Session Handover")),

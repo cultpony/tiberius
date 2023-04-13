@@ -49,7 +49,7 @@ impl Scheduler {
         let mut next = DateTime::<Utc>::MAX_UTC;
         let mut shortest = Duration::days(1);
         let now = Utc::now();
-        for (_, job) in &self.jobs {
+        for job in self.jobs.values() {
             match job.interval.after(&now).next() {
                 None => (),
                 Some(time) if time < next => {
@@ -72,7 +72,7 @@ impl Scheduler {
         self.next_scheduled.load(Ordering::SeqCst) - Utc::now()
     }
 
-    fn unticked_jobs<'a>(&'a mut self, time: DateTime<Utc>) -> (Vec<&'a mut Job>, DateTime<Utc>) {
+    fn unticked_jobs(&mut self, time: DateTime<Utc>) -> (Vec<&mut Job>, DateTime<Utc>) {
         let moment = Utc::now();
         let mut jobs = Vec::new();
         for (u, j) in &mut self.jobs {
@@ -98,7 +98,7 @@ impl Scheduler {
                 plan_time: moment,
             };
             (job.fun).call(instant)?;
-            (*job).last = Utc::now();
+            job.last = Utc::now();
         }
         std::thread::sleep(std::time::Duration::from_secs(1));
         self.force_update_next_tick();

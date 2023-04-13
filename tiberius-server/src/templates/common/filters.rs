@@ -18,14 +18,12 @@ pub async fn filter_listing_item(
         .filter {
             h3 { (filter.name()) }
 
-            @match user {
-                Some(user) => p {
+            @if let Some(user) = user {
+                p {
                     p {
-                        "Maintained by "
-                        (user.displayname())
+                        "Maintained by " (user.displayname())
                     }
-                },
-                None => {},
+                }
             }
 
             @if filter.system {

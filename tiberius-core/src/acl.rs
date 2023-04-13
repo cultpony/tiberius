@@ -32,7 +32,7 @@ pub enum ACLSubject {
     /// An anonymous User (the permission is only given based on login, not on the actual user)
     Anonymous,
     /// A logged in and active user
-    User(tiberius_models::User),
+    User(Box<tiberius_models::User>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -228,7 +228,7 @@ pub async fn verify_acl<T: SessionMode>(
     let subject = rstate.user(state).await?;
     let subject = match subject {
         None => ACLSubject::None,
-        Some(v) => ACLSubject::User(v.clone()),
+        Some(v) => ACLSubject::User(Box::new(v)),
     };
     let v = (subject.subject(), object.object(), action.action());
     debug!("Checking if {:?} is OK in RBAC", v);

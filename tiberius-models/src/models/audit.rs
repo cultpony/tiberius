@@ -12,7 +12,7 @@ pub struct AuditImage {
 }
 
 impl AuditImage {
-    pub async fn new(
+    pub async fn insert(
         client: &mut Client,
         image: &Image,
         user: &User,

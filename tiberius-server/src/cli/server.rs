@@ -26,7 +26,7 @@ use tiberius_dependencies::{
 use tiberius_models::{Client, User};
 use tower_cookies::CookieManagerLayer;
 
-use crate::pages::{self, not_found_page, session::PathSessionsLogin};
+use crate::templates::{self, not_found_page, session::PathSessionsLogin};
 
 pub async fn run_migrations(
     _config: &Configuration,
@@ -41,14 +41,14 @@ pub async fn run_migrations(
 pub fn setup_all_routes(router: Router<TiberiusState>) -> Router<TiberiusState> {
     let router = crate::api::int::setup_api_int(router);
     let router = crate::api::well_known::setup_well_known(router);
-    let router = pages::activity::activity_pages(router);
-    let router = pages::apikeys::api_key_pages(router);
-    let router = pages::images::image_pages(router);
-    let router = pages::channels::channel_pages(router);
-    let router = pages::session::session_pages(router);
-    let router = pages::static_file_pages(router);
-    let router = pages::tags::tags_pages(router);
-    let router = pages::filters::setup_filters(router);
+    let router = templates::activity::activity_pages(router);
+    let router = templates::apikeys::api_key_pages(router);
+    let router = templates::images::image_pages(router);
+    let router = templates::channels::channel_pages(router);
+    let router = templates::session::session_pages(router);
+    let router = templates::static_file_pages(router);
+    let router = templates::tags::tags_pages(router);
+    let router = templates::filters::setup_filters(router);
 
     tiberius_core::assets::embedded_file_pages(router)
 }

@@ -39,7 +39,8 @@ use tokio::{
 use tracing::{debug, Instrument};
 
 use crate::{
-    pages::{
+    set_scope_tx, set_scope_user,
+    templates::{
         activity::PathActivityIndex,
         common::{
             comment::{comment_form, comment_view, single_comment},
@@ -52,7 +53,7 @@ use crate::{
         tags::{PathTagsByNameShowTag, PathTagsShowTag},
         PathImageGetShort, PathImageThumbGetSimple,
     },
-    set_scope_tx, set_scope_user, MAX_IMAGE_DIMENSION,
+    MAX_IMAGE_DIMENSION,
 };
 use axum::{response::Redirect, Form};
 
@@ -538,7 +539,7 @@ pub async fn show_image(
         }
     };
     //TODO: set image title correctly
-    let app = crate::pages::common::frontmatter::app(
+    let app = crate::templates::common::frontmatter::app(
         &state,
         &rstate,
         Some(PageTitle::from("Image")),
@@ -565,7 +566,7 @@ pub async fn upload_image(
 ) -> TiberiusResult<TiberiusResponse<()>> {
     use tiberius_core::session::Authenticated;
 
-    use crate::pages::blog::PathBlogPage;
+    use crate::templates::blog::PathBlogPage;
 
     let mut client = state.get_db_client();
     let user = rstate.session().get_user(&mut client).await?;
@@ -687,7 +688,7 @@ pub async fn upload_image(
             }
         }
     };
-    let app = crate::pages::common::frontmatter::app(
+    let app = crate::templates::common::frontmatter::app(
         &state,
         &rstate,
         Some(PageTitle::from("Image")),
@@ -716,6 +717,7 @@ pub struct ImageUpload {
 impl FromRequestParts<TiberiusState> for ImageUpload {
     type Rejection = TiberiusError;
 
+    #[allow(clippy::diverging_sub_expression)]
     async fn from_request_parts(
         req: &mut Parts,
         state: &TiberiusState,
@@ -1042,7 +1044,7 @@ pub struct PathQuerySearch {
 }
 
 impl PathQuerySearch {
-    pub fn to_uri(self) -> TiberiusResult<Uri> {
+    pub fn try_into_uri(self) -> TiberiusResult<Uri> {
         let path = PathSearchEmpty {}.to_uri().path().to_string();
         let query = QuerySearch {
             search: self.search,
@@ -1176,7 +1178,7 @@ pub async fn repair_image_thumbnail(
 
 #[cfg(test)]
 mod test {
-    use crate::pages::images::{NavigateRelation, QueryNavigateImage, QuerySearchQuery};
+    use crate::templates::images::{NavigateRelation, QueryNavigateImage, QuerySearchQuery};
     use tiberius_dependencies::serde_urlencoded;
 
     #[test]

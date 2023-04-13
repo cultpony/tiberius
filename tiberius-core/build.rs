@@ -8,11 +8,7 @@ fn main() {
     let debug = std::env::var("PROFILE")
         .expect("need rust compile profile")
         .to_lowercase();
-    let debug = match debug.as_str() {
-        "release" => false,
-        "deploy" => false,
-        _ => true,
-    };
+    let debug = !matches!(debug.as_str(), "release" | "deploy");
     /*if !debug {
         let assetdir = "../res/assets-build";
         let assetdir =
@@ -28,6 +24,8 @@ fn main() {
     }*/
     let builddir = "../res/assets";
     let builddir = std::path::PathBuf::try_from(builddir).expect("asset path not readable");
+
+    #[allow(clippy::disallowed_methods)]
     let builddir = builddir
         .canonicalize()
         .expect("could not canonicalize asset path");
@@ -35,13 +33,17 @@ fn main() {
         x.starts_with("../res/assets/node_modules")
     })
     .generate();
+
     println!("cargo:warning=Building in {}", builddir.display());
     {
         println!("cargo:warning=yarn install");
+
+        #[allow(clippy::disallowed_methods)]
         let out = Command::new("yarn")
             .arg("install")
             .current_dir(builddir.clone())
             .output();
+
         let out = out.expect("failed to run yarn build command");
         if !out.status.success() {
             panic!(
@@ -53,7 +55,10 @@ fn main() {
     }
     {
         println!("cargo:warning=yarn build");
+
+        #[allow(clippy::disallowed_methods)]
         let mut cmd = Command::new("yarn");
+
         let out = {
             if debug {
                 cmd.arg("devbuild").env("NODE_ENV", "development")

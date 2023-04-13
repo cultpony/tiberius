@@ -13,21 +13,11 @@ use tiberius_models::{Channel, Client};
 
 use crate::SharedCtx;
 
-#[derive(serde::Deserialize, serde::Serialize, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, Clone, Default)]
 pub struct PicartoConfig {
     pub all_channels: Vec<Channel>,
     pub done_channels: Vec<i32>,
     pub started: bool,
-}
-
-impl Default for PicartoConfig {
-    fn default() -> Self {
-        Self {
-            all_channels: Vec::new(),
-            done_channels: Vec::new(),
-            started: false,
-        }
-    }
 }
 
 #[instrument(skip(current_job, sctx))]
@@ -69,12 +59,11 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
         } else {
             let all_channels =
                 Channel::get_all_channels(&mut client, Some("PicartoChannel")).await?;
-            let progress = PicartoConfig {
-                all_channels: all_channels,
+            PicartoConfig {
+                all_channels,
                 done_channels: Vec::new(),
                 started: true,
-            };
-            progress
+            }
         }
     };
     debug!("Loading checkpoint for channel refresh");

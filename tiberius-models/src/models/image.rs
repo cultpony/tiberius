@@ -3,7 +3,7 @@ use std::{
     fs::File,
     io::BufReader,
     ops::{DerefMut, Range},
-    path::PathBuf,
+    path::{Path, PathBuf},
     pin::Pin,
     sync::Arc,
 };
@@ -42,15 +42,15 @@ use crate::{
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct ImageID(u64);
 
-impl Into<i64> for ImageID {
-    fn into(self) -> i64 {
-        self.0 as i64
+impl From<ImageID> for i64 {
+    fn from(value: ImageID) -> i64 {
+        value.0 as i64
     }
 }
 
-impl Into<u64> for ImageID {
-    fn into(self) -> u64 {
-        self.0 as u64
+impl From<ImageID> for u64 {
+    fn from(value: ImageID) -> u64 {
+        value.0
     }
 }
 
@@ -95,7 +95,7 @@ impl SafeSerialize for Image {
             name: self.image_name.clone(),
             uploader_id: self.user_id.map(|x| x as u64),
             uploader: None,
-            description: self.description.clone(),
+            description: self.description,
         }
     }
 }
@@ -293,7 +293,7 @@ impl ImageTagView {
                         category: tag_category.clone(),
                         slug: tag_slug.clone(),
                         description: tag_description.clone(),
-                        images_count: tag_images_count.clone(),
+                        images_count: *tag_images_count,
                     }
                 },
             )
@@ -520,18 +520,15 @@ impl Image {
         Ok(())
     }
 
-    pub async fn openf(&self, base_dir: &PathBuf) -> Result<BufReader<File>, PhilomenaModelError> {
+    pub async fn openf(&self, base_dir: &Path) -> Result<BufReader<File>, PhilomenaModelError> {
         let path = self.pathf(base_dir).await?;
         Ok(BufReader::new(File::open(path)?))
     }
-    pub async fn statf(
-        &self,
-        base_dir: &PathBuf,
-    ) -> Result<std::fs::Metadata, PhilomenaModelError> {
+    pub async fn statf(&self, base_dir: &Path) -> Result<std::fs::Metadata, PhilomenaModelError> {
         let path = self.pathf(base_dir).await?;
         Ok(async_std::fs::metadata(path).await?)
     }
-    pub async fn pathf(&self, base_dir: &PathBuf) -> Result<PathBuf, PhilomenaModelError> {
+    pub async fn pathf(&self, base_dir: &Path) -> Result<PathBuf, PhilomenaModelError> {
         let image = match &self.image {
             None => {
                 return Err(PhilomenaModelError::DataWasNull {
@@ -542,7 +539,7 @@ impl Image {
             }
             Some(i) => i,
         };
-        Ok(base_dir.clone().join("images").join(image))
+        Ok(base_dir.join("images").join(image))
     }
     #[cfg(test)]
     pub async fn new_test_image(client: &mut Client) -> Result<Self, PhilomenaModelError> {
@@ -554,7 +551,7 @@ impl Image {
             image_width: Some(1238),
             ..Default::default()
         };
-        Ok(image.upload(client).await?)
+        image.upload(client).await
     }
 
     #[cfg(test)]
@@ -1022,7 +1019,7 @@ impl Image {
         );
         let (total, ids): (usize, Vec<i64>) = match ids {
             Ok((total, v)) => (total, v.iter().map(|x| x.1 as i64).collect()),
-            Err(e) => return Err(PhilomenaModelError::Searcher(e)),
+            Err(e) => return Err(PhilomenaModelError::Searcher(Box::new(e))),
         };
         Ok((total as u64, Self::get_many(client, ids, sort_by).await?))
     }
@@ -1293,10 +1290,7 @@ impl SortIndicator for ImageSortBy {
     }
 
     fn random(&self) -> bool {
-        match self {
-            ImageSortBy::Random => true,
-            _ => false,
-        }
+        matches!(self, ImageSortBy::Random)
     }
 }
 
@@ -1385,8 +1379,7 @@ impl Queryable for Image {
         reader: crate::IndexReader,
         id: u64,
     ) -> std::result::Result<Option<Document>, Self::IndexError> {
-        let term =
-            tantivy::Term::from_field_u64(Self::schema().get_field("id").unwrap(), id as u64);
+        let term = tantivy::Term::from_field_u64(Self::schema().get_field("id").unwrap(), id);
         let coll = tantivy::collector::TopDocs::with_limit(1).and_offset(0);
         let query = tantivy::query::TermQuery::new(term, tantivy::schema::IndexRecordOption::Basic);
         let res = reader.searcher().search(&query, &coll)?;
@@ -1711,9 +1704,9 @@ mod test {
         let mut client = Client::new(pool, None);
         let image = Image::new_test_image_from_disk(
             &mut client,
-            4025092,
-            1666222412_405_906,
-            010_826_188,
+            4_025_092,
+            1_666_222_412_405_906,
+            10_826_188,
             "../test_data/very_tall_image_conversion.jpg",
         )
         .await?;

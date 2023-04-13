@@ -7,9 +7,10 @@ pub type DBTxOwned<'a> = sqlx::Transaction<'a, sqlx::Postgres>;
 
 #[derive(Clone, Debug)]
 pub struct PageTitle(String);
-impl std::convert::Into<String> for PageTitle {
-    fn into(self) -> String {
-        self.0
+
+impl std::convert::From<PageTitle> for String {
+    fn from(value: PageTitle) -> Self {
+        value.0
     }
 }
 

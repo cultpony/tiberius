@@ -11,3 +11,4 @@
 */target
 /tmp/**
 /.direnv
+nohup.out
