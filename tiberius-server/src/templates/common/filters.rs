@@ -18,7 +18,7 @@ pub async fn filter_listing_item(
         .filter {
             h3 { (filter.name()) }
 
-            @if let Some(user) = user && !filter.system{
+            @if let Some(user) = user.and_then(|user| if filter.system { None } else { Some(user) }) {
                 p {
                     p {
                         "Maintained by " (user.displayname())
