@@ -405,7 +405,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3b32c5ea3aabaf4deb5f5ced2d688ec0844c881c9e6c696a8b769a05fc691e62"
 dependencies = [
  "async-trait",
- "axum-core 0.3.4",
+ "axum-core",
  "bitflags",
  "bytes",
  "futures-util",
@@ -413,7 +413,7 @@ dependencies = [
  "http",
  "http-body",
  "hyper",
- "itoa 1.0.6",
+ "itoa",
  "matchit",
  "memchr 2.5.0",
  "mime",
@@ -428,22 +428,6 @@ dependencies = [
  "sync_wrapper",
  "tokio",
  "tower",
- "tower-layer",
- "tower-service",
-]
-
-[[package]]
-name = "axum-core"
-version = "0.2.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37e5939e02c56fecd5c017c37df4238c0a839fa76b7f97acdd7efb804fd181cc"
-dependencies = [
- "async-trait",
- "bytes",
- "futures-util",
- "http",
- "http-body",
- "mime",
  "tower-layer",
  "tower-service",
 ]
@@ -492,7 +476,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe82ff817f40f735cdfd7092f810d3de63bf875f50d1f0c17928e28cdab64437"
 dependencies = [
  "axum",
- "axum-core 0.3.4",
+ "axum-core",
  "axum-macros",
  "bytes",
  "cookie 0.17.0",
@@ -520,7 +504,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94f15a15c721e12de52706510cf157cfef733c74333b59ace82a5bdd3048d022"
 dependencies = [
  "async-trait",
- "axum-core 0.3.4",
+ "axum-core",
  "axum-extra 0.4.2",
  "base64 0.13.1",
  "cookie 0.16.2",
@@ -550,7 +534,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "047e0d4e09cef6ace74c361b34df81a09722be322055b1c956a2ab8db1c46964"
 dependencies = [
  "async-trait",
- "axum-core 0.3.4",
+ "axum-core",
  "base64 0.21.0",
  "bcrypt",
  "cookie 0.17.0",
@@ -566,7 +550,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f477283953b662c72dd3b22e352a45aa3fe919bc561d0b36a88df6be3d7efdc1"
 dependencies = [
  "async-trait",
- "axum-core 0.3.4",
+ "axum-core",
  "bytes",
  "chrono",
  "cookie 0.17.0",
@@ -594,7 +578,7 @@ dependencies = [
  "anyhow",
  "async-recursion",
  "async-trait",
- "axum-core 0.3.4",
+ "axum-core",
  "axum_database_sessions",
  "bytes",
  "chrono",
@@ -2323,7 +2307,7 @@ checksum = "bd6effc99afb63425aff9b05836f029929e345a6148a14b7ecd5ab67af944482"
 dependencies = [
  "bytes",
  "fnv",
- "itoa 1.0.6",
+ "itoa",
 ]
 
 [[package]]
@@ -2386,7 +2370,7 @@ dependencies = [
  "http-body",
  "httparse",
  "httpdate",
- "itoa 1.0.6",
+ "itoa",
  "pin-project-lite",
  "socket2",
  "tokio",
@@ -2599,12 +2583,6 @@ checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
 dependencies = [
  "either",
 ]
-
-[[package]]
-name = "itoa"
-version = "0.4.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b71991ff56294aa922b450139ee08b3bfc70982c6b2c7562771375cf73542dd4"
 
 [[package]]
 name = "itoa"
@@ -2917,21 +2895,21 @@ checksum = "b87248edafb776e59e6ee64a79086f65890d3510f2c656c000bf2a7e8a0aea40"
 
 [[package]]
 name = "maud"
-version = "0.24.0"
+version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19aff2cd19eb4b93df29efa602652513b0f731f1d3474f6e377f763fddf61e58"
+checksum = "b0bab19cef8a7fe1c18a43e881793bfc9d4ea984befec3ae5bd0415abf3ecf00"
 dependencies = [
- "axum-core 0.2.9",
+ "axum-core",
  "http",
- "itoa 0.4.8",
+ "itoa",
  "maud_macros",
 ]
 
 [[package]]
 name = "maud_macros"
-version = "0.24.0"
+version = "0.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5c114f6f24b08fdd4a25d2fb87a8b140df56b577723247b382e8b04c583f2eb"
+checksum = "0be95d66c3024ffce639216058e5bae17a83ecaf266ffc6e4d060ad447c9eed2"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -4523,7 +4501,7 @@ checksum = "53192e38d5c88564b924dbe9b60865ecbb71b81d38c4e61c817cffd3e36ef696"
 dependencies = [
  "form_urlencoded",
  "indexmap",
- "itoa 1.0.6",
+ "itoa",
  "ryu",
  "serde",
 ]
@@ -4534,7 +4512,7 @@ version = "1.0.96"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "057d394a50403bcac12672b2b18fb387ab6d289d957dab67dd201875391e52f1"
 dependencies = [
- "itoa 1.0.6",
+ "itoa",
  "ryu",
  "serde",
 ]
@@ -4568,7 +4546,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3491c14715ca2294c4d6a88f15e84739788c1d030eed8c110436aafdaa2f3fd"
 dependencies = [
  "form_urlencoded",
- "itoa 1.0.6",
+ "itoa",
  "ryu",
  "serde",
 ]
@@ -4807,7 +4785,7 @@ dependencies = [
  "hmac 0.12.1",
  "indexmap",
  "ipnetwork",
- "itoa 1.0.6",
+ "itoa",
  "libc",
  "log",
  "md-5 0.10.5",
@@ -5603,7 +5581,7 @@ version = "0.3.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd0cbfecb4d19b5ea75bb31ad904eb5b9fa13f21079c3b92017ebdf4999a5890"
 dependencies = [
- "itoa 1.0.6",
+ "itoa",
  "serde",
  "time-core",
  "time-macros",
@@ -5798,7 +5776,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40f38d941a2ffd8402b36e02ae407637a9caceb693aaf2edc910437db0f36984"
 dependencies = [
  "async-trait",
- "axum-core 0.3.4",
+ "axum-core",
  "cookie 0.17.0",
  "futures-util",
  "http",
