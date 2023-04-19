@@ -15,7 +15,7 @@ bcrypt = "0.14"
 better-panic = "0.3"
 camo-url = "0.1.2"
 chrono-humanize = "0.2.1"
-clap = { version = "4.1", features = ["derive", "env"] }
+clap = { version = "4.2", features = ["derive", "env"] }
 csp = "1.1.0"
 either = { version = "1.6.1", features = ["serde"] }
 human_bytes = "0.4.1"
