@@ -50,7 +50,7 @@ reqwest = { version = "0.11", default-features = false, features = ["json", "soc
 ring = { version = "0.16.20", features = ["std"] }
 rust-embed = { version = "6.6", features = ["compression", "axum", "tokio"] }
 securefmt = "0.1.1"
-sentry = { version = "0.30", default-features = false, features = ["tracing", "anyhow", "tower", "panic", "contexts", "rustls", "reqwest", "profiling"] }
+sentry = { version = "0.31", default-features = false, features = ["tracing", "anyhow", "tower", "panic", "contexts", "rustls", "reqwest", "profiling"] }
 sentry-tower = { version = "0.31", features = ["http"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
