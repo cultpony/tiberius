@@ -25,7 +25,7 @@ lazy_static = "1.4"
 maud = { version = "*", features = ["axum"] }
 new_mime_guess = "4.0"
 rand = "0.8.3"
-regex = "1.5.4"
+regex = "1.8.1"
 ring = { version = "0.16.20", features = ["std"] }
 securefmt = "0.1.1"
 serde = { version = "1.0", features = ["derive"] }
