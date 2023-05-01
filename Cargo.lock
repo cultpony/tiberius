@@ -307,9 +307,9 @@ dependencies = [
 
 [[package]]
 name = "async-once-cell"
-version = "0.4.4"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b49bd4c5b769125ea6323601c39815848972880efd33ffb2d01f9f909adc699"
+checksum = "1de3770f6dce2f61f5df9e99144fdd579a5f464f7a8573540026afefa9cafb5e"
 
 [[package]]
 name = "async-recursion"

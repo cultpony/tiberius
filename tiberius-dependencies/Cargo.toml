@@ -8,7 +8,7 @@ license = "LicenseRef-Proprietary"
 
 [dependencies]
 ammonia = "3.2"
-async-once-cell = "0.4"
+async-once-cell = "0.5"
 async-std = { version = "1.9", features = ["attributes", "tokio1"] }
 async-trait = "0.1"
 atomic = "0.5"
