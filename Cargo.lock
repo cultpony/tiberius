@@ -1018,9 +1018,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.2.5"
+version = "4.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a1f23fa97e1d1641371b51f35535cb26959b8e27ab50d167a8b996b5bada819"
+checksum = "34d21f9bf1b425d2968943631ec91202fe5e837264063503708b83013f8fc938"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -1029,9 +1029,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.2.5"
+version = "4.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fdc5d93c358224b4d6867ef1356d740de2303e9892edc06c5340daeccd96bab"
+checksum = "914c8c79fb560f238ef6429439a30023c862f7a28e688c58f7203f12b29970bd"
 dependencies = [
  "anstream",
  "anstyle",
@@ -1104,7 +1104,7 @@ name = "comrak"
 version = "0.15.0"
 source = "git+https://github.com/philomena-dev/comrak?rev=6f1ef6a#6f1ef6a09bdd95b88b1cbbb78452c08c35e2b653"
 dependencies = [
- "clap 4.2.5",
+ "clap 4.2.7",
  "entities",
  "http",
  "memchr 2.5.0",
@@ -5335,7 +5335,7 @@ dependencies = [
  "axum-extra 0.7.4",
  "bcrypt",
  "change-detection",
- "clap 4.2.5",
+ "clap 4.2.7",
  "csp",
  "either",
  "erlang-term",
@@ -5527,7 +5527,7 @@ dependencies = [
  "better-panic",
  "camo-url",
  "chrono-humanize",
- "clap 4.2.5",
+ "clap 4.2.7",
  "csp",
  "either",
  "human_bytes",
