@@ -108,7 +108,7 @@ impl<T: SessionMode> Clone for Session<T> {
             dirty: self.dirty,
             ephemeral: self.ephemeral,
             waiting_on_totp: self.waiting_on_totp,
-            cache_user: OnceCell::new_with(self.cache_user.get().cloned()),
+            cache_user: OnceCell::new_with(self.cache_user.get().cloned().expect("could not get user from cache")),
         }
     }
 }
