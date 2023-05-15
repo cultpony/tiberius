@@ -572,7 +572,7 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
- "uuid 1.3.2",
+ "uuid 1.3.3",
 ]
 
 [[package]]
@@ -1491,7 +1491,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef552e6f588e446098f6ba40d89ac146c8c7b64aade83c051ee00bb5d2bc18d"
 dependencies = [
  "serde",
- "uuid 1.3.2",
+ "uuid 1.3.3",
 ]
 
 [[package]]
@@ -2667,7 +2667,7 @@ dependencies = [
  "socket2",
  "tokio",
  "tokio-rustls 0.24.0",
- "uuid 1.3.2",
+ "uuid 1.3.3",
  "webpki-roots 0.23.0",
 ]
 
@@ -3019,7 +3019,7 @@ dependencies = [
  "tagptr",
  "thiserror",
  "triomphe",
- "uuid 1.3.2",
+ "uuid 1.3.3",
 ]
 
 [[package]]
@@ -4369,7 +4369,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sys-info",
- "uuid 1.3.2",
+ "uuid 1.3.3",
 ]
 
 [[package]]
@@ -4421,7 +4421,7 @@ dependencies = [
  "thiserror",
  "time 0.3.21",
  "url 2.3.1",
- "uuid 1.3.2",
+ "uuid 1.3.3",
 ]
 
 [[package]]
@@ -4759,7 +4759,7 @@ dependencies = [
  "time 0.3.21",
  "tokio-stream",
  "url 2.3.1",
- "uuid 1.3.2",
+ "uuid 1.3.3",
  "webpki-roots 0.22.6",
  "whoami",
 ]
@@ -4773,7 +4773,7 @@ dependencies = [
  "dotenv",
  "sqlx",
  "sqlx-database-tester-macros",
- "uuid 1.3.2",
+ "uuid 1.3.3",
 ]
 
 [[package]]
@@ -4836,7 +4836,7 @@ dependencies = [
  "sqlx",
  "sqlxmq_macros",
  "tokio",
- "uuid 1.3.2",
+ "uuid 1.3.3",
 ]
 
 [[package]]
@@ -4952,7 +4952,7 @@ dependencies = [
  "debugid",
  "memmap2",
  "stable_deref_trait",
- "uuid 1.3.2",
+ "uuid 1.3.3",
 ]
 
 [[package]]
@@ -5081,7 +5081,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "time 0.3.21",
- "uuid 1.3.2",
+ "uuid 1.3.3",
  "winapi 0.3.9",
 ]
 
@@ -5354,7 +5354,7 @@ dependencies = [
  "tracing",
  "tracing-futures",
  "url 2.3.1",
- "uuid 1.3.2",
+ "uuid 1.3.3",
 ]
 
 [[package]]
@@ -5492,7 +5492,7 @@ dependencies = [
  "tracing-log",
  "tracing-subscriber",
  "url 2.3.1",
- "uuid 1.3.2",
+ "uuid 1.3.3",
 ]
 
 [[package]]
@@ -5610,7 +5610,7 @@ dependencies = [
  "num-traits",
  "tokio",
  "tracing",
- "uuid 1.3.2",
+ "uuid 1.3.3",
 ]
 
 [[package]]
@@ -6034,9 +6034,9 @@ checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
 
 [[package]]
 name = "uuid"
-version = "1.3.2"
+version = "1.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4dad5567ad0cf5b760e5665964bec1b47dfd077ba8a2544b513f3556d3d239a2"
+checksum = "345444e32442451b267fc254ae85a209c64be56d2890e601a0c37ff0c3c5ecd2"
 dependencies = [
  "atomic",
  "getrandom",
