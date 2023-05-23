@@ -457,26 +457,6 @@ dependencies = [
 
 [[package]]
 name = "axum-extra"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9a320103719de37b7b4da4c8eb629d4573f6bcfd3dfe80d3208806895ccf81d"
-dependencies = [
- "axum",
- "bytes",
- "cookie 0.16.2",
- "futures-util",
- "http",
- "mime",
- "pin-project-lite",
- "tokio",
- "tower",
- "tower-http 0.3.5",
- "tower-layer",
- "tower-service",
-]
-
-[[package]]
-name = "axum-extra"
 version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "febf23ab04509bd7672e6abe76bd8277af31b679e89fa5ffc6087dc289a448a3"
@@ -498,22 +478,22 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tower",
- "tower-http 0.4.0",
+ "tower-http",
  "tower-layer",
  "tower-service",
 ]
 
 [[package]]
 name = "axum-flash"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94f15a15c721e12de52706510cf157cfef733c74333b59ace82a5bdd3048d022"
+checksum = "919d104c8fdd083e19a9ba8b579b1c10ecea38c131a65acdea052a6af561d397"
 dependencies = [
  "async-trait",
  "axum-core",
- "axum-extra 0.4.2",
- "base64 0.13.1",
- "cookie 0.16.2",
+ "axum-extra",
+ "base64 0.21.0",
+ "cookie 0.17.0",
  "http",
  "serde",
  "serde_json",
@@ -624,12 +604,6 @@ name = "base64"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e1b586273c5702936fe7b7d6896644d8be71e6314cfe09d3167c95f712589e8"
-
-[[package]]
-name = "base64"
-version = "0.20.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ea22880d78093b0cbe17c89f64a7d457941e65759157ec6cb31a31d652b05e5"
 
 [[package]]
 name = "base64"
@@ -1161,12 +1135,7 @@ version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e859cd57d0710d9e06c381b550c06e76992472a8c6d527aecd2fc673dcc231fb"
 dependencies = [
- "base64 0.20.0",
- "hmac 0.12.1",
  "percent-encoding 2.2.0",
- "rand",
- "sha2 0.10.6",
- "subtle",
  "time 0.3.21",
  "version_check",
 ]
@@ -5259,7 +5228,7 @@ dependencies = [
  "async-std",
  "async-trait",
  "axum",
- "axum-extra 0.7.4",
+ "axum-extra",
  "bcrypt",
  "change-detection",
  "clap 4.2.7",
@@ -5297,7 +5266,7 @@ dependencies = [
  "async-trait",
  "atomic",
  "axum",
- "axum-extra 0.7.4",
+ "axum-extra",
  "axum-flash",
  "axum_csrf",
  "axum_database_sessions",
@@ -5399,7 +5368,7 @@ dependencies = [
  "async-std",
  "async-trait",
  "axum",
- "axum-extra 0.7.4",
+ "axum-extra",
  "bcrypt",
  "either",
  "futures",
@@ -5449,7 +5418,7 @@ dependencies = [
  "async-std",
  "async-trait",
  "axum",
- "axum-extra 0.7.4",
+ "axum-extra",
  "bcrypt",
  "better-panic",
  "camo-url",
@@ -5723,24 +5692,6 @@ dependencies = [
  "futures-util",
  "http",
  "parking_lot 0.12.1",
- "pin-project-lite",
- "tower-layer",
- "tower-service",
-]
-
-[[package]]
-name = "tower-http"
-version = "0.3.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f873044bf02dd1e8239e9c1293ea39dad76dc594ec16185d0a1bf31d8dc8d858"
-dependencies = [
- "bitflags",
- "bytes",
- "futures-core",
- "futures-util",
- "http",
- "http-body",
- "http-range-header",
  "pin-project-lite",
  "tower-layer",
  "tower-service",
