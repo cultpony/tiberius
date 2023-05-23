@@ -39,7 +39,7 @@ erlang-term = "1.0.0"
 anyhow = "1.0"
 axum = "0.6"
 axum-extra = { version = "^0.7", features = ["typed-routing", "cookie-signed", "cookie-private"] }
-clap = { version = "4.2", features = ["derive", "env"] }
+clap = { version = "4.3", features = ["derive", "env"] }
 
 #[dev-dependencies]
 #openssl = { version = "0.10.36", features = ["vendored", "v111"] }
