@@ -4353,9 +4353,9 @@ dependencies = [
 
 [[package]]
 name = "sentry-core"
-version = "0.31.1"
+version = "0.31.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20216140001bbf05895f013abd0dae4df58faee24e016d54cbf107f070bac56b"
+checksum = "a1f954f1b89e8cd82576dc49bfab80304c9a6201343b4fe5c68c819f7a9bbed2"
 dependencies = [
  "build_id",
  "findshlibs",
@@ -4384,9 +4384,9 @@ dependencies = [
 
 [[package]]
 name = "sentry-tower"
-version = "0.31.1"
+version = "0.31.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54c391fc8710f718e62dbb0a8d2b72defd9f9c5053dda7a5b583012eff86bf75"
+checksum = "9353d0ddceafd5e47376cd5741ddb78992b4953aa37110efe7cb357f92506107"
 dependencies = [
  "http",
  "pin-project",
@@ -4409,9 +4409,9 @@ dependencies = [
 
 [[package]]
 name = "sentry-types"
-version = "0.31.1"
+version = "0.31.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7f6959d8cb3a77be27e588eef6ce9a2a469651a556d9de662e4d07e5ace4232"
+checksum = "85c53caf80cb1c6fcdf4d82b7bfff8477f50841e4caad7bf8e5e57a152b564cb"
 dependencies = [
  "debugid",
  "getrandom",
