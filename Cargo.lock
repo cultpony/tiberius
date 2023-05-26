@@ -492,7 +492,7 @@ dependencies = [
  "async-trait",
  "axum-core",
  "axum-extra",
- "base64 0.21.1",
+ "base64 0.21.2",
  "cookie 0.17.0",
  "http",
  "serde",
@@ -521,7 +521,7 @@ checksum = "047e0d4e09cef6ace74c361b34df81a09722be322055b1c956a2ab8db1c46964"
 dependencies = [
  "async-trait",
  "axum-core",
- "base64 0.21.1",
+ "base64 0.21.2",
  "bcrypt",
  "cookie 0.17.0",
  "http",
@@ -607,9 +607,9 @@ checksum = "9e1b586273c5702936fe7b7d6896644d8be71e6314cfe09d3167c95f712589e8"
 
 [[package]]
 name = "base64"
-version = "0.21.1"
+version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f1e31e207a6b8fb791a38ea3105e6cb541f55e4d029902d3039a4ad07cc4105"
+checksum = "604178f6c5c21f02dc555784810edfb88d34ac2c73b2eae109655649ee73ce3d"
 
 [[package]]
 name = "bcrypt"
@@ -617,7 +617,7 @@ version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9df288bec72232f78c1ec5fe4e8f1d108aa0265476e93097593c803c8c02062a"
 dependencies = [
- "base64 0.21.1",
+ "base64 0.21.2",
  "blowfish",
  "getrandom",
  "subtle",
@@ -1147,7 +1147,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7efb37c3e1ccb1ff97164ad95ac1606e8ccd35b3fa0a7d99a304c7f4a428cc24"
 dependencies = [
  "aes-gcm",
- "base64 0.21.1",
+ "base64 0.21.2",
  "hmac 0.12.1",
  "percent-encoding 2.2.0",
  "rand",
@@ -1545,7 +1545,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dbfb21b9878cf7a348dcb8559109aabc0ec40d69924bd706fa5149846c4fef75"
 dependencies = [
- "base64 0.21.1",
+ "base64 0.21.2",
  "memchr 2.5.0",
 ]
 
@@ -2619,7 +2619,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "76bd09637ae3ec7bd605b8e135e757980b3968430ff2b1a4a94fb7769e50166d"
 dependencies = [
  "async-trait",
- "base64 0.21.1",
+ "base64 0.21.2",
  "email-encoding",
  "email_address",
  "fastrand",
@@ -3482,7 +3482,7 @@ version = "1.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9bd9647b268a3d3e14ff09c23201133a62589c658db02bb7388c7246aafe0590"
 dependencies = [
- "base64 0.21.1",
+ "base64 0.21.2",
  "indexmap",
  "line-wrap",
  "quick-xml",
@@ -3866,7 +3866,7 @@ version = "0.11.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cde824a14b7c14f85caff81225f411faacc04a2013f41670f41443742b1c1c55"
 dependencies = [
- "base64 0.21.1",
+ "base64 0.21.2",
  "bytes",
  "cookie 0.16.2",
  "cookie_store",
@@ -4115,7 +4115,7 @@ version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d194b56d58803a43635bdc398cd17e383d6f71f9182b9a192c127ca42494a59b"
 dependencies = [
- "base64 0.21.1",
+ "base64 0.21.2",
 ]
 
 [[package]]
@@ -5272,7 +5272,7 @@ dependencies = [
  "axum_database_sessions",
  "axum_sessions_auth",
  "base32",
- "base64 0.21.1",
+ "base64 0.21.2",
  "bcrypt",
  "blake2 0.10.6",
  "casbin",
