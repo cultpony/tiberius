@@ -34,7 +34,7 @@ tiberius-models = { path = "../tiberius-models" }
 tiberius-dependencies = { path = "../tiberius-dependencies" }
 tiberius-search = { path = "../tiberius-search" }
 tokio = { version = "1.28", features = ["full"] }
-url = { version = "2.3", features = ["serde"] }
+url = { version = "2.4", features = ["serde"] }
 erlang-term = "1.0.0"
 anyhow = "1.0"
 axum = "0.6"
