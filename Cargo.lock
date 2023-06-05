@@ -861,7 +861,7 @@ dependencies = [
  "async-trait",
  "lazy_static 1.4.0",
  "parking_lot 0.11.2",
- "regex 1.8.3",
+ "regex 1.8.4",
  "rhai",
  "ritelinked",
  "serde",
@@ -1078,7 +1078,7 @@ dependencies = [
  "once_cell",
  "pest",
  "pest_derive",
- "regex 1.8.3",
+ "regex 1.8.4",
  "shell-words",
  "syntect",
  "typed-arena",
@@ -1246,7 +1246,7 @@ dependencies = [
  "oorandom",
  "plotters",
  "rayon",
- "regex 1.8.3",
+ "regex 1.8.4",
  "serde",
  "serde_derive",
  "serde_json",
@@ -1650,7 +1650,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9d6b8560a05112eb52f04b00e5d3790c0dd75d9d980eb8a122fb23b92a623ccf"
 dependencies = [
  "bit-set",
- "regex 1.8.3",
+ "regex 1.8.4",
 ]
 
 [[package]]
@@ -2591,7 +2591,7 @@ checksum = "ff63c423c68ea6814b7da9e88ce585f793c87ddd9e78f646970891769c8235d4"
 dependencies = [
  "lazy-regex-proc_macros",
  "once_cell",
- "regex 1.8.3",
+ "regex 1.8.4",
 ]
 
 [[package]]
@@ -2602,7 +2602,7 @@ checksum = "8edfc11b8f56ce85e207e62ea21557cfa09bb24a8f6b04ae181b086ff8611c22"
 dependencies = [
  "proc-macro2",
  "quote",
- "regex 1.8.3",
+ "regex 1.8.4",
  "syn 1.0.109",
 ]
 
@@ -3830,9 +3830,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.8.3"
+version = "1.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81ca098a9821bd52d6b24fd8b10bd081f47d39c22778cafaa75a2857a62c6390"
+checksum = "d0ab3ca65655bb1e41f2a8c8cd662eb4fb035e67c3f78da1d61dffe89d07300f"
 dependencies = [
  "aho-corasick 1.0.1",
  "memchr 2.5.0",
@@ -4308,7 +4308,7 @@ checksum = "264e3ad27da3d1ad81b499dbcceae0a50e0e6ffc4b65b93f47d5180d46827644"
 dependencies = [
  "backtrace",
  "once_cell",
- "regex 1.8.3",
+ "regex 1.8.4",
  "sentry-core",
 ]
 
@@ -5042,7 +5042,7 @@ dependencies = [
  "oneshot",
  "ownedbytes",
  "rayon",
- "regex 1.8.3",
+ "regex 1.8.4",
  "rust-stemmers",
  "rustc-hash",
  "serde",
@@ -5095,7 +5095,7 @@ checksum = "343e3ada4c1c480953f6960f8a21ce9c76611480ffdd4f4e230fdddce0fc5331"
 dependencies = [
  "combine",
  "once_cell",
- "regex 1.8.3",
+ "regex 1.8.4",
 ]
 
 [[package]]
@@ -5246,7 +5246,7 @@ dependencies = [
  "maud",
  "new_mime_guess",
  "rand",
- "regex 1.8.3",
+ "regex 1.8.4",
  "ring",
  "securefmt",
  "serde",
@@ -5304,7 +5304,7 @@ dependencies = [
  "new_mime_guess",
  "once_cell",
  "rand",
- "regex 1.8.3",
+ "regex 1.8.4",
  "reqwest",
  "ring",
  "rust-embed",
@@ -5441,7 +5441,7 @@ dependencies = [
  "new_mime_guess",
  "pulldown-cmark",
  "rand",
- "regex 1.8.3",
+ "regex 1.8.4",
  "ring",
  "securefmt",
  "serde",
@@ -5799,7 +5799,7 @@ dependencies = [
  "matchers",
  "nu-ansi-term",
  "once_cell",
- "regex 1.8.3",
+ "regex 1.8.4",
  "sharded-slab",
  "smallvec",
  "thread_local 1.1.7",
