@@ -46,7 +46,7 @@ tokio-cron-scheduler = "0.9"
 tracing = { version = "0.1", features = [] }
 tracing-log = { version = "0.1.2" }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-url = { version = "2.3", features = ["serde"] }
+url = { version = "2.4", features = ["serde"] }
 uuid = "1"
 # textile = "0.2.1"
 pulldown-cmark = "0.9.3"
