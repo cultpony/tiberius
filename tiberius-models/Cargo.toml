@@ -25,7 +25,7 @@ tantivy = "0.19"
 thiserror = "1.0.39"
 tiberius-search = { path = "../tiberius-search" }
 tiberius-dependencies = { path = "../tiberius-dependencies" }
-tokio = { version = "1.28" }
+tokio = { version = "1.29" }
 url = { version = "2.4", features = ["serde"] }
 ring = { version = "0.16.20", features = ["std"] }
 anyhow = "1.0"

@@ -64,7 +64,7 @@ sqlxmq = { version = "0.4", default-features = false, features = ["runtime-tokio
 tempfile = "3"
 textile = "0.2"
 thiserror = "1.0.39"
-tokio = { version = "1.28", features = ["full"] }
+tokio = { version = "1.29", features = ["full"] }
 totp-rs = "5"
 tower = "^0.4"
 tracing = "0.1"
