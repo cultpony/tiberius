@@ -37,7 +37,7 @@ hex = "0.4"
 http = "^0.2"
 http-serde = "1.1"
 image = { version = "0.24", default-features = false, features = [ "gif", "jpeg", "ico", "png", "pnm", "tga", "tiff", "webp", "bmp", "hdr", "dxt", "dds", "farbfeld", "jpeg_rayon", "qoi" ] }
-itertools = "0.10.4"
+itertools = "0.11.0"
 lazy_static = "1.4"
 maud = { version = "*", features = ["axum"] }
 mime = "0.3"

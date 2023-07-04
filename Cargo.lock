@@ -1239,7 +1239,7 @@ dependencies = [
  "ciborium",
  "clap 3.2.25",
  "criterion-plot",
- "itertools",
+ "itertools 0.10.5",
  "lazy_static 1.4.0",
  "num-traits",
  "oorandom",
@@ -1260,7 +1260,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6b50826342786a51a89e2da3a28f1c32b06e387201bc2d19791f622c673706b1"
 dependencies = [
  "cast",
- "itertools",
+ "itertools 0.10.5",
 ]
 
 [[package]]
@@ -1665,7 +1665,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "374a3a53c1bd5fb31b10084229290eafb0a05f260ec90f1f726afffda4877a8a"
 dependencies = [
  "fastdivide",
- "itertools",
+ "itertools 0.10.5",
  "log",
  "ownedbytes",
  "tantivy-bitpacker",
@@ -2524,6 +2524,15 @@ name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1c173a5686ce8bfa551b3563d0c2170bf24ca44da99c7ca4bfdab5418c3fe57"
 dependencies = [
  "either",
 ]
@@ -4664,7 +4673,7 @@ version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c12bc9199d1db8234678b7051747c07f517cdcf019262d1847b94ec8b1aee3e"
 dependencies = [
- "itertools",
+ "itertools 0.10.5",
  "nom 7.1.3",
  "unicode_categories",
 ]
@@ -5037,7 +5046,7 @@ dependencies = [
  "fastfield_codecs",
  "fs2",
  "htmlescape",
- "itertools",
+ "itertools 0.10.5",
  "levenshtein_automata",
  "log",
  "lru",
@@ -5214,7 +5223,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "either",
- "itertools",
+ "itertools 0.11.0",
  "maud",
  "serde",
  "serde_json",
@@ -5250,7 +5259,7 @@ dependencies = [
  "csp",
  "either",
  "erlang-term",
- "itertools",
+ "itertools 0.11.0",
  "lazy_static 1.4.0",
  "maud",
  "new_mime_guess",
@@ -5305,7 +5314,7 @@ dependencies = [
  "http",
  "http-serde",
  "image",
- "itertools",
+ "itertools 0.11.0",
  "lazy_static 1.4.0",
  "maud",
  "mime",
@@ -5360,7 +5369,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "either",
- "itertools",
+ "itertools 0.11.0",
  "lettre",
  "maud",
  "serde",
@@ -5388,7 +5397,7 @@ dependencies = [
  "either",
  "futures",
  "ipnetwork",
- "itertools",
+ "itertools 0.11.0",
  "maud",
  "ring",
  "serde",
@@ -5442,7 +5451,7 @@ dependencies = [
  "csp",
  "either",
  "human_bytes",
- "itertools",
+ "itertools 0.11.0",
  "kankyo",
  "lazy_static 1.4.0",
  "maplit",
