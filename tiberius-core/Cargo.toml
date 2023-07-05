@@ -21,7 +21,7 @@ tracing = "0.1"
 maud = { version = "*", features = ["axum"] }
 new_mime_guess = "4.0"
 rand = "0.8.3"
-regex = "1.8.4"
+regex = "1.9.0"
 ring = { version = "0.16.20", features = ["std"] }
 securefmt = "0.1.1"
 serde = { version = "1.0", features = ["derive"] }
