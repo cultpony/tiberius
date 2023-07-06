@@ -11,7 +11,7 @@ publish = false
 [dependencies]
 async-std = { version = "1.9", features = ["attributes", "tokio1"] }
 async-trait = "0.1.69"
-bcrypt = "0.14"
+bcrypt = "0.15"
 better-panic = "0.3"
 camo-url = "0.1.2"
 chrono-humanize = "0.2.1"
