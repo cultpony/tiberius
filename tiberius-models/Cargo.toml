@@ -11,7 +11,7 @@ license = "LicenseRef-Proprietary"
 axum-extra = { version = "^0.7", features = ["typed-routing", "cookie-signed", "cookie-private"] }
 axum = "0.6"
 async-std = { version = "1.6", features = [ "attributes" ] }
-async-trait = "0.1.69"
+async-trait = "0.1.71"
 bcrypt = "0.14.0"
 futures = "0.3.27"
 ipnetwork = { version = "0.19", features = [ "serde" ] } # Not used but we force the serde feature on

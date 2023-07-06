@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-async-trait = "0.1.69"
+async-trait = "0.1.71"
 itertools = "0.11.0"
 either = "1.6.1"
 tracing = "0.1"
