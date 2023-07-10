@@ -412,7 +412,7 @@ impl Query {
         self,
         schema: &tantivy::schema::Schema,
     ) -> Result<Box<dyn tantivy::query::Query>, QueryError> {
-        use tantivy::query::{AllQuery, BooleanQuery, EmptyQuery, Occur, RangeQuery, TermQuery};
+        use tantivy::query::{AllQuery, BooleanQuery, Occur, RangeQuery, TermQuery};
         debug!("Converting {} to tantivy query type", self);
         Ok(match self {
             Query::Not { v } => Box::new(BooleanQuery::new(vec![(
@@ -444,11 +444,8 @@ impl Query {
                 ))
             }
             Query::Attribute { v, cmp, t } => {
-                let field = schema.get_field(&v);
-                let field = match field {
-                    Some(f) => f,
-                    None => return Ok(Box::new(EmptyQuery)),
-                };
+                let field_str = v.to_string();
+                let field = schema.get_field(&v)?;
                 let field_entry = schema.get_field_entry(field);
                 let field_type = field_entry.field_type();
                 match (field_type, t) {
@@ -465,22 +462,22 @@ impl Query {
                             )),
                         )])),
                         Comparator::Greater => Box::new(RangeQuery::new_i64_bounds(
-                            field,
+                            field_str,
                             Bound::Unbounded,
                             Bound::Excluded(intval),
                         )),
                         Comparator::GreaterEqual => Box::new(RangeQuery::new_i64_bounds(
-                            field,
+                            field_str,
                             Bound::Unbounded,
                             Bound::Included(intval),
                         )),
                         Comparator::Less => Box::new(RangeQuery::new_i64_bounds(
-                            field,
+                            field_str,
                             Bound::Excluded(intval),
                             Bound::Unbounded,
                         )),
                         Comparator::LessEqual => Box::new(RangeQuery::new_i64_bounds(
-                            field,
+                            field_str,
                             Bound::Included(intval),
                             Bound::Unbounded,
                         )),
@@ -499,22 +496,22 @@ impl Query {
                             )),
                         )])),
                         Comparator::Greater => Box::new(RangeQuery::new_f64_bounds(
-                            field,
+                            field_str,
                             Bound::Unbounded,
                             Bound::Excluded(fltval),
                         )),
                         Comparator::GreaterEqual => Box::new(RangeQuery::new_f64_bounds(
-                            field,
+                            field_str,
                             Bound::Unbounded,
                             Bound::Included(fltval),
                         )),
                         Comparator::Less => Box::new(RangeQuery::new_f64_bounds(
-                            field,
+                            field_str,
                             Bound::Excluded(fltval),
                             Bound::Unbounded,
                         )),
                         Comparator::LessEqual => Box::new(RangeQuery::new_f64_bounds(
-                            field,
+                            field_str,
                             Bound::Included(fltval),
                             Bound::Unbounded,
                         )),
@@ -533,22 +530,22 @@ impl Query {
                             )),
                         )])),
                         Comparator::Greater => Box::new(RangeQuery::new_str_bounds(
-                            field,
+                            field_str,
                             Bound::Unbounded,
                             Bound::Excluded(&strval),
                         )),
                         Comparator::GreaterEqual => Box::new(RangeQuery::new_str_bounds(
-                            field,
+                            field_str,
                             Bound::Unbounded,
                             Bound::Included(&strval),
                         )),
                         Comparator::Less => Box::new(RangeQuery::new_str_bounds(
-                            field,
+                            field_str,
                             Bound::Excluded(&strval),
                             Bound::Unbounded,
                         )),
                         Comparator::LessEqual => Box::new(RangeQuery::new_str_bounds(
-                            field,
+                            field_str,
                             Bound::Included(&strval),
                             Bound::Unbounded,
                         )),
@@ -576,25 +573,25 @@ impl Query {
                                 )),
                             )])),
                             Comparator::Greater => Box::new(RangeQuery::new_term_bounds(
-                                field,
+                                field_str,
                                 tantivy::schema::Type::Date,
                                 &Bound::Excluded(strval_term),
                                 &Bound::Unbounded,
                             )),
                             Comparator::GreaterEqual => Box::new(RangeQuery::new_term_bounds(
-                                field,
+                                field_str,
                                 tantivy::schema::Type::Date,
                                 &Bound::Included(strval_term),
                                 &Bound::Unbounded,
                             )),
                             Comparator::Less => Box::new(RangeQuery::new_term_bounds(
-                                field,
+                                field_str,
                                 tantivy::schema::Type::Date,
                                 &Bound::Unbounded,
                                 &Bound::Excluded(strval_term),
                             )),
                             Comparator::LessEqual => Box::new(RangeQuery::new_term_bounds(
-                                field,
+                                field_str,
                                 tantivy::schema::Type::Date,
                                 &Bound::Unbounded,
                                 &Bound::Included(strval_term),

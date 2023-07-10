@@ -55,7 +55,7 @@ macro_rules! tantivy_u64_field {
             NumericOptions::default()
                 .set_indexed()
                 .set_stored()
-                .set_fast(Cardinality::SingleValue),
+                .set_fast()
         )
     };
 }
@@ -68,14 +68,14 @@ macro_rules! tantivy_date_field {
             DateOptions::default()
                 .set_indexed()
                 .set_stored()
-                .set_fast(Cardinality::SingleValue),
+                .set_fast()
         );
         $builder.add_u64_field(
             concat!(stringify!($name), "_ts"),
             NumericOptions::default()
                 .set_indexed()
                 .set_stored()
-                .set_fast(Cardinality::SingleValue),
+                .set_fast()
         )
     };
 }

@@ -110,7 +110,7 @@ pub trait Queryable {
         let autocomplete_tokenizer = {
             use tantivy::tokenizer::{LowerCaser, NgramTokenizer, TextAnalyzer};
             let tokenizer = NgramTokenizer::new(2, 50, true);
-            TextAnalyzer::from(tokenizer).filter(LowerCaser)
+            TextAnalyzer::builder(tokenizer).filter(LowerCaser).build()
         };
         index
             .tokenizers()
@@ -185,17 +185,15 @@ pub trait Queryable {
         use tantivy::collector::*;
         let coll = TopDocs::with_limit(limit).and_offset(offset);
         let coll = {
-            let field = Self::schema().get_field(dir.field()).unwrap_or_else(|| {
-                panic!("direction indicator faulty, indicated invalid field {dir:?}")
-            });
             let field_type = dir.field_type();
+            let field = dir.field();
             let dir: f64 = if dir.invert_sort() { -1.0 } else { 1.0 };
             match field_type {
                 SortFieldType::Integer => {
                     coll.custom_score(move |segment_reader: &SegmentReader| {
                         let pop_reader = segment_reader.fast_fields().u64(field).unwrap();
                         move |doc: DocId| {
-                            let pop = pop_reader.get_val(doc);
+                            let pop = pop_reader.values.get_val(doc);
                             (if dir.is_sign_negative() {
                                 u64::MAX - pop
                             } else {
@@ -210,11 +208,7 @@ pub trait Queryable {
             }
         };
         let searcher = i.searcher();
-        let field = schema.get_field("id");
-        let field = match field {
-            Some(f) => f,
-            None => panic!("could not find ID field"),
-        };
+        let field = schema.get_field("id")?;
         debug!("Counting Documents matching query");
         //let count = searcher.search(&q, &Count)?;
         let count = q.count(&searcher)?;

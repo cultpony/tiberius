@@ -13,7 +13,7 @@ chrono = { version = "0.4", default-features = false, features = [ "std" ] }
 strsim = "0.10"
 thiserror = "1.0"
 lazy-regex = "2.2"
-tantivy = { version = "0.19", optional = true }
+tantivy = { version = "0.20", optional = true }
 either = "1.6"
 async-trait = "0.1"
 tracing = "0.1"
