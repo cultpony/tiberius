@@ -232,3 +232,6 @@ name = "tokio-rustls"
 
 [[bans.skip]]
 name = "rustls"
+
+[[bans.skip]]
+name = "itertools"
