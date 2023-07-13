@@ -211,6 +211,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bddcadddf5e9015d310179a59bb28c4d4b9920ad0f11e8e14dbadf654890c9a6"
 
 [[package]]
+name = "argon2"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95c2fcf79ad1932ac6269a738109997a83c227c09b75842ae564dc8ede6a861c"
+dependencies = [
+ "base64ct",
+ "blake2 0.10.6",
+ "password-hash",
+]
+
+[[package]]
 name = "arrayref"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -518,17 +529,17 @@ dependencies = [
 
 [[package]]
 name = "axum_csrf"
-version = "0.6.2"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "047e0d4e09cef6ace74c361b34df81a09722be322055b1c956a2ab8db1c46964"
+checksum = "8967aa57e354440d7917657c0c1374cf4342033b600591bc97f05604d12f8c40"
 dependencies = [
+ "argon2",
  "async-trait",
  "axum-core",
- "base64 0.21.2",
- "bcrypt 0.14.0",
  "cookie 0.17.0",
  "http",
  "rand",
+ "thiserror",
  "time 0.3.23",
 ]
 
@@ -615,17 +626,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "604178f6c5c21f02dc555784810edfb88d34ac2c73b2eae109655649ee73ce3d"
 
 [[package]]
-name = "bcrypt"
-version = "0.14.0"
+name = "base64ct"
+version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9df288bec72232f78c1ec5fe4e8f1d108aa0265476e93097593c803c8c02062a"
-dependencies = [
- "base64 0.21.2",
- "blowfish",
- "getrandom",
- "subtle",
- "zeroize",
-]
+checksum = "8c3c1a368f70d6cf7302d78f8f7093da241fb8e8807c05cc9e51a125895a6d5b"
 
 [[package]]
 name = "bcrypt"
@@ -3376,6 +3380,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "password-hash"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "346f04948ba92c43e8469c1ee6736c7563d71012b17d40745260fe106aac2166"
+dependencies = [
+ "base64ct",
+ "rand_core",
+ "subtle",
+]
+
+[[package]]
 name = "paste"
 version = "1.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5380,7 +5395,7 @@ dependencies = [
  "async-trait",
  "axum",
  "axum-extra",
- "bcrypt 0.15.0",
+ "bcrypt",
  "change-detection",
  "clap 4.3.11",
  "csp",
@@ -5424,7 +5439,7 @@ dependencies = [
  "axum_sessions_auth",
  "base32",
  "base64 0.21.2",
- "bcrypt 0.15.0",
+ "bcrypt",
  "blake2 0.10.6",
  "casbin",
  "chrono",
@@ -5520,7 +5535,7 @@ dependencies = [
  "async-trait",
  "axum",
  "axum-extra",
- "bcrypt 0.15.0",
+ "bcrypt",
  "either",
  "futures",
  "ipnetwork",
@@ -5570,7 +5585,7 @@ dependencies = [
  "async-trait",
  "axum",
  "axum-extra",
- "bcrypt 0.15.0",
+ "bcrypt",
  "better-panic",
  "camo-url",
  "chrono-humanize",
