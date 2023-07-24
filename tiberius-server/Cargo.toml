@@ -17,7 +17,7 @@ camo-url = "0.1.2"
 chrono-humanize = "0.2.1"
 clap = { version = "4.3", features = ["derive", "env"] }
 csp = "1.1.0"
-either = { version = "1.6.1", features = ["serde"] }
+either = { version = "1.9.0", features = ["serde"] }
 human_bytes = "0.4.2"
 itertools = "0.11.0"
 kankyo = "0.3"

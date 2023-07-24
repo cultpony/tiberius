@@ -13,7 +13,7 @@ async-trait = "0.1"
 bcrypt = "0.15"
 # casbin = "2.0.7" # needs tobe 2.0.8 until sqlxmq is replaced or updated
 csp = "1.1.0"
-either = { version = "1.6.1", features = ["serde"] }
+either = { version = "1.9.0", features = ["serde"] }
 #envy = "0.4"
 itertools = "0.11.0"
 lazy_static = "1.4"
