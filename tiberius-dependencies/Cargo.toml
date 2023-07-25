@@ -28,7 +28,7 @@ chrono-humanize = "0.2"
 comrak = { git = "https://github.com/philomena-dev/comrak", rev = "6f1ef6a" }
 cron = "0.12"
 csp = "1.1"
-either = { version = "1.6.1", features = ["serde"] }
+either = { version = "1.9.0", features = ["serde"] }
 flatiron = "1.0"
 futures-util = "0.3.27"
 gethostname = "0.4"
