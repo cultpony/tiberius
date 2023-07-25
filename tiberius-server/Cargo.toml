@@ -14,7 +14,7 @@ async-trait = "0.1"
 bcrypt = "0.15"
 better-panic = "0.3"
 camo-url = "0.1.2"
-chrono-humanize = "0.2.1"
+chrono-humanize = "0.2.3"
 clap = { version = "4.3", features = ["derive", "env"] }
 csp = "1.1.0"
 either = { version = "1.9.0", features = ["serde"] }
