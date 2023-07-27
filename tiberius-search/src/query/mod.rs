@@ -681,7 +681,7 @@ mod test {
     fn test_death_query_tantivy() -> anyhow::Result<()> {
         let query = "sg AND (-pony-,(:),human (eqg)))";
         let fs = crate::tokenizer::parse(query);
-        let exp = r#"BooleanQuery { subqueries: [(Must, TermQuery(Term(type=Str, field=0, "sg"))), (Must, BooleanQuery { subqueries: [(Must, BooleanQuery { subqueries: [(MustNot, TermQuery(Term(type=Str, field=0, "pony-")))] }), (Must, BooleanQuery { subqueries: [(Must, TermQuery(Term(type=Str, field=0, ":)"))), (Must, TermQuery(Term(type=Str, field=0, "human (eqg)")))] })] })] }"#;
+        let exp = r#"BooleanQuery { subqueries: [(Must, TermQuery(Term(field=0, type=Str, "sg"))), (Must, BooleanQuery { subqueries: [(Must, BooleanQuery { subqueries: [(MustNot, TermQuery(Term(field=0, type=Str, "pony-")))] }), (Must, BooleanQuery { subqueries: [(Must, TermQuery(Term(field=0, type=Str, ":)"))), (Must, TermQuery(Term(field=0, type=Str, "human (eqg)")))] })] })] }"#;
         let q = Query::from_foldstate(0, fs);
         let q = match q {
             Ok(v) => v,
@@ -730,8 +730,8 @@ mod test {
             date.as_secs(),
             "Must compute within 1 second"
         );
-        let exp1 = r#"BooleanQuery { subqueries: [(Must, BooleanQuery { subqueries: [(Must, RangeQuery { field: Field(0), value_type: I64, left_bound: Unbounded, right_bound: Included([128, 0, 0, 0, 0, 0, 4, 0]) }), (Must, RangeQuery { field: Field(1), value_type: F64, left_bound: Included([192, 0, 0, 0, 0, 0, 0, 0]), right_bound: Unbounded })] }), (Must, RangeQuery { field: Field(2), value_type: Date, left_bound: Unbounded, right_bound: Included(["#;
-        let exp2 = r#"]) })] }"#;
+        let exp1 = r#"BooleanQuery { subqueries: [(Must, BooleanQuery { subqueries: [(Must, RangeQuery { field: "width", value_type: I64, lower_bound: Unbounded, upper_bound: Included([128, 0, 0, 0, 0, 0, 4, 0]), limit: None }), (Must, RangeQuery { field: "aspect_ratio", value_type: F64, lower_bound: Included([192, 0, 0, 0, 0, 0, 0, 0]), upper_bound: Unbounded, limit: None })] }), (Must, RangeQuery { field: "created", value_type: Date, lower_bound: Unbounded, upper_bound: Included(["#;
+        let exp2 = r#"]), limit: None })] }"#;
         let q = Query::from_foldstate(0, fs);
         let q = match q {
             Ok(v) => v,
@@ -744,6 +744,8 @@ mod test {
         let schema = schema_builder.build();
         let q = q.into_tantivy_search(&schema)?;
         println!("Got: {:?}", q);
+        println!("Start: {:?}", exp1);
+        println!("End: {:?}", exp2);
         let q = format!("{:?}", q);
         assert!(q.starts_with(exp1));
         assert!(q.ends_with(exp2));
