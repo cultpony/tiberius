@@ -235,3 +235,27 @@ name = "rustls"
 
 [[bans.skip]]
 name = "itertools"
+
+[[bans.skip]]
+name = "rustix"
+
+[[bans.skip]]
+name = "bitflags"
+
+[[bans.skip]]
+name = "fastrand"
+
+[[bans.skip]]
+name = "indexmap"
+
+[[bans.skip]]
+name = "linux-raw-sys"
+
+[[bans.skip]]
+name = "memmap2"
+
+[[bans.skip]]
+name = "regex-automata"
+
+[[bans.skip]]
+name = "rustls-webpki"
