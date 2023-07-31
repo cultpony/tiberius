@@ -11,7 +11,7 @@ ammonia = "3.2"
 async-once-cell = "0.5"
 async-std = { version = "1.9", features = ["attributes", "tokio1"] }
 async-trait = "0.1"
-atomic = "0.5"
+atomic = "0.6"
 axum = { version = "0.6", features = ["http2", "headers", "multipart"] }
 axum_csrf = "0.6"
 axum_database_sessions = "7.0"
