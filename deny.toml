@@ -259,3 +259,6 @@ name = "regex-automata"
 
 [[bans.skip]]
 name = "rustls-webpki"
+
+[[bans.skip]]
+name = "atomic"
