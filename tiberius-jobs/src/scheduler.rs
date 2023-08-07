@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::ops::Sub;
+use std::sync::RwLock;
 
 use tiberius_core::error::{TiberiusError, TiberiusResult};
 use tiberius_core::NodeId;
@@ -13,7 +15,7 @@ use tiberius_dependencies::{atomic, cron, prelude::*, uuid::Uuid};
 pub struct Scheduler {
     jobs: HashMap<Uuid, Job>,
     next_up: Vec<Uuid>,
-    next_scheduled: Atomic<DateTime<Utc>>,
+    next_scheduled: RwLock<Box<DateTime<Utc>>>,
     node_id: NodeId,
     shortest_delay: Duration,
 }
@@ -23,7 +25,7 @@ impl Scheduler {
         Self {
             jobs: HashMap::new(),
             next_up: Vec::new(),
-            next_scheduled: Atomic::new(DateTime::<Utc>::MAX_UTC),
+            next_scheduled: RwLock::new(Box::new(DateTime::<Utc>::MAX_UTC)),
             shortest_delay: Duration::days(1),
             node_id,
         }
@@ -38,7 +40,7 @@ impl Scheduler {
     ///
     /// Will only update if the next_scheduled datetime has passed
     fn update_next_tick(&mut self) -> bool {
-        if self.next_scheduled.load(Ordering::SeqCst) > Utc::now() {
+        if **self.next_scheduled.read().unwrap() > Utc::now() {
             false
         } else {
             self.force_update_next_tick()
@@ -64,12 +66,13 @@ impl Scheduler {
         }
         debug!("New next schedule is {next:?}");
         self.shortest_delay = shortest;
-        self.next_scheduled.store(next, Ordering::SeqCst);
+        let mut wns = self.next_scheduled.write().unwrap();
+        **wns = next;
         true
     }
 
     pub fn time_to_next(&self) -> tiberius_dependencies::chrono::Duration {
-        self.next_scheduled.load(Ordering::SeqCst) - Utc::now()
+        self.next_scheduled.read().unwrap().sub(Utc::now())
     }
 
     fn unticked_jobs(&mut self, time: DateTime<Utc>) -> (Vec<&mut Job>, DateTime<Utc>) {
