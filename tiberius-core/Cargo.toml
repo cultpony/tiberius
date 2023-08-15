@@ -33,7 +33,7 @@ thiserror = "1.0"
 tiberius-models = { path = "../tiberius-models" }
 tiberius-dependencies = { path = "../tiberius-dependencies" }
 tiberius-search = { path = "../tiberius-search" }
-tokio = { version = "1.30", features = ["full"] }
+tokio = { version = "1.31", features = ["full"] }
 url = { version = "2.4", features = ["serde"] }
 erlang-term = "1.0.0"
 anyhow = "1.0"
