@@ -96,4 +96,4 @@ jobs:
 
       - name: Check for cargo-deny lints
         uses: EmbarkStudios/cargo-deny-action@v1
-        continue-on-error: yes
+        continue-on-error: true
