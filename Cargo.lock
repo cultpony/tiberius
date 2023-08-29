@@ -116,7 +116,7 @@ dependencies = [
  "maplit",
  "once_cell",
  "tendril",
- "url 2.4.0",
+ "url 2.4.1",
 ]
 
 [[package]]
@@ -855,7 +855,7 @@ dependencies = [
  "hex",
  "hmac 0.10.1",
  "securefmt",
- "url 2.4.0",
+ "url 2.4.1",
 ]
 
 [[package]]
@@ -1208,7 +1208,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "time 0.3.25",
- "url 2.4.0",
+ "url 2.4.1",
 ]
 
 [[package]]
@@ -3972,7 +3972,7 @@ dependencies = [
  "tokio-rustls 0.24.1",
  "tokio-socks",
  "tower-service",
- "url 2.4.0",
+ "url 2.4.1",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -4462,7 +4462,7 @@ dependencies = [
  "sentry-core",
  "tower-layer",
  "tower-service",
- "url 2.4.0",
+ "url 2.4.1",
 ]
 
 [[package]]
@@ -4489,7 +4489,7 @@ dependencies = [
  "serde_json",
  "thiserror",
  "time 0.3.25",
- "url 2.4.0",
+ "url 2.4.1",
  "uuid 1.4.1",
 ]
 
@@ -4847,7 +4847,7 @@ dependencies = [
  "thiserror",
  "time 0.3.25",
  "tokio-stream",
- "url 2.4.0",
+ "url 2.4.1",
  "uuid 1.4.1",
  "webpki-roots 0.22.6",
  "whoami",
@@ -4896,7 +4896,7 @@ dependencies = [
  "sqlx-core",
  "sqlx-rt",
  "syn 1.0.109",
- "url 2.4.0",
+ "url 2.4.1",
 ]
 
 [[package]]
@@ -5381,7 +5381,7 @@ dependencies = [
  "tiberius-models",
  "tokio",
  "tracing",
- "url 2.4.0",
+ "url 2.4.1",
 ]
 
 [[package]]
@@ -5424,7 +5424,7 @@ dependencies = [
  "tiberius-search",
  "tokio",
  "tracing",
- "url 2.4.0",
+ "url 2.4.1",
 ]
 
 [[package]]
@@ -5493,7 +5493,7 @@ dependencies = [
  "tower",
  "tracing",
  "tracing-futures",
- "url 2.4.0",
+ "url 2.4.1",
  "uuid 1.4.1",
 ]
 
@@ -5528,7 +5528,7 @@ dependencies = [
  "tiberius-models",
  "tokio",
  "tracing",
- "url 2.4.0",
+ "url 2.4.1",
 ]
 
 [[package]]
@@ -5558,7 +5558,7 @@ dependencies = [
  "tiberius-search",
  "tokio",
  "tracing",
- "url 2.4.0",
+ "url 2.4.1",
 ]
 
 [[package]]
@@ -5631,7 +5631,7 @@ dependencies = [
  "tracing",
  "tracing-log",
  "tracing-subscriber",
- "url 2.4.0",
+ "url 2.4.1",
  "uuid 1.4.1",
 ]
 
@@ -6080,7 +6080,7 @@ dependencies = [
  "once_cell",
  "rustls 0.21.6",
  "rustls-webpki 0.100.2",
- "url 2.4.0",
+ "url 2.4.1",
  "webpki-roots 0.23.1",
 ]
 
@@ -6097,9 +6097,9 @@ dependencies = [
 
 [[package]]
 name = "url"
-version = "2.4.0"
+version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50bff7831e19200a85b17131d085c25d7811bc4e186efdaf54bbd132994a88cb"
+checksum = "143b538f18257fac9cad154828a57c6bf5157e1aa604d4816b5995bf6de87ae5"
 dependencies = [
  "form_urlencoded",
  "idna 0.4.0",
