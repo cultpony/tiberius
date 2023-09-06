@@ -97,7 +97,7 @@ version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "86b8f9420f797f2d9e935edf629310eb938a0d839f984e25327f3c7eed22300c"
 dependencies = [
- "memchr 2.5.0",
+ "memchr 2.6.3",
 ]
 
 [[package]]
@@ -355,7 +355,7 @@ dependencies = [
  "gloo-timers",
  "kv-log-macro",
  "log",
- "memchr 2.5.0",
+ "memchr 2.6.3",
  "once_cell",
  "pin-project-lite",
  "pin-utils",
@@ -444,7 +444,7 @@ dependencies = [
  "hyper",
  "itoa",
  "matchit",
- "memchr 2.5.0",
+ "memchr 2.6.3",
  "mime",
  "multer",
  "percent-encoding 2.3.0",
@@ -889,7 +889,7 @@ dependencies = [
  "async-trait",
  "lazy_static 1.4.0",
  "parking_lot 0.11.2",
- "regex 1.9.4",
+ "regex 1.9.5",
  "rhai",
  "ritelinked",
  "serde",
@@ -1093,7 +1093,7 @@ version = "4.6.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "35ed6e9d84f0b51a7f52daf1c7d71dd136fd7a3f41a8462b8cdb8c78d920fad4"
 dependencies = [
- "memchr 2.5.0",
+ "memchr 2.6.3",
 ]
 
 [[package]]
@@ -1104,11 +1104,11 @@ dependencies = [
  "clap 4.4.2",
  "entities",
  "http",
- "memchr 2.5.0",
+ "memchr 2.6.3",
  "once_cell",
  "pest",
  "pest_derive",
- "regex 1.9.4",
+ "regex 1.9.5",
  "shell-words",
  "syntect",
  "typed-arena",
@@ -1277,7 +1277,7 @@ dependencies = [
  "oorandom",
  "plotters",
  "rayon",
- "regex 1.9.4",
+ "regex 1.9.5",
  "serde",
  "serde_derive",
  "serde_json",
@@ -1582,7 +1582,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dbfb21b9878cf7a348dcb8559109aabc0ec40d69924bd706fa5149846c4fef75"
 dependencies = [
  "base64 0.21.3",
- "memchr 2.5.0",
+ "memchr 2.6.3",
 ]
 
 [[package]]
@@ -1686,7 +1686,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b95f7c0680e4142284cf8b22c14a476e87d61b004a3a0861872b32ef7ead40a2"
 dependencies = [
  "bit-set",
- "regex 1.9.4",
+ "regex 1.9.5",
 ]
 
 [[package]]
@@ -1853,7 +1853,7 @@ dependencies = [
  "fastrand 1.9.0",
  "futures-core",
  "futures-io",
- "memchr 2.5.0",
+ "memchr 2.6.3",
  "parking",
  "pin-project-lite",
  "waker-fn",
@@ -1894,7 +1894,7 @@ dependencies = [
  "futures-macro",
  "futures-sink",
  "futures-task",
- "memchr 2.5.0",
+ "memchr 2.6.3",
  "pin-project-lite",
  "pin-utils",
  "slab",
@@ -2637,7 +2637,7 @@ checksum = "ff63c423c68ea6814b7da9e88ce585f793c87ddd9e78f646970891769c8235d4"
 dependencies = [
  "lazy-regex-proc_macros",
  "once_cell",
- "regex 1.9.4",
+ "regex 1.9.5",
 ]
 
 [[package]]
@@ -2648,7 +2648,7 @@ checksum = "8edfc11b8f56ce85e207e62ea21557cfa09bb24a8f6b04ae181b086ff8611c22"
 dependencies = [
  "proc-macro2",
  "quote",
- "regex 1.9.4",
+ "regex 1.9.5",
  "syn 1.0.109",
 ]
 
@@ -2957,9 +2957,9 @@ dependencies = [
 
 [[package]]
 name = "memchr"
-version = "2.5.0"
+version = "2.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
+checksum = "8f232d6ef707e1956a43342693d2a31e72989554d58299d7a88738cc95b0d35c"
 
 [[package]]
 name = "memmap2"
@@ -3058,7 +3058,7 @@ dependencies = [
  "http",
  "httparse",
  "log",
- "memchr 2.5.0",
+ "memchr 2.6.3",
  "mime",
  "spin 0.9.8",
  "version_check",
@@ -3123,7 +3123,7 @@ version = "7.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d273983c5a657a70a3e8f2a01329822f3b8c8172b73826411a55751e404a0a4a"
 dependencies = [
- "memchr 2.5.0",
+ "memchr 2.6.3",
  "minimal-lexical",
 ]
 
@@ -3205,7 +3205,7 @@ version = "0.31.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8bda667d9f2b5051b8833f59f3bf748b28ef54f850f4fcb389a252aa383866d1"
 dependencies = [
- "memchr 2.5.0",
+ "memchr 2.6.3",
 ]
 
 [[package]]
@@ -3729,7 +3729,7 @@ checksum = "77a1a2f1f0a7ecff9c31abbe177637be0e97a0aef46cf8738ece09327985d998"
 dependencies = [
  "bitflags 1.3.2",
  "getopts",
- "memchr 2.5.0",
+ "memchr 2.6.3",
  "unicase",
 ]
 
@@ -3764,7 +3764,7 @@ version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81b9228215d82c7b61490fec1de287136b5de6f5700f6e58ea9ad61a7964ca51"
 dependencies = [
- "memchr 2.5.0",
+ "memchr 2.6.3",
 ]
 
 [[package]]
@@ -3887,13 +3887,13 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.9.4"
+version = "1.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12de2eff854e5fa4b1295edd650e227e9d8fb0c9e90b12e7f36d6a6811791a29"
+checksum = "697061221ea1b4a94a624f67d0ae2bfe4e22b8a17b6a192afb11046542cc8c47"
 dependencies = [
  "aho-corasick 1.0.3",
- "memchr 2.5.0",
- "regex-automata 0.3.7",
+ "memchr 2.6.3",
+ "regex-automata 0.3.8",
  "regex-syntax 0.7.5",
 ]
 
@@ -3908,12 +3908,12 @@ dependencies = [
 
 [[package]]
 name = "regex-automata"
-version = "0.3.7"
+version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49530408a136e16e5b486e883fbb6ba058e8e4e8ae6621a77b048b314336e629"
+checksum = "c2f401f4955220693b56f8ec66ee9c78abffd8d1c4f23dc41a23839eb88f0795"
 dependencies = [
  "aho-corasick 1.0.3",
- "memchr 2.5.0",
+ "memchr 2.6.3",
  "regex-syntax 0.7.5",
 ]
 
@@ -4400,7 +4400,7 @@ checksum = "11f2ee8f147bb5f22ac59b5c35754a759b9a6f6722402e2a14750b2a63fc59bd"
 dependencies = [
  "backtrace",
  "once_cell",
- "regex 1.9.4",
+ "regex 1.9.5",
  "sentry-core",
 ]
 
@@ -4827,7 +4827,7 @@ dependencies = [
  "libc",
  "log",
  "md-5 0.10.5",
- "memchr 2.5.0",
+ "memchr 2.6.3",
  "once_cell",
  "paste",
  "percent-encoding 2.3.0",
@@ -5150,7 +5150,7 @@ dependencies = [
  "once_cell",
  "oneshot",
  "rayon",
- "regex 1.9.4",
+ "regex 1.9.5",
  "rust-stemmers",
  "rustc-hash",
  "serde",
@@ -5228,7 +5228,7 @@ checksum = "106d8f78ad1da4f0fdd526a0760c326c0573510d4dedabeb1962d35a35879797"
 dependencies = [
  "combine",
  "once_cell",
- "regex 1.9.4",
+ "regex 1.9.5",
 ]
 
 [[package]]
@@ -5409,7 +5409,7 @@ dependencies = [
  "maud",
  "new_mime_guess",
  "rand",
- "regex 1.9.4",
+ "regex 1.9.5",
  "ring",
  "securefmt",
  "serde",
@@ -5467,7 +5467,7 @@ dependencies = [
  "new_mime_guess",
  "once_cell",
  "rand",
- "regex 1.9.4",
+ "regex 1.9.5",
  "reqwest",
  "ring",
  "rust-embed",
@@ -5604,7 +5604,7 @@ dependencies = [
  "new_mime_guess",
  "pulldown-cmark",
  "rand",
- "regex 1.9.4",
+ "regex 1.9.5",
  "ring",
  "securefmt",
  "serde",
@@ -5945,7 +5945,7 @@ dependencies = [
  "matchers",
  "nu-ansi-term",
  "once_cell",
- "regex 1.9.4",
+ "regex 1.9.5",
  "sharded-slab",
  "smallvec",
  "thread_local 1.1.7",
