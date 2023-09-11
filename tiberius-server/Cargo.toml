@@ -18,7 +18,7 @@ chrono-humanize = "0.2.3"
 clap = { version = "4.4", features = ["derive", "env"] }
 csp = "1.1.0"
 either = { version = "1.9.0", features = ["serde"] }
-human_bytes = "0.4.2"
+human_bytes = "0.4.3"
 itertools = "0.11.0"
 kankyo = "0.3"
 lazy_static = "1.4"
