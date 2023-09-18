@@ -8,7 +8,7 @@ license = "LicenseRef-Proprietary"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum-extra = { version = "^0.7", features = ["typed-routing", "cookie-signed", "cookie-private"] }
+axum-extra = { version = "^0.8", features = ["typed-routing", "cookie-signed", "cookie-private"] }
 axum = "0.6"
 async-std = { version = "1.6", features = [ "attributes" ] }
 async-trait = "0.1"

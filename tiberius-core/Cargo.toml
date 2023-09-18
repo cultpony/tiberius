@@ -38,7 +38,7 @@ url = { version = "2.4", features = ["serde"] }
 erlang-term = "1.0.0"
 anyhow = "1.0"
 axum = "0.6"
-axum-extra = { version = "^0.7", features = ["typed-routing", "cookie-signed", "cookie-private"] }
+axum-extra = { version = "^0.8", features = ["typed-routing", "cookie-signed", "cookie-private"] }
 clap = { version = "4.4", features = ["derive", "env"] }
 
 #[dev-dependencies]
