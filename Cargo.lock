@@ -1026,9 +1026,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.4.2"
+version = "4.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a13b88d2c62ff462f88e4a121f17a82c1af05693a2f192b5c38d14de73c19f6"
+checksum = "b1d7b8d5ec32af0fadc644bf1fd509a688c2103b185644bb1e29d164e0703136"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -1036,9 +1036,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.4.2"
+version = "4.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2bb9faaa7c2ef94b2743a21f5a29e6f0010dff4caa69ac8e9d6cf8b6fa74da08"
+checksum = "5179bb514e4d7c2051749d8fcefa2ed6d06a9f4e6d69faf3805f5d80b8cf8d56"
 dependencies = [
  "anstream",
  "anstyle",
@@ -1100,7 +1100,7 @@ name = "comrak"
 version = "0.15.0"
 source = "git+https://github.com/philomena-dev/comrak?rev=6f1ef6a#6f1ef6a09bdd95b88b1cbbb78452c08c35e2b653"
 dependencies = [
- "clap 4.4.2",
+ "clap 4.4.4",
  "entities",
  "http",
  "memchr 2.6.3",
@@ -5286,11 +5286,11 @@ dependencies = [
 
 [[package]]
 name = "terminal_size"
-version = "0.2.6"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e6bf6f19e9f8ed8d4048dc22981458ebcf406d67e94cd422e5ecd73d63b3237"
+checksum = "21bebf2b7c9e0a515f6e0f8c51dc0f8e4696391e6f1ff30379559f8365fb0df7"
 dependencies = [
- "rustix 0.37.23",
+ "rustix 0.38.7",
  "windows-sys 0.48.0",
 ]
 
@@ -5399,7 +5399,7 @@ dependencies = [
  "axum-extra",
  "bcrypt",
  "change-detection",
- "clap 4.4.2",
+ "clap 4.4.4",
  "csp",
  "either",
  "erlang-term",
@@ -5591,7 +5591,7 @@ dependencies = [
  "better-panic",
  "camo-url",
  "chrono-humanize",
- "clap 4.4.2",
+ "clap 4.4.4",
  "csp",
  "either",
  "human_bytes",
@@ -5960,7 +5960,7 @@ version = "1.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
 dependencies = [
- "cfg-if 0.1.10",
+ "cfg-if 1.0.0",
  "static_assertions",
 ]
 
