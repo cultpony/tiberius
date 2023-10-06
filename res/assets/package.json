@@ -8,7 +8,7 @@
     "@fortawesome/fontawesome-free": "^5.15.3",
     "brunch": "^3.0.0",
     "copycat-brunch": "^1.1.1",
-    "postcss": "^8.3.5"
+    "postcss": "^8.4.31"
   },
   "devDependencies": {
     "acorn": "^7.4.1",
