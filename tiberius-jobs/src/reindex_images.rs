@@ -7,13 +7,12 @@ use tiberius_dependencies::serde;
 use tiberius_dependencies::serde_json;
 use tiberius_dependencies::sqlx;
 use tiberius_dependencies::sqlx::{FromRow, Pool, Postgres};
-use tiberius_dependencies::sqlxmq;
-use tiberius_dependencies::sqlxmq::{job, Checkpoint, CurrentJob};
 use tiberius_models::{Channel, Client, Image, ImageSortBy};
 
 use tiberius_models::Queryable;
 
 use crate::SharedCtx;
+use crate::scheduler::CurrentJob;
 
 #[derive(serde::Deserialize, serde::Serialize, Clone, Debug, Default)]
 pub struct ImageReindexConfig {
@@ -32,12 +31,11 @@ pub async fn reindex_images<'a, E: sqlx::Executor<'a, Database = sqlx::Postgres>
     executor: E,
     ipc: ImageReindexConfig,
 ) -> TiberiusResult<()> {
-    run_job.builder().set_json(&ipc)?.spawn(executor).await?;
+    run_job(CurrentJob::default(), todo!()).await?;
     Ok(())
 }
 
 #[instrument(skip(current_job, sctx))]
-#[sqlxmq::job]
 pub async fn run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
     sentry::configure_scope(|scope| {
         scope.clear();
@@ -65,22 +63,21 @@ pub async fn run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult
 async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
     debug!("Job {}: Reindexing images", current_job.id());
     let start = std::time::Instant::now();
-    let pool = current_job.pool();
+    let mut client = sctx.client();
     let progress: ImageReindexConfig = current_job
-        .json()?
+        .data()?
         .expect("job requires configuration copy");
     debug!(
         "Job {}: Reindexing listed images ({:?})",
         current_job.id(),
         progress.image_ids
     );
-    let mut client = sctx.client;
     debug!(
         "Job {}: Completed creating missing metadata rows",
         current_job.id()
     );
     match progress.image_ids {
-        None if !progress.only_new => reindex_all(pool, &mut client).await?,
+        None if !progress.only_new => reindex_all(&mut client).await?,
         None if progress.only_new => {
             reindex_new(&mut client).await?;
         }
@@ -92,7 +89,6 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
         _ => unreachable!(),
     }
     debug!("Job {}: Reindex complete!", current_job.id());
-    current_job.complete().await?;
     let end = std::time::Instant::now();
     let time_spent = end - start;
     let time_spent = time_spent.as_secs_f32();
@@ -159,9 +155,9 @@ pub async fn reindex_new(client: &mut Client) -> TiberiusResult<()> {
 }
 
 #[instrument]
-pub async fn reindex_all(pool: &Pool<Postgres>, client: &mut Client) -> TiberiusResult<()> {
-    let image_count = Image::count(&mut Client::new(pool.clone(), None), None, None).await?;
-    let mut images = Image::get_all(pool.clone(), None, None).await?;
+pub async fn reindex_all(mut client: &mut Client) -> TiberiusResult<()> {
+    let image_count = Image::count(&mut client, None, None).await?;
+    let mut images = Image::get_all(&mut client, None, None).await?;
     let index_writer = client.index_writer::<Image>().await?;
     let index_reader = client.index_reader::<Image>()?;
     debug!("Reindexing {image_count} images, streaming from DB...");

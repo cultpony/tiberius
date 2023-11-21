@@ -42,22 +42,35 @@ pub mod request_helper;
 pub mod session;
 pub mod state;
 
-// How long to hold Subtext in Cache while they're being used
+/// Key to use in session storage for the actual tiberius session
+pub const TIBERIUS_SESSION_KEY: &str = "tiberius_session";
+/// How many sessions will be stored in memory at a given time
+pub const TIBERIUS_SESSION_CACHE_SIZE: Option<u64> = Some(2_000);
+/// How long to hold Subtext in Cache while they're being used
 pub const PAGE_SUBTEXT_CACHE_TTL: Duration = Duration::from_secs(5 * 60);
-// How long to hold Subtext in Cache while they're not being used
+/// How long to hold Subtext in Cache while they're not being used
 pub const PAGE_SUBTEXT_CACHE_TTI: Duration = Duration::from_secs(60);
-
+/// How many Subtext Cache Items to hold at maximum
 pub const PAGE_SUBTEXT_CACHE_SIZE: u64 = 1_000;
+/// How many Subtext Cache Item Slots to preallocate
 pub const PAGE_SUBTEXT_CACHE_START_SIZE: usize = 100;
 
+/// CSD Cache Time-to-Live, how many seconds a cache entry is valid after being written
 pub const CSD_CACHE_TTL: Duration = Duration::from_secs(5 * 60);
+/// CSD Cache Time-to-Idle, how many seconds a cache entry is valid after being read or written
 pub const CSD_CACHE_TTI: Duration = Duration::from_secs(60);
+/// How many CSD Items to hold maximum
 pub const CSD_CACHE_SIZE: u64 = 10_000;
+/// How many CSD Item slots to preallocate
 pub const CSD_CACHE_START_SIZE: usize = 100;
 
+/// Comment PreRender Cache TTL
 pub const COMMENT_CACHE_TTL: Duration = Duration::from_secs(5 * 60);
+/// Comment PreRender cache TTI
 pub const COMMENT_CACHE_TTI: Duration = Duration::from_secs(60);
+/// Comment PreRender cache max size
 pub const COMMENT_CACHE_SIZE: u64 = 100;
+/// Comment PreRender cache initial size
 pub const COMMENT_CACHE_START_SIZE: usize = 10;
 
 pub use nodeid::NodeId;

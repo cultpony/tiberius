@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use rand::RngCore;
 use tiberius_dependencies::hex;
 use tiberius_dependencies::uuid::timestamp::Timestamp;
 use tiberius_dependencies::uuid::{Context, Uuid};
@@ -32,8 +33,26 @@ impl From<[u8; 6]> for NodeId {
 }
 
 impl NodeId {
-    // Generates a new UUID that is monotonically increasing and contains the node ID
+    /// Generates a new UUID that is monotonically increasing and contains the node ID
     pub fn uuid(&self) -> Uuid {
         Uuid::now_v6(self)
+    }
+    /// Generate a NodeID from NODE_ID environment variables or randomly
+    pub fn new() -> Self {
+        if let Ok(node_id) = std::env::var("NODE_ID") {
+            let mut node_id = [0u8; 6];
+            hex::decode_to_slice(node_id, &mut node_id).expect("NODE_ID is in invalid format; 12 Hex Characters [a-fA-F0-9]");
+            Self { node_id }
+        } else {
+            let mut node_id = [0u8; 6];
+            rand::thread_rng().fill_bytes(&mut node_id);
+            Self { node_id }
+        }
+    }
+}
+
+impl Default for NodeId {
+    fn default() -> Self {
+        Self::new()
     }
 }

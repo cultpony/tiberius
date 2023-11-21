@@ -18,19 +18,19 @@ pub mod scheduler;
 use std::error::Error;
 use std::str::FromStr;
 
+use scheduler::Scheduler;
+use tiberius_core::NodeId;
 use tiberius_core::{
     app::DBPool, config::Configuration, error::TiberiusResult, state::TiberiusState,
 };
 use tiberius_dependencies::chrono::Duration;
 use tiberius_dependencies::chrono::Utc;
 use tiberius_dependencies::cron::Schedule;
-use tiberius_dependencies::prelude::*;
-use tiberius_dependencies::sqlxmq;
-use tiberius_dependencies::sqlxmq::JobRegistry;
+use tiberius_dependencies::{prelude::*, serde_json};
 use tiberius_dependencies::tokio;
 use tiberius_models::Client;
 
-use crate::scheduler::{Instant, Job};
+use crate::scheduler::{Instant, Job, CurrentJob};
 
 #[derive(Clone, Debug)]
 pub struct SharedCtx {
@@ -38,28 +38,16 @@ pub struct SharedCtx {
     config: Configuration,
 }
 
-pub fn registry() -> TiberiusResult<JobRegistry> {
-    Ok(JobRegistry::new(&[
-        refresh_channels::run_job,
-        cleanup_sessions::run_job,
-        reindex_images::run_job,
-        reindex_tags::run_job,
-        #[cfg(feature = "job_process_image")]
-        process_image::run_job,
-        refresh_cachelines::run_job,
-        generate_thumbnails::run_job,
-    ]))
-}
-
-pub async fn runner(db: DBPool, config: Configuration) -> TiberiusResult<()> {
-    let mut registry = registry()?;
-    let client = TiberiusState::get_db_client_standalone(db.clone(), &config).await?;
-    registry.set_error_handler(job_err_handler);
-    registry.set_context(SharedCtx { client, config });
-    let handle = registry.runner(&db).set_concurrency(1, 20).run().await?;
-    let handle = handle.into_inner();
-    handle.await?;
-    Ok(())
+impl SharedCtx {
+    pub fn new(client: Client, config: Configuration) -> Self {
+        Self { client, config, }
+    }
+    pub fn client(&self) -> Client {
+        self.client.clone()
+    }
+    pub fn config(&self) -> Configuration {
+        self.config.clone()
+    }
 }
 
 pub fn job_err_handler(name: &str, err: Box<dyn Error + Send + 'static>) {
@@ -68,24 +56,23 @@ pub fn job_err_handler(name: &str, err: Box<dyn Error + Send + 'static>) {
 
 pub async fn scheduler(db: DBPool, config: Configuration) -> ! {
     info!("Booting scheduler");
-    let mut sched = scheduler::Scheduler::new(config.node_id());
+    let mut sched = scheduler::Scheduler::new(config.node_id(), SharedCtx{
+        client: Client::new(db, config.search_dir.as_ref()),
+        config: config.clone(),
+    });
+
     {
         info!("Setting up Livestreaming Refresh Job");
-        let db = db.clone();
         sched.add(Job {
-            interval: Schedule::from_str("0 0,30 * * * * *").unwrap(),
+            interval: Some(Schedule::from_str("0 0,30 * * * * *").unwrap()),
             max_delay: Duration::seconds(10),
             last: Utc::now(),
-            fun: Box::new(move |i: Instant| -> TiberiusResult<()> {
+            fun: Box::new(move |i: Instant, current_job: CurrentJob, sctx: SharedCtx| -> TiberiusResult<()> {
                 info!("Starting picarto_tv job on scheduler instant {:?}", i);
-                let db = db.clone();
                 let config = refresh_channels::PicartoConfig::default();
                 tokio::spawn(async move {
-                    let mut jb: sqlxmq::JobBuilder = refresh_channels::run_job.builder();
-                    jb.set_json(&config)
-                        .expect("could not serialize job config")
-                        .spawn(&db)
-                        .await
+                    refresh_channels::run_job(current_job, sctx).await?;
+                    TiberiusResult::<()>::Ok(())
                 });
                 Ok(())
             }),
@@ -93,78 +80,56 @@ pub async fn scheduler(db: DBPool, config: Configuration) -> ! {
     }
     {
         info!("Setting up Image Reindex Job");
-        let db = db.clone();
         sched.add(Job {
-            interval: Schedule::from_str("0 * * * * * *").unwrap(),
+            interval: Some(Schedule::from_str("0 * * * * * *").unwrap()),
             max_delay: Duration::seconds(10),
             last: Utc::now(),
-            fun: Box::new(move |i: Instant| -> TiberiusResult<()> {
+            fun: Box::new(move |i: Instant, current_job: CurrentJob, sctx: SharedCtx| -> TiberiusResult<()> {
                 info!("Starting reindex_images job");
-                let db = db.clone();
                 let config = reindex_images::ImageReindexConfig {
                     only_new: true,
                     ..Default::default()
                 };
                 tokio::spawn(async move {
-                    let mut jb: sqlxmq::JobBuilder = reindex_images::run_job.builder();
-                    let jb = jb.set_json(&config);
-                    match jb {
-                        Ok(jb) => {
-                            jb.spawn(&db).await.expect("could not spawn job");
-                        }
-                        Err(e) => {
-                            error!("could not spawn job: {}", e);
-                        }
-                    };
+                    reindex_images::run_job(current_job, sctx).await?;
+                    TiberiusResult::<()>::Ok(())
                 });
                 Ok(())
             }),
-        })
+        });
     }
     {
         info!("Setting up Tag Reindex Job");
-        let db = db.clone();
         sched.add(Job {
-            interval: Schedule::from_str("0 0 * * * * *").unwrap(),
+            interval: Some(Schedule::from_str("0 0 * * * * *").unwrap()),
             max_delay: Duration::seconds(10),
             last: Utc::now(),
-            fun: Box::new(move |i: Instant| -> TiberiusResult<()> {
+            fun: Box::new(move |i: Instant, current_job: CurrentJob, sctx: SharedCtx| -> TiberiusResult<()> {
                 info!("Starting reindex_tags job");
-                let db = db.clone();
                 let config = reindex_tags::TagReindexConfig::default();
                 tokio::spawn(async move {
-                    let mut jb: sqlxmq::JobBuilder = reindex_tags::run_job.builder();
-                    let jb = jb.set_json(&config);
-                    match jb {
-                        Ok(jb) => {
-                            jb.spawn(&db).await.expect("could not spawn job");
-                        }
-                        Err(e) => {
-                            error!("could not spawn job: {}", e);
-                        }
-                    };
+                    reindex_tags::run_job(current_job, sctx).await?;
+                    TiberiusResult::<()>::Ok(())
                 });
                 Ok(())
             }),
-        })
+        });
     }
     {
         info!("Setting up Session Cleanup Job");
-        let db = db.clone();
         sched.add(Job {
-            interval: Schedule::from_str("0 1/10 * * * * *").unwrap(),
+            interval: Some(Schedule::from_str("0 1/10 * * * * *").unwrap()),
             max_delay: Duration::seconds(10),
             last: Utc::now(),
-            fun: Box::new(move |i: Instant| -> TiberiusResult<()> {
+            fun: Box::new(move |i: Instant, current_job: CurrentJob, sctx: SharedCtx| -> TiberiusResult<()> {
                 info!("Starting cleanup_sessions job");
-                let db = db.clone();
                 tokio::spawn(async move {
-                    let jb: sqlxmq::JobBuilder = cleanup_sessions::run_job.builder();
-                    jb.spawn(&db).await
+                    cleanup_sessions::run_job(current_job, sctx).await?;
+                    TiberiusResult::<()>::Ok(())
                 });
                 Ok(())
             }),
-        })
+        });
     }
 
     info!("Starting scheduler");

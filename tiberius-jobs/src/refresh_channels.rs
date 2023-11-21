@@ -1,6 +1,5 @@
 pub mod picarto;
 
-use sqlxmq::{job, Checkpoint, CurrentJob};
 use tiberius_core::{
     config::Configuration, error::TiberiusResult, http_client, state::TiberiusState,
 };
@@ -8,10 +7,10 @@ use tiberius_dependencies::prelude::*;
 use tiberius_dependencies::sentry;
 use tiberius_dependencies::serde;
 use tiberius_dependencies::serde_json;
-use tiberius_dependencies::sqlxmq;
 use tiberius_models::{Channel, Client};
 
 use crate::SharedCtx;
+use crate::scheduler::CurrentJob;
 
 #[derive(serde::Deserialize, serde::Serialize, Clone, Default)]
 pub struct PicartoConfig {
@@ -21,7 +20,6 @@ pub struct PicartoConfig {
 }
 
 #[instrument(skip(current_job, sctx))]
-#[sqlxmq::job(retries = 1)]
 pub async fn run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
     sentry::configure_scope(|scope| {
         scope.clear();
@@ -47,12 +45,11 @@ pub async fn run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult
 
 #[instrument(skip(current_job, sctx))]
 async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
-    let pool = current_job.pool();
     let progress: PicartoConfig = current_job
-        .json()?
+        .data()?
         .expect("job requires configuration copy");
     debug!("Job {}: Refreshing picarto channels", current_job.id());
-    let mut client = sctx.client;
+    let mut client = sctx.client();
     let mut progress = {
         if progress.started {
             progress
@@ -66,9 +63,6 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
             }
         }
     };
-    debug!("Loading checkpoint for channel refresh");
-    let mut checkpoint = Checkpoint::new();
-    checkpoint.set_json(&progress)?;
     for mut channel in progress.all_channels.clone() {
         debug!(
             "Job {}: refreshing channel {}",
@@ -81,8 +75,6 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
         match refresh_channel(&sctx.config, &mut client, &mut channel).await {
             Ok(_) => {
                 progress.done_channels.push(channel.id);
-                checkpoint.set_json(&progress)?;
-                current_job.checkpoint(&checkpoint).await?;
                 debug!("Completed refresh for channel {}", channel.id);
             }
             Err(e) => {
@@ -90,12 +82,10 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
                     "Failed refresh on channel {} ({:?})",
                     channel.id, channel.short_name
                 );
-                current_job.checkpoint(&checkpoint).await?;
             }
         };
     }
     debug!("Job {}: Completed refresh", current_job.id());
-    current_job.complete().await?;
     Ok(())
 }
 

@@ -166,7 +166,7 @@ pub struct TiberiusRequestState<T: SessionMode> {
     pub cookie_jar: axum_extra::extract::cookie::CookieJar,
     pub uri: axum::extract::OriginalUri,
     session: Session<T>,
-    db_session: axum_database_sessions::Session<axum_database_sessions::SessionPgPool>,
+    db_session: tower_sessions::Session,
     pub headers: axum::http::HeaderMap,
     pub incoming_flashes: IncomingFlashes,
     pub started_at: Instant,
@@ -308,15 +308,14 @@ impl FromRequestParts<TiberiusState> for TiberiusRequestState<Authenticated> {
     ) -> Result<Self, Self::Rejection> {
         debug!("Checking out Authenticated Request State");
         Self::verify_staff_header(req, state).map_err(|e| e.into_response())?;
-        let db_session: axum_database_sessions::Session<axum_database_sessions::SessionPgPool> =
+        let db_session: tower_sessions::Session =
             req.extract()
                 .await
                 .map_err(|e: (StatusCode, &'static str)| e.into_response())?;
         let session: Session<Authenticated> = db_session
-            .get_session()
-            .await
-            .ok_or((StatusCode::UNAUTHORIZED, "Access Denied"))
-            .map_err(|e| e.into_response())?;
+            .get(TIBERIUS_SESSION_KEY)
+            .map_err(|e| todo!())?
+            .unwrap_or_else(|| todo!());
         let headers = req.headers.clone();
         let rstate = Self {
             cookie_jar: req
@@ -375,17 +374,19 @@ impl FromRequestParts<TiberiusState> for TiberiusRequestState<Unauthenticated> {
             .get::<TiberiusState>()
             .map(|x| !x.config().enable_lock_down)
             .unwrap_or(false);
-        let db_session: axum_database_sessions::Session<axum_database_sessions::SessionPgPool> =
+        let db_session: tower_sessions::Session =
             req.extract()
                 .await
                 .map_err(|e: (StatusCode, &'static str)| (flash.clone(), e.into_response()))?;
         let session: Session<Unauthenticated> = if allow_unauthenticated {
-            db_session
-                .get_session()
-                .await
+            db_session.get(TIBERIUS_SESSION_KEY).map_err(|err| {
+                todo!()
+            })?
                 .unwrap_or_else(|| Session::<Unauthenticated>::new(false))
         } else {
-            let authed_session: Option<Session<Authenticated>> = db_session.get_session().await;
+            let authed_session: Option<Session<Authenticated>> = db_session.get(TIBERIUS_SESSION_KEY).map_err(|err| {
+                todo!()
+            })?;
             match authed_session {
                 Some(s) => s.into_unauthenticated(),
                 None => {
@@ -535,13 +536,13 @@ impl<T: SessionMode> TiberiusRequestState<T> {
     }
 
     /// Required to persist session data changes
-    pub async fn push_session_update(&mut self) {
-        self.db_session.set_session(self.session.clone()).await
+    pub fn push_session_update(&mut self) -> TiberiusResult<()> {
+        Ok(self.db_session.insert(TIBERIUS_SESSION_KEY, self.session.clone())?)
     }
 
     pub fn db_session_mut(
         &mut self,
-    ) -> &mut axum_database_sessions::Session<axum_database_sessions::SessionPgPool> {
+    ) -> &mut tower_sessions::Session {
         &mut self.db_session
     }
 

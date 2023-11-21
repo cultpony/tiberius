@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::SharedCtx;
+use crate::scheduler::CurrentJob;
 use tiberius_core::error::TiberiusResult;
 use tiberius_dependencies::image;
 use tiberius_dependencies::prelude::*;
@@ -9,8 +10,6 @@ use tiberius_dependencies::sentry;
 use tiberius_dependencies::serde;
 use tiberius_dependencies::serde_json;
 use tiberius_dependencies::sqlx;
-use tiberius_dependencies::sqlxmq;
-use tiberius_dependencies::sqlxmq::CurrentJob;
 use tiberius_dependencies::tokio;
 use tiberius_models::{Image, ImageThumbType};
 
@@ -23,8 +22,7 @@ pub async fn generate_thumbnails<'a, E: sqlx::Executor<'a, Database = sqlx::Post
     executor: E,
     gtc: GenerateThumbnailConfig,
 ) -> TiberiusResult<()> {
-    run_job.builder().set_json(&gtc)?.spawn(executor).await?;
-    Ok(())
+    let _ = run_job(CurrentJob::default(), todo!()).await;
 }
 
 #[instrument(skip(img))]
@@ -54,7 +52,6 @@ pub async fn make_thumb(
 }
 
 #[instrument(skip(current_job, sctx))]
-#[sqlxmq::job(retries = 0, backoff_secs = 10)]
 pub(crate) async fn run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
     sentry::configure_scope(|scope| {
         scope.clear();
@@ -81,12 +78,11 @@ pub(crate) async fn run_job(current_job: CurrentJob, sctx: SharedCtx) -> Tiberiu
 #[instrument(skip(current_job, sctx))]
 async fn tx_run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
     let start = std::time::Instant::now();
-    let pool = current_job.pool();
     let progress: GenerateThumbnailConfig = current_job
-        .json()?
+        .data()?
         .expect("job requires configuration copy");
-    let configuration = sctx.config.clone();
-    let mut client = sctx.client;
+    let configuration = sctx.config();
+    let mut client = sctx.client();
     let img = Image::get(&mut client, progress.image_id as i64)
         .await?
         .expect("start thumb job for image that does not exist");

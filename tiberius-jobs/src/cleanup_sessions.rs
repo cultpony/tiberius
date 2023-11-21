@@ -1,15 +1,13 @@
-use sqlxmq::{Checkpoint, CurrentJob};
 use tiberius_core::{config::Configuration, error::TiberiusResult, session::PostgresSessionStore};
 use tiberius_dependencies::prelude::*;
 use tiberius_dependencies::sentry;
 use tiberius_dependencies::serde;
 use tiberius_dependencies::serde_json;
-use tiberius_dependencies::sqlxmq;
 
 use crate::SharedCtx;
+use crate::scheduler::CurrentJob;
 
 #[instrument(skip(current_job, sctx))]
-#[sqlxmq::job]
 pub async fn run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
     sentry::configure_scope(|scope| {
         scope.clear();
@@ -35,10 +33,9 @@ pub async fn run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult
 
 #[instrument(skip(current_job, sctx))]
 async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
-    let pool = current_job.pool();
+    let pool = sctx.client();
     //let store = todo!();
     //store.cleanup().await?;
-    current_job.complete().await?;
     debug!("Job {}: Completed session pruning", current_job.id());
     Ok(())
 }

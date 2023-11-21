@@ -956,7 +956,7 @@ impl Image {
         Self::get_id(client, id as i64).await
     }
     pub async fn get_all(
-        pool: PgPool,
+        pool: &mut Client,
         start_id: Option<u64>,
         end_id: Option<u64>,
     ) -> Result<Pin<Box<dyn Send + Stream<Item = Result<PgRow, sqlx::Error>>>>, PhilomenaModelError>

@@ -44,9 +44,6 @@ pub enum Command {
 
 #[derive(Args, Debug)]
 pub struct ServerCli {
-    #[clap(long, short = 'z', alias = "no-jobrunner")]
-    /// Disable all job processing, including scheduler
-    pub no_jobs: bool,
     #[clap(long, short = 'y')]
     /// Disable the scheduler, only run a worker
     pub no_scheduler: bool,

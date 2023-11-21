@@ -14,7 +14,7 @@ use tiberius_core::{
     session::Unauthenticated,
     state::{TiberiusRequestState, TiberiusState},
 };
-use tiberius_dependencies::axum_database_sessions::Session;
+use tiberius_dependencies::tower_sessions::Session;
 
 use crate::set_scope_tx;
 use crate::templates::session::PathSessionsLogin;

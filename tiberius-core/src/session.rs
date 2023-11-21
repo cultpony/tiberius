@@ -23,7 +23,6 @@ use tiberius_dependencies::{
         http::StatusCode,
         middleware::Next,
     },
-    axum_database_sessions::{DatabasePool, Session as AxumSession, SessionPgPool},
     axum_extra::extract::{cookie::Cookie, CookieJar},
     base64,
     base64::Engine,
@@ -36,7 +35,7 @@ use uuid::Uuid;
 use crate::{
     app::DBPool,
     error::{TiberiusError, TiberiusResult},
-    state::TiberiusState,
+    state::TiberiusState, TIBERIUS_SESSION_KEY,
 };
 
 use crate::session::philomena_plug::handover_session;
@@ -384,20 +383,16 @@ fn session_from_api_key<B: Send>(
     todo!()
 }
 
-#[async_trait]
 pub trait DbSessionExt {
-    async fn get_session<T: SessionMode>(&self) -> Option<Session<T>>;
-    async fn set_session<T: SessionMode>(&self, session: Session<T>);
+    fn get_session<T: SessionMode>(&self) -> TiberiusResult<Option<Session<T>>>;
+    fn set_session<T: SessionMode>(&self, session: Session<T>) -> TiberiusResult<()>;
 }
 
-const SESSION_KEY: &str = "tiberius_session";
-
-#[async_trait]
-impl DbSessionExt for AxumSession<SessionPgPool> {
-    async fn get_session<T: SessionMode>(&self) -> Option<Session<T>> {
-        self.get(SESSION_KEY)
+impl DbSessionExt for tiberius_dependencies::tower_sessions::Session {
+    fn get_session<T: SessionMode>(&self) -> TiberiusResult<Option<Session<T>>> {
+        Ok(self.get(TIBERIUS_SESSION_KEY)?)
     }
-    async fn set_session<T: SessionMode>(&self, session: Session<T>) {
-        self.set(SESSION_KEY, session)
+    fn set_session<T: SessionMode>(&self, session: Session<T>) -> TiberiusResult<()> {
+        Ok(self.insert(TIBERIUS_SESSION_KEY, session)?)
     }
 }

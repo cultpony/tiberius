@@ -5,13 +5,12 @@ use tiberius_dependencies::sentry;
 use tiberius_dependencies::serde;
 use tiberius_dependencies::serde_json;
 use tiberius_dependencies::sqlx::{FromRow, Pool, Postgres};
-use tiberius_dependencies::sqlxmq;
-use tiberius_dependencies::sqlxmq::{job, Checkpoint, CurrentJob};
 use tiberius_models::{Channel, Client, Tag, TagLike};
 
 use tiberius_models::Queryable;
 
 use crate::SharedCtx;
+use crate::scheduler::CurrentJob;
 
 #[derive(serde::Deserialize, serde::Serialize, Clone, Debug, Default)]
 pub struct TagReindexConfig {
@@ -19,7 +18,6 @@ pub struct TagReindexConfig {
 }
 
 #[instrument(skip(current_job, sctx))]
-#[sqlxmq::job]
 pub async fn run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
     sentry::configure_scope(|scope| {
         scope.clear();
@@ -44,20 +42,16 @@ pub async fn run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult
 }
 
 #[instrument(skip(current_job, sctx))]
-async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
+async fn tx_run_job(mut current_job: CurrentJob, mut sctx: SharedCtx) -> TiberiusResult<()> {
     debug!("Job {}: Reindexing all tags", current_job.id());
     let start = std::time::Instant::now();
-    let pool = current_job.pool();
-    let progress: TagReindexConfig = current_job
-        .json()?
-        .expect("job requires configuration copy");
-    let mut client = sctx.client;
+    let mut client = sctx.client.clone();
+    let progress: TagReindexConfig = current_job.data()?.unwrap_or_default();
     match progress.tag_ids {
-        None => reindex_all(pool, &mut client).await?,
+        None => reindex_all(&mut client).await?,
         Some(v) => reindex_many(&mut client, v).await?,
     }
     debug!("Job {}: Reindex complete!", current_job.id());
-    current_job.complete().await?;
     let end = std::time::Instant::now();
     let time_spent = end - start;
     let time_spent = time_spent.as_secs_f32();
@@ -74,8 +68,8 @@ async fn reindex_many(client: &mut Client, ids: Vec<i64>) -> TiberiusResult<()> 
 }
 
 #[tracing::instrument]
-pub async fn reindex_all(pool: &Pool<Postgres>, client: &mut Client) -> TiberiusResult<()> {
-    let mut tags = Tag::get_all(pool.clone(), None, None).await?;
+pub async fn reindex_all(client: &mut Client) -> TiberiusResult<()> {
+    let mut tags = Tag::get_all(client, None, None).await?;
     let index_writer = client.index_writer::<Tag>().await?;
     debug!("Reindexing all tags, streaming from DB...");
     while let Some(tag) = tags.next().await.transpose()? {

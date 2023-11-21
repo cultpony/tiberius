@@ -1,13 +1,12 @@
 use std::ops::Range;
 
 use crate::SharedCtx;
-use sqlxmq::{Checkpoint, CurrentJob};
+use crate::scheduler::CurrentJob;
 use tiberius_core::error::TiberiusResult;
 use tiberius_dependencies::prelude::*;
 use tiberius_dependencies::sentry;
 use tiberius_dependencies::serde;
 use tiberius_dependencies::serde_json;
-use tiberius_dependencies::sqlxmq;
 use tiberius_models::Image;
 
 #[derive(serde::Deserialize, serde::Serialize, Clone, Debug)]
@@ -16,7 +15,6 @@ pub struct RefreshCachelineConfig {
 }
 
 #[instrument(skip(current_job, sctx))]
-#[sqlxmq::job(retries = 3, backoff_secs = 10)]
 pub async fn run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
     sentry::configure_scope(|scope| {
         scope.clear();
@@ -44,11 +42,10 @@ pub async fn run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult
 async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
     debug!("Job {}: Refreshing Cachelines", current_job.id());
     let start = std::time::Instant::now();
-    let pool = current_job.pool();
     let mut progress: RefreshCachelineConfig = current_job
-        .json()?
+        .data()?
         .expect("job requires configuration copy");
-    let mut client = sctx.client;
+    let mut client = sctx.client();
     let imgs = Image::get_range(&mut client, progress.image_id_range.clone()).await?;
     for mut image in imgs {
         debug!("Processing image {}", image.id);
@@ -57,12 +54,8 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
             debug!("Updating image {}", id);
             image.save(&mut client).await?;
             progress.image_id_range = (id as u64)..(progress.image_id_range.end);
-            let mut checkpoint = Checkpoint::new();
-            checkpoint.set_json(&progress)?;
-            current_job.checkpoint(&checkpoint).await?;
         }
     }
-    current_job.complete().await?;
     let end = std::time::Instant::now();
     let time_spent = end - start;
     let time_spent = time_spent.as_secs_f32();

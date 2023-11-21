@@ -131,17 +131,13 @@ fn main() -> TiberiusResult<()> {
     match app.command {
         Command::Server(config) => {
             info!("Starting {}", package_full());
-            let job_runner = !config.no_jobs;
-            if !job_runner {
-                warn!("Running without job scheduler and job runner");
-            }
             let scheduler = !config.no_scheduler;
             if !scheduler {
                 warn!("Running without job scheduler, worker only mode");
             }
             runtime.block_on(async move {
                 tokio::spawn(async move {
-                    crate::cli::server::server_start(scheduler, job_runner, global_config).await
+                    crate::cli::server::server_start(scheduler, global_config).await
                 })
                 .await
             })??;

@@ -2,6 +2,7 @@ use axum::{headers::HeaderMapExt, http::HeaderMap};
 use std::{io::Cursor, str::ParseBoolError};
 use thiserror::Error;
 use tiberius_dependencies::{
+    uuid::Uuid,
     axum,
     axum::{
         body::BoxBody,
@@ -100,16 +101,20 @@ pub enum TiberiusError {
     #[error("Serde URLENCODED Error: {0:?}")]
     SerdeUrlEncoded(#[from] tiberius_dependencies::serde_urlencoded::de::Error),
     #[error("Session Errored out: {0:?}")]
-    SessionError(#[from] tiberius_dependencies::axum_database_sessions::SessionError),
+    SessionError(#[from] tiberius_dependencies::tower_sessions::session::SessionError),
     #[error("Error return from Cache Initializer: {0:?}")]
     CacheError(String),
     #[error("Could not parse string as integer: {0:?}")]
-    PareInt(#[from] std::num::ParseIntError),
+    ParseInt(#[from] std::num::ParseIntError),
 
     #[error("ACL Error: {0:?}")]
     ACLError(#[from] tiberius_dependencies::casbin::Error),
     #[error("Query Error: {0:?}")]
     QueryError(Box<tiberius_search::QueryError>),
+    #[error("Attempted to schedule invalid job: {0:?}")]
+    InvalidJobId(Uuid),
+    #[error("Attempted to immediate-schedule job {0:?} with a schedule: {1:?}")]
+    ImmediateJobSchedule(Option<Uuid>, tiberius_dependencies::cron::Schedule),
 }
 
 pub type TiberiusResult<T> = std::result::Result<T, TiberiusError>;

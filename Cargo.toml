@@ -10,6 +10,7 @@ members = [
     "tiberius-server",
 ]
 default-members = ["tiberius-server"]
+resolver = "2"
 
 [profile.release]
 opt-level = 3

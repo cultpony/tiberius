@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 
 use axum::{
     handler::{Handler, HandlerWithoutStateExt},
-    http::Request,
-    middleware, Extension, Router,
+    http::{Request, StatusCode},
+    middleware, Extension, Router, error_handling::HandleErrorLayer, BoxError,
 };
 use axum_extra::routing::TypedPath;
 use sentry::{Breadcrumb, TransactionContext};
@@ -16,12 +16,11 @@ use tiberius_core::{
     error::TiberiusResult,
     session::{PostgresSessionStore, Unauthenticated},
     state::{TiberiusRequestState, TiberiusState, UrlDirections},
-    CSPHeader,
+    CSPHeader, TIBERIUS_SESSION_CACHE_SIZE,
 };
 use tiberius_dependencies::{
-    axum_database_sessions::{SessionConfig, SessionPgPool, SessionStore},
     axum_sessions_auth, sentry,
-    tower::ServiceBuilder,
+    tower::ServiceBuilder, tower_sessions::SessionManagerLayer, time::Duration,
 };
 use tiberius_models::{Client, User};
 use tower_cookies::CookieManagerLayer;
@@ -77,22 +76,30 @@ pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResu
 
     let router = setup_all_routes(router);
 
-    use tiberius_dependencies::{axum_csrf, axum_database_sessions, axum_flash};
+    use tiberius_dependencies::{axum_csrf, tower_sessions, axum_flash};
 
-    let axum_session_config = SessionConfig::default()
-        .with_table_name("user_sessions")
-        .with_cookie_name("tiberius_session");
-    let axum_session_store = SessionStore::<axum_database_sessions::SessionPgPool>::new(
-        Some(db_conn.clone().into()),
-        axum_session_config,
-    );
-    axum_session_store.initiate().await?;
+    let db_store = tower_sessions::PostgresStore::new(db_conn);
+
+    // do session migration
+    db_store.migrate().await?;
+
+    let deletion_task = tokio::task::spawn(db_store.clone().continuously_delete_expired(tokio::time::Duration::from_secs(180)));
+
+    let moka_store = tower_sessions::MokaStore::new(TIBERIUS_SESSION_CACHE_SIZE);
+    let session_store = tower_sessions::CachingSessionStore::new(moka_store, db_store);
+    let session_service = SessionManagerLayer::new(session_store)
+      .with_max_age(Duration::days(365))
+      .with_same_site(axum_csrf::SameSite::Strict);
+    let session_service = ServiceBuilder::new().layer(session_service);
+
+    
 
     let router = router.layer(
         ServiceBuilder::new()
-            .layer(axum_database_sessions::SessionLayer::new(
-                axum_session_store,
-            ))
+            .layer(HandleErrorLayer::new(|_: BoxError| async {
+                StatusCode::BAD_REQUEST
+            }))
+            .layer(session_service)
             .layer(CookieManagerLayer::new())
             .layer(tiberius_dependencies::sentry_tower::NewSentryLayer::new_from_top())
             .layer(tiberius_dependencies::sentry_tower::SentryHttpLayer::with_transaction()),
@@ -109,18 +116,11 @@ pub async fn axum_setup(db_conn: DBPool, config: &Configuration) -> TiberiusResu
 
 pub async fn server_start(
     start_job_scheduler: bool,
-    start_jobs: bool,
     config: Configuration,
 ) -> TiberiusResult<()> {
     info!("Starting with config {:?}", config);
     let db_conn: DBPool = config.db_conn().await?;
     run_migrations(&config, db_conn.clone()).await?;
-    let job_runner = if start_jobs {
-        debug!("Starting job runner");
-        Some(tiberius_jobs::runner(db_conn.clone(), config.clone()))
-    } else {
-        None
-    };
     debug!("Configuring application server");
 
     let axum = axum_setup(db_conn.clone(), &config).await?;
@@ -129,8 +129,8 @@ pub async fn server_start(
         warn!("Rebuilding search index due to --rebuild-index-on-startup");
         let db_conn_c = db_conn.clone();
         let mut client = Client::new(db_conn_c, config.search_dir.as_ref());
-        tiberius_jobs::reindex_images::reindex_all(&db_conn, &mut client).await?;
-        tiberius_jobs::reindex_tags::reindex_all(&db_conn, &mut client).await?;
+        tiberius_jobs::reindex_images::reindex_all(&mut client).await?;
+        tiberius_jobs::reindex_tags::reindex_all(&mut client).await?;
         warn!("Index Rebuild complete");
     }
 
@@ -148,7 +148,6 @@ pub async fn server_start(
     let server = axum::Server::bind(&config.bind_to).serve(server);
     if start_job_scheduler {
         let scheduler = scheduler.unwrap();
-        let job_runner = job_runner.unwrap();
         tokio::select! {
             r = server => {
                 match r {
@@ -159,12 +158,6 @@ pub async fn server_start(
             r = scheduler => {
                 match r {
                     Ok(()) => error!("scheduler exited cleanly but unexpectedly"),
-                    Err(e) => error!("scheduler error exit: {}", e),
-                }
-            }
-            r = job_runner => {
-                match r {
-                    Ok(()) => error!("job runner exited cleanly but unexpectedly"),
                     Err(e) => error!("scheduler error exit: {}", e),
                 }
             }

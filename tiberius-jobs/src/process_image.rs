@@ -9,13 +9,12 @@ use tiberius_dependencies::serde_json;
 use tiberius_dependencies::sha2;
 use tiberius_dependencies::sqlx;
 use tiberius_dependencies::sqlx::{FromRow, Pool, Postgres};
-use tiberius_dependencies::sqlxmq;
-use tiberius_dependencies::sqlxmq::{job, Checkpoint, CurrentJob};
 use tiberius_dependencies::tokio;
 use tiberius_models::{Channel, Client, Image, ImageThumbType, Queryable};
 
 use crate::generate_thumbnails::make_thumb;
 use crate::SharedCtx;
+use crate::scheduler::CurrentJob;
 
 #[derive(serde::Deserialize, serde::Serialize, Clone, Debug)]
 pub struct ImageProcessConfig {
@@ -26,12 +25,11 @@ pub async fn process_image<'a, E: sqlx::Executor<'a, Database = sqlx::Postgres>>
     executor: E,
     ipc: ImageProcessConfig,
 ) -> TiberiusResult<()> {
-    run_job.builder().set_json(&ipc)?.spawn(executor).await?;
+    run_job(CurrentJob::default(), todo!()).await?;
     Ok(())
 }
 
 #[instrument(skip(current_job, sctx))]
-#[sqlxmq::job(retries = 3, backoff_secs = 10)]
 pub(crate) async fn run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
     sentry::configure_scope(|scope| {
         scope.clear();
@@ -56,20 +54,18 @@ pub(crate) async fn run_job(current_job: CurrentJob, sctx: SharedCtx) -> Tiberiu
 }
 
 #[instrument(skip(current_job, sctx))]
-async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
+async fn tx_run_job(current_job: CurrentJob, sctx: SharedCtx) -> TiberiusResult<()> {
     debug!("Job {}: Processing image", current_job.id());
     let start = std::time::Instant::now();
-    let pool = current_job.pool();
     let progress: ImageProcessConfig = current_job
-        .json()?
+        .data()?
         .expect("job requires configuration copy");
-    let mut client = sctx.client;
+    let mut client = sctx.client();
     let img = Image::get(&mut client, progress.image_id as i64).await?;
     let mut img = match img {
         Some(v) => v,
         None => {
             error!("Job {}: Failed: No Image", current_job.id());
-            current_job.complete().await?;
             return Ok(());
         }
     };
@@ -200,8 +196,7 @@ async fn tx_run_job(mut current_job: CurrentJob, sctx: SharedCtx) -> TiberiusRes
         image_ids: Some(vec![img.id as i64]),
         ..Default::default()
     };
-    crate::reindex_images::reindex_images(pool, reindex_config).await?;
-    current_job.complete().await?;
+    crate::reindex_images::reindex_images(&mut client, reindex_config).await?;
     let end = std::time::Instant::now();
     let time_spent = end - start;
     let time_spent = time_spent.as_secs_f32();

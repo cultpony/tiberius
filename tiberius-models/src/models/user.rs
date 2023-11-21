@@ -28,7 +28,6 @@ use crate::{Badge, BadgeAward, Client, Filter, PhilomenaModelError, UserToken};
     sqlx::Type, Debug, serde::Serialize, serde::Deserialize, Clone, PartialEq, Eq, Default,
 )]
 #[repr(transparent)]
-#[sqlx(rename = "citext")]
 pub struct CiText(String);
 
 impl From<CiText> for String {

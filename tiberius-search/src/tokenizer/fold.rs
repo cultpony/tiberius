@@ -86,7 +86,7 @@ pub(crate) fn fold_pass2(m: FoldStateVec) -> FoldStateVec {
         match token {
             FoldState::Raw(token) => {
                 if token.deref() == "AND" {
-                    if prev.deref() == " " {
+                    if prev == " " {
                         if let FoldState::Raw(q) = &m.0[(idx + 1).min(m.0.len())] {
                             if q.deref() == " " {
                                 out.pop();
@@ -96,7 +96,7 @@ pub(crate) fn fold_pass2(m: FoldStateVec) -> FoldStateVec {
                         }
                     }
                 } else if token.deref() == "OR" {
-                    if prev.deref() == " " {
+                    if prev == " " {
                         if let FoldState::Raw(q) = &m.0[(idx + 1).min(m.0.len())] {
                             if q.deref() == " " {
                                 out.pop();

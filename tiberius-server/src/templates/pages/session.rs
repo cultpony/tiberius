@@ -8,7 +8,7 @@ use tiberius_core::{
     session::{AuthMethod, Authenticated, SessionMode, Unauthenticated},
     state::{TiberiusRequestState, TiberiusState},
 };
-use tiberius_dependencies::axum_flash::Flash;
+use tiberius_dependencies::{axum_flash::Flash, time};
 use tiberius_models::{Client, User, UserLoginResult};
 
 use crate::{
@@ -134,9 +134,8 @@ pub async fn post_new_session(
                 session.set_user(&user);
                 let id = session.id();
                 debug!("Creating new session, persisting {} to DB", id);
-                rstate.db_session_mut().set_longterm(true);
-                rstate.db_session_mut().set_store(true);
-                rstate.push_session_update().await;
+                rstate.db_session_mut().set_expiration_time_from_max_age(time::Duration::DAY * 365);
+                rstate.push_session_update()?;
                 Ok((
                     flash.info("Login successfull!"),
                     Redirect::to(PathActivityIndex {}.to_uri().to_string().as_str()),
@@ -188,8 +187,8 @@ pub async fn get_destroy_session(
 ) -> TiberiusResult<(Flash, Redirect)> {
     let session = rstate.session_mut();
     session.unset_user();
-    rstate.push_session_update().await;
-    rstate.db_session_mut().destroy();
+    rstate.db_session_mut().clear();
+    rstate.push_session_update()?;
     Ok((
         flash.info("You have been logged out"),
         Redirect::to(PathActivityIndex {}.to_uri().to_string().as_str()),

@@ -14,18 +14,23 @@
     let
       toolchain = fenix.packages.${system}.stable.toolchain;
       pkgs = nixpkgs.legacyPackages.${system};
+      nodejs = pkgs.nodejs-18_x;
+      yarn = pkgs.yarn.override { nodejs = pkgs.nodejs-18_x; };
+      npm = pkgs.nodePackages.npm.override { nodejs = pkgs.nodejs-18_x; };
     in
     {
       devShells.default = pkgs.mkShell {
         nativeBuildInputs =
             [
               pkgs.cargo-nextest
-              pkgs.nodejs-14_x
+              nodejs
               pkgs.cargo-cross
               pkgs.sqlx-cli
               pkgs.mailhog # Required for testing SMTP
-              (pkgs.yarn.override { nodejs = pkgs.nodejs-14_x; })
-              (pkgs.nodePackages.npm.override { nodejs = pkgs.nodejs-14_x; })
+              yarn
+              npm
+              pkgs.python310
+              pkgs.python310Packages.gyp
               fenix.packages.${system}.stable.toolchain
             ];
       };
@@ -57,9 +62,9 @@
           };
 
           nativeBuildInputs = [
-              pkgs.nodejs-14_x
-              (pkgs.yarn.override { nodejs = pkgs.nodejs-14_x; })
-              (pkgs.nodePackages.npm.override { nodejs = pkgs.nodejs-14_x; })
+              nodejs npm yarn
+              pkgs.python310
+              pkgs.python310Packages.gyp
           ];
 
           # disable networked tests
