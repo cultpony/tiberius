@@ -142,9 +142,9 @@ checksum = "4b46cbb362ab8752921c97e041f5e366ee6297bd428a31275b9fcf1e380f7299"
 
 [[package]]
 name = "anstream"
-version = "0.6.4"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ab91ebe16eb252986481c5b62f6098f3b698a45e34b5b98200cf20dd2484a44"
+checksum = "b1f58811cfac344940f1a400b6e6231ce35171f614f26439e80f8c1465c5cc0c"
 dependencies = [
  "anstyle",
  "anstyle-parse",
@@ -180,9 +180,9 @@ dependencies = [
 
 [[package]]
 name = "anstyle-wincon"
-version = "3.0.1"
+version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0699d10d2f4d628a98ee7b57b289abbc98ff3bad977cb3152709d4bf2330628"
+checksum = "58f54d10c6dfa51283a066ceab3ec1ab78d13fae00aa49243a45e4571fb79dfd"
 dependencies = [
  "anstyle",
  "windows-sys 0.48.0",
@@ -935,7 +935,7 @@ dependencies = [
  "num-traits",
  "serde",
  "wasm-bindgen",
- "windows-targets 0.48.1",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -1490,10 +1490,11 @@ dependencies = [
 
 [[package]]
 name = "deranged"
-version = "0.3.8"
+version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2696e8a945f658fd14dc3b87242e6b80cd0f36ff04ea560fa39082368847946"
+checksum = "0f32d04922c60427da6f9fef14d042d9edddef64cb9d4ce0d64d0685fbeb1fd3"
 dependencies = [
+ "powerfmt",
  "serde",
 ]
 
@@ -2981,15 +2982,6 @@ checksum = "8f232d6ef707e1956a43342693d2a31e72989554d58299d7a88738cc95b0d35c"
 
 [[package]]
 name = "memmap2"
-version = "0.5.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83faa42c0a078c393f6b29d5db232d8be22776a891f8f56e5284faee4a20b327"
-dependencies = [
- "libc",
-]
-
-[[package]]
-name = "memmap2"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6d28bba84adfe6646737845bc5ebbfa2c08424eb1c37e94a1fd2a82adb56a872"
@@ -3044,30 +3036,6 @@ name = "moka"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8dc65d4615c08c8a13d91fd404b5a2a4485ba35b4091e3315cf8798d280c2f29"
-dependencies = [
- "async-lock",
- "async-trait",
- "crossbeam-channel",
- "crossbeam-epoch",
- "crossbeam-utils",
- "futures-util",
- "once_cell",
- "parking_lot 0.12.1",
- "quanta",
- "rustc_version 0.4.0",
- "skeptic",
- "smallvec",
- "tagptr",
- "thiserror",
- "triomphe",
- "uuid",
-]
-
-[[package]]
-name = "moka"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8017ec3548ffe7d4cef7ac0e12b044c01164a74c0f3119420faeaf13490ad8b"
 dependencies = [
  "async-lock",
  "async-trait",
@@ -3456,7 +3424,7 @@ version = "2.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c022f1e7b65d6a24c0dbbd5fb344c66881bc01f3e5ae74a1c8100f2f985d98a4"
 dependencies = [
- "memchr 2.6.4",
+ "memchr 2.6.3",
  "thiserror",
  "ucd-trie",
 ]
@@ -3685,6 +3653,12 @@ dependencies = [
  "opaque-debug",
  "universal-hash",
 ]
+
+[[package]]
+name = "powerfmt"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "439ee305def115ba05938db6eb1644ff94165c5ab5e9420d1c1bcedbba909391"
 
 [[package]]
 name = "ppv-lite86"
@@ -3921,7 +3895,7 @@ version = "1.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "697061221ea1b4a94a624f67d0ae2bfe4e22b8a17b6a192afb11046542cc8c47"
 dependencies = [
- "aho-corasick 1.0.3",
+ "aho-corasick 1.1.1",
  "memchr 2.6.3",
  "regex-automata 0.3.8",
  "regex-syntax 0.7.5",
@@ -3942,7 +3916,7 @@ version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2f401f4955220693b56f8ec66ee9c78abffd8d1c4f23dc41a23839eb88f0795"
 dependencies = [
- "aho-corasick 1.0.3",
+ "aho-corasick 1.1.1",
  "memchr 2.6.3",
  "regex-syntax 0.7.5",
 ]
@@ -4513,7 +4487,7 @@ dependencies = [
  "thiserror",
  "time",
  "url 2.4.1",
- "uuid 1.4.1",
+ "uuid",
 ]
 
 [[package]]
@@ -4886,7 +4860,7 @@ dependencies = [
  "itoa",
  "libc",
  "log",
- "md-5 0.10.5",
+ "md-5 0.10.6",
  "memchr 2.6.3",
  "once_cell",
  "paste",
@@ -4903,10 +4877,9 @@ dependencies = [
  "sqlx-rt",
  "stringprep",
  "thiserror",
- "time",
  "tokio-stream",
  "url 2.4.1",
- "uuid 1.4.1",
+ "uuid",
  "webpki-roots 0.22.6",
  "whoami",
 ]
@@ -4937,7 +4910,7 @@ dependencies = [
  "indexmap 2.0.2",
  "ipnetwork 0.20.0",
  "log",
- "memchr 2.6.4",
+ "memchr 2.6.3",
  "once_cell",
  "paste",
  "percent-encoding 2.3.0",
@@ -5035,7 +5008,97 @@ dependencies = [
  "sqlx-postgres",
  "sqlx-sqlite",
  "syn 1.0.109",
+ "tempfile",
+ "tokio",
  "url 2.4.1",
+]
+
+[[package]]
+name = "sqlx-mysql"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "864b869fdf56263f4c95c45483191ea0af340f9f3e3e7b4d57a61c7c87a970db"
+dependencies = [
+ "atoi 2.0.0",
+ "base64 0.21.4",
+ "bitflags 2.4.0",
+ "byteorder",
+ "bytes",
+ "chrono",
+ "crc",
+ "digest 0.10.7",
+ "dotenvy",
+ "either",
+ "futures-channel",
+ "futures-core",
+ "futures-io",
+ "futures-util",
+ "generic-array 0.14.7",
+ "hex",
+ "hkdf",
+ "hmac 0.12.1",
+ "itoa",
+ "log",
+ "md-5 0.10.6",
+ "memchr 2.6.3",
+ "once_cell",
+ "percent-encoding 2.3.0",
+ "rand",
+ "rsa",
+ "serde",
+ "sha1",
+ "sha2 0.10.8",
+ "smallvec",
+ "sqlx-core 0.7.2",
+ "stringprep",
+ "thiserror",
+ "time",
+ "tracing",
+ "uuid",
+ "whoami",
+]
+
+[[package]]
+name = "sqlx-postgres"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb7ae0e6a97fb3ba33b23ac2671a5ce6e3cabe003f451abd5a56e7951d975624"
+dependencies = [
+ "atoi 2.0.0",
+ "base64 0.21.4",
+ "bitflags 2.4.0",
+ "byteorder",
+ "chrono",
+ "crc",
+ "dotenvy",
+ "etcetera",
+ "futures-channel",
+ "futures-core",
+ "futures-io",
+ "futures-util",
+ "hex",
+ "hkdf",
+ "hmac 0.12.1",
+ "home",
+ "ipnetwork 0.20.0",
+ "itoa",
+ "log",
+ "md-5 0.10.6",
+ "memchr 2.6.3",
+ "once_cell",
+ "rand",
+ "serde",
+ "serde_json",
+ "sha1",
+ "sha2 0.10.8",
+ "smallvec",
+ "sqlx-core 0.7.2",
+ "stringprep",
+ "thiserror",
+ "time",
+ "tracing",
+ "uuid",
+ "whoami",
 ]
 
 [[package]]
@@ -5323,7 +5386,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "time",
- "uuid 1.4.1",
+ "uuid",
  "winapi 0.3.9",
 ]
 
@@ -5447,7 +5510,7 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "21bebf2b7c9e0a515f6e0f8c51dc0f8e4696391e6f1ff30379559f8365fb0df7"
 dependencies = [
- "rustix 0.38.7",
+ "rustix 0.38.15",
  "windows-sys 0.48.0",
 ]
 
@@ -5470,18 +5533,18 @@ checksum = "222a222a5bfe1bba4a77b45ec488a741b3cb8872e5e499451fd7d0129c9c7c3d"
 
 [[package]]
 name = "thiserror"
-version = "1.0.48"
+version = "1.0.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d6d7a740b8a666a7e828dd00da9c0dc290dff53154ea77ac109281de90589b7"
+checksum = "f9a7210f5c9a7156bb50aa36aed4c95afb51df0df00713949448cf9e97d382d2"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.48"
+version = "1.0.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "49922ecae66cc8a249b77e68d1d0623c1b2c514f0060c27cdc68bd62a1219d35"
+checksum = "266b2e40bc00e5a6c09c3584011e08b06f123c00362c92b975ba9843aaaa14b8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5618,7 +5681,7 @@ dependencies = [
  "lazy_static 1.4.0",
  "maud",
  "mime",
- "moka 0.11.3",
+ "moka",
  "new_mime_guess",
  "once_cell",
  "rand",
@@ -5648,7 +5711,7 @@ dependencies = [
  "tracing",
  "tracing-futures",
  "url 2.4.1",
- "uuid 1.4.1",
+ "uuid",
 ]
 
 [[package]]
@@ -5786,7 +5849,7 @@ dependencies = [
  "tracing-log",
  "tracing-subscriber",
  "url 2.4.1",
- "uuid 1.4.1",
+ "uuid",
 ]
 
 [[package]]
@@ -5802,12 +5865,13 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.25"
+version = "0.3.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0fdd63d58b18d663fbdf70e049f00a22c8e42be082203be7f26589213cd75ea"
+checksum = "c4a34ab300f2dee6e562c10a046fc05e358b29f9bf92277f30c3c8d82275f6f5"
 dependencies = [
  "deranged",
  "itoa",
+ "powerfmt",
  "serde",
  "time-core",
  "time-macros",
@@ -6033,7 +6097,7 @@ dependencies = [
  "async-trait",
  "axum-core",
  "http",
- "moka 0.12.1",
+ "moka",
  "parking_lot 0.12.1",
  "rmp-serde",
  "serde",
@@ -6235,10 +6299,10 @@ dependencies = [
  "base64 0.21.4",
  "log",
  "once_cell",
- "rustls 0.21.6",
- "rustls-webpki 0.100.2",
+ "rustls 0.21.7",
+ "rustls-webpki 0.101.6",
  "url 2.4.1",
- "webpki-roots 0.23.1",
+ "webpki-roots 0.25.2",
 ]
 
 [[package]]
