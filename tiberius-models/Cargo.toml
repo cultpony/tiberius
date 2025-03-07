@@ -27,7 +27,7 @@ tiberius-search = { path = "../tiberius-search" }
 tiberius-dependencies = { path = "../tiberius-dependencies" }
 tokio = { version = "1.32" }
 url = { version = "2.4", features = ["serde"] }
-ring = { version = "0.16.20", features = ["std"] }
+ring = { version = "0.17.12", features = ["std"] }
 anyhow = "1.0"
 tiberius-common-html = { path = "../tiberius-common-html" }
 maud = { version = "*", features = ["axum"] }
